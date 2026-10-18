@@ -1,0 +1,12 @@
+name: Build and smoke checks
+on: [push, pull_request]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build src/BingeX/BingeX.csproj -c Release
+      - run: dotnet run --project tests/BingeX.SmokeTests -c Release

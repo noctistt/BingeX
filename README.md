@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Planning and initial setup. No playable application or release is available yet.
+Early development preview. The initial desktop application includes local playback controls, local watch history, and an experimental Stremio add-on client. No production release is available yet.
 
 ## What we are building
 
@@ -40,7 +40,22 @@ Media support depends on the LibVLC build and included codecs; no player support
 
 ## Development
 
-A .NET SDK is required; installing only the .NET runtime is insufficient. Build instructions will be added with the first application scaffold.
+A .NET 10 SDK is required; installing only the .NET runtime is insufficient. The bundled native playback dependency currently targets Windows x64.
+
+```powershell
+dotnet build src/BingeX/BingeX.csproj -c Release
+dotnet run --project src/BingeX/BingeX.csproj
+```
+
+You can also use `./run.ps1`, or pass a workspace SDK with `./run.ps1 -DotnetPath 'path/to/dotnet.exe'`.
+
+Run persistence and protocol smoke checks with `dotnet run --project tests/BingeX.SmokeTests`. Optionally append `-- --live-addon` to check the public Cinemeta catalog, or append `-- 'path/to/test-video.avi'` to test native decoding, pause, and seeking with a known seekable clip.
+
+Open media using **Open media** or pass a local filename as a command-line argument. In the Player page, Space toggles pause, Left/Right skip ten seconds, F toggles fullscreen, and Escape exits fullscreen. Volume, seeking, speed, and external subtitle files have visible controls.
+
+Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDATA%/BingeX/library.db`. Configured manifest URLs can contain provider tokens: treat this database as private. Remote playback URLs are not saved to watch history.
+
+The add-on preview supports HTTPS manifests, basic catalogs, series episode metadata, and direct HTTP(S) streams. Poster artwork, search/pagination, add-on subtitles, manifest resource filtering, concurrent stream lookup, torrent streaming, custom request headers, and remote watch history are not implemented yet. Windows file associations and installers are also planned work.
 
 ## License
 
