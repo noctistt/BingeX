@@ -15,6 +15,7 @@ try
         var context = new MediaContext("tt123", "series", "A Show", "https://example.com/poster.jpg", "test.provider", "tt123:2:3", "Episode 3");
         store.SaveContext(context);
         store.Save(new(context.HistoryKey, context.DisplayName, 15000, 90000));
+        store.SavePreferences(new(42, 36, "Yellow", false));
     }
     using (var store = new LibraryStore(directory))
     {
@@ -22,9 +23,12 @@ try
         Assert(store.History().Any(x => x.Title == "O'Brien"), "Titles containing quotes must round-trip.");
         var context = store.Context("stremio:series:tt123:2:3");
         Assert(context?.EpisodeId == "tt123:2:3" && context.AddonId == "test.provider", "Remote resume must use stable episode identity without storing a playback URL.");
+        Assert(store.Preferences() == new PlayerPreferences(42, 36, "Yellow", false), "Player volume and subtitle appearance must survive reopening.");
         Assert(store.Addons().Count == 1, "Installed add-ons must survive reopening.");
         store.RemoveAddon("test.provider");
         Assert(store.Addons().Count == 0, "Removed add-ons must not remain installed.");
+        for (var i = 0; i < 35; i++) store.Save(new("older-test-" + i, "Other title", 1000, 60000));
+        Assert(store.History().Count == 30 && store.FindHistory("C:\\media\\O'Brien.mkv")?.Position == 22000, "Resume lookup must find files outside the recent-library display limit.");
     }
     var endpoint = AddonClient.Endpoint("https://example.com/config/manifest.json?key=abc", "stream", "series", "tt123:1:2");
     Assert(endpoint == "https://example.com/config/stream/series/tt123%3A1%3A2.json?key=abc", "Episode IDs and configuration query must survive URL construction.");
@@ -32,6 +36,18 @@ try
     var rejected = false;
     try { await client.Get("file:///private.json"); } catch (InvalidOperationException) { rejected = true; }
     Assert(rejected, "Manifest client must reject non-HTTPS URLs.");
+    var subtitles = SubtitleDocument.Parse("\uFEFF1\r\n00:00:01,000 --> 00:00:10,000\r\n<i>Long cue</i> &amp; text\r\n\r\n2\r\n00:00:02,000 --> 00:00:03,000\r\nSecond line\r\n\r\n");
+    Assert(subtitles.TextAt(1000, 0) == "Long cue & text", "SRT cues must start inclusively and remove display markup.");
+    Assert(subtitles.TextAt(2500, 0) == "Long cue & text\nSecond line", "Overlapping subtitle cues must remain visible together.");
+    Assert(subtitles.TextAt(9000, 0) == "Long cue & text", "A short cue ending must not hide an earlier long cue.");
+    Assert(subtitles.TextAt(10000, 0) == "", "Subtitle end times must be exclusive.");
+    Assert(subtitles.TextAt(1000, 500) == "" && subtitles.TextAt(1500, 500) == "Long cue & text", "Positive delay must show subtitles later.");
+    var vtt = SubtitleDocument.Parse("WEBVTT\n\ncue-name\n00:02.500 --> 00:04.000 align:start\n<c.yellow>Hello</c>\nworld\n\n");
+    Assert(vtt.TextAt(2000, -500) == "Hello\nworld", "WebVTT identifiers, settings, multiline text, and negative delay must work.");
+    Assert(PlaybackPolicy.ResumeTarget(800, 1000) == 800 && PlaybackPolicy.ResumeTarget(999, 1000) == 0, "Short clips must resume before their completion margin.");
+    Assert(PlaybackPolicy.ResumeTarget(20000, 60000) == 20000 && PlaybackPolicy.ResumeTarget(60000, 60000) == 0, "Completed videos must replay from the start.");
+    Assert(PlaybackPolicy.SeekTarget(3000, -10000, 60000) == 0 && PlaybackPolicy.SeekTarget(59000, 10000, 60000) == 60000, "Skipping must stay inside media bounds.");
+    Console.WriteLine("PASS: SRT/VTT parsing, overlapping cues, subtitle offsets, persisted appearance, short-clip resume, completion, bounded seeking.");
     var searchUrl = AddonClient.Endpoint("https://example.com/config/manifest.json?key=abc", "catalog", "movie", "top", new Dictionary<string, string> { ["search"] = "a/b & c" });
     Assert(searchUrl.Contains("/search=a%2Fb%20%26%20c.json?key=abc"), "Search text must stay encoded in its own path segment.");
     using var fixture = JsonDocument.Parse("""
@@ -89,20 +105,42 @@ try
     var videoPath = args.FirstOrDefault(File.Exists);
     if (videoPath != null)
     {
+        // The headless host has no UI renderer holding D3D11 alive. Some GPU drivers
+        // retain worker callbacks after LibVLC releases its last graphics reference.
+        if (OperatingSystem.IsWindows()) System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(Environment.SystemDirectory, "d3d11.dll"));
         Core.Initialize();
-        using var engine = new LibVLC("--vout=dummy", "--aout=dummy", "--no-video-title-show");
+        using var engine = new LibVLC("--vout=dummy", "--aout=dummy", "--no-video-title-show", "--avcodec-hw=none");
         using var player = new MediaPlayer(engine);
         using var media = new Media(engine, new Uri(Path.GetFullPath(videoPath)));
         Assert(player.Play(media), "Native playback must start.");
         for (var attempt = 0; attempt < 40 && (player.Length <= 0 || player.Time < 500); attempt++) await Task.Delay(250);
         Assert(player.IsPlaying && player.Length > 0 && player.Time > 0, "Native decoder must advance and report duration.");
+        if (args.Contains("--multitrack"))
+        {
+            var audioTracks = player.AudioTrackDescription.Where(x => x.Id >= 0).ToArray();
+            var subtitleTracks = player.SpuDescription.Where(x => x.Id >= 0).ToArray();
+            Assert(audioTracks.Length >= 2 && subtitleTracks.Length >= 1, "The multitrack fixture must expose audio and subtitle tracks.");
+            Assert(player.SetAudioTrack(audioTracks[1].Id), "A second embedded audio track must be selectable.");
+            await Task.Delay(700);
+            Assert(player.AudioTrack == audioTracks[1].Id, "The chosen audio track must become active.");
+            Assert(player.SetSpu(subtitleTracks[0].Id), "An embedded subtitle track must be selectable.");
+            await Task.Delay(700);
+            Assert(player.Spu == subtitleTracks[0].Id, "The chosen subtitle track must become active.");
+            Assert(player.SetSpuDelay(500000) && player.SpuDelay == 500000, "Native subtitle delay must accept half a second in microseconds.");
+            Assert(player.SetSpu(-1), "Embedded subtitles must be switchable off for custom text rendering.");
+            await Task.Delay(700);
+            Console.WriteLine("PASS: embedded audio/subtitle enumeration, track switching, native subtitle timing, subtitle off.");
+        }
+        Console.WriteLine("Native test: pausing");
         player.SetPause(true);
         await Task.Delay(300);
         Assert(player.State == VLCState.Paused, "Playback must pause.");
+        Console.WriteLine("Native test: seeking while paused");
         player.Time = 20000;
         player.SetPause(false);
         await Task.Delay(700);
         Assert(player.Time >= 19000, "Seek must move playback to the requested position.");
+        Console.WriteLine("Native test: stopping");
         player.Stop();
         Console.WriteLine("PASS: native LibVLC decoding, duration, pause, seek, and stop.");
     }

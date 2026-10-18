@@ -24,6 +24,7 @@ public sealed class LibraryStore : IDisposable
             CREATE TABLE IF NOT EXISTS history(path TEXT PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL, duration INTEGER NOT NULL, updated TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS addons(id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS media_context(path TEXT PRIMARY KEY, context TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS preferences(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             """;
         command.ExecuteNonQuery();
     }
@@ -58,6 +59,14 @@ public sealed class LibraryStore : IDisposable
         command.Parameters.AddWithValue("$context", JsonSerializer.Serialize(context));
         command.ExecuteNonQuery();
     }
+    public RecentMedia? FindHistory(string key)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT path,title,position,duration FROM history WHERE path=$path";
+        command.Parameters.AddWithValue("$path", key);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? new(reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetInt64(3)) : null;
+    }
     public MediaContext? Context(string key)
     {
         using var command = connection.CreateCommand();
@@ -72,6 +81,30 @@ public sealed class LibraryStore : IDisposable
         var directory = Path.Combine(DataDirectory, "thumbnails");
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path))) + ".png");
+    }
+
+    public PlayerPreferences Preferences()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT value FROM preferences WHERE key='player'";
+        try
+        {
+            var preferences = JsonSerializer.Deserialize<PlayerPreferences>(command.ExecuteScalar() as string ?? "{}");
+            return preferences == null ? new() : preferences with
+            {
+                Volume = Math.Clamp(preferences.Volume, 0, 100),
+                SubtitleSize = new[] { 20, 28, 36, 44 }.Contains(preferences.SubtitleSize) ? preferences.SubtitleSize : 28,
+                SubtitleColor = new[] { "White", "Yellow", "Mint" }.Contains(preferences.SubtitleColor) ? preferences.SubtitleColor : "White"
+            };
+        }
+        catch (JsonException) { return new(); }
+    }
+    public void SavePreferences(PlayerPreferences preferences)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR REPLACE INTO preferences VALUES('player',$value)";
+        command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(preferences));
+        command.ExecuteNonQuery();
     }
 
     public void Install(InstalledAddon addon)

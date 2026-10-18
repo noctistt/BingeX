@@ -3,8 +3,8 @@
         xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
         x:Class="BingeX.MainWindow" Title="BingeX" Width="1240" Height="820"
         MinWidth="960" MinHeight="680" Background="#101018">
-  <Grid ColumnDefinitions="205,*" RowDefinitions="*,Auto">
-    <Border Background="#161620" Padding="22,30" Grid.RowSpan="2">
+  <Grid x:Name="RootLayout" ColumnDefinitions="205,*" RowDefinitions="*,Auto">
+    <Border x:Name="Sidebar" Background="#161620" Padding="22,30" Grid.RowSpan="2">
       <StackPanel Spacing="16">
         <TextBlock Text="BingeX" FontSize="30" FontWeight="Bold" Foreground="#B69AFF" />
         <TextBlock Text="YOUR NEXT GREAT WATCH" FontSize="9" LetterSpacing="1" Classes="muted" Margin="0,0,0,28" />
@@ -13,11 +13,11 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.2" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.3" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
-    <Grid Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
-      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+    <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
+      <Grid x:Name="PageHeader" ColumnDefinitions="*,Auto" Margin="0,0,0,22">
         <StackPanel>
           <TextBlock x:Name="PageTitle" Text="Your library" FontSize="27" FontWeight="SemiBold" />
           <TextBlock Text="Something worth pressing play for." Classes="muted" Margin="0,5,0,0" />
@@ -99,27 +99,70 @@
           <StackPanel x:Name="StreamItems" Spacing="10" />
         </StackPanel>
       </ScrollViewer>
-      <Grid x:Name="PlayerPage" Grid.Row="1" IsVisible="False" RowDefinitions="*,Auto,Auto">
-        <Border Background="Black" CornerRadius="12" ClipToBounds="True">
-          <vlc:VideoView x:Name="VideoSurface" />
+      <Grid x:Name="PlayerPage" Grid.Row="1" IsVisible="False">
+        <Border x:Name="VideoFrame" Background="Black" CornerRadius="12" ClipToBounds="True">
+          <vlc:VideoView x:Name="VideoSurface" IsVisible="False">
+            <Grid x:Name="PlayerOverlay" Background="Transparent" Focusable="True">
+              <StackPanel x:Name="PlayerEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" IsHitTestVisible="False">
+                <TextBlock Text="Ready when you are." FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="Open a video or drop a file here to start watching." Foreground="#B5AFC6" HorizontalAlignment="Center" />
+              </StackPanel>
+              <Border x:Name="CaptionPanel" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="32,0,32,180" Padding="14,6" CornerRadius="6" IsVisible="False" IsHitTestVisible="False" MaxWidth="1100">
+                <TextBlock x:Name="CaptionText" FontSize="28" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" MaxLines="8">
+                  <TextBlock.Effect><DropShadowEffect BlurRadius="4" Color="Black" OffsetX="0" OffsetY="2" /></TextBlock.Effect>
+                </TextBlock>
+              </Border>
+              <Border x:Name="PlaybackNotice" Background="#DD201A30" CornerRadius="10" Padding="18,10" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20" IsVisible="False" IsHitTestVisible="False">
+                <TextBlock x:Name="PlaybackNoticeText" TextWrapping="Wrap" />
+              </Border>
+              <Border x:Name="PlayerControls" VerticalAlignment="Bottom" Padding="18,28,18,16">
+                <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#00101018" Offset="0" /><GradientStop Color="#F0101018" Offset="0.25" /><GradientStop Color="#FA101018" Offset="1" /></LinearGradientBrush></Border.Background>
+                <StackPanel Spacing="8">
+                  <TextBlock x:Name="NowPlaying" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                  <Slider x:Name="SeekBar" Minimum="0" Maximum="1000" Value="0" />
+                  <TextBlock x:Name="TimeLabel" Text="00:00 / --:--" Foreground="#BBB5CC" FontSize="12" />
+                  <WrapPanel>
+                    <Button x:Name="PlayButton" Content="Play" Click="Play_Click" Margin="0,0,8,6" />
+                    <Button Content="−10s" Click="Back_Click" Margin="0,0,8,6" />
+                    <Button Content="+10s" Click="Forward_Click" Margin="0,0,8,6" />
+                    <Button x:Name="FullscreenButton" Content="Fullscreen" Click="Fullscreen_Click" Margin="0,0,8,6" />
+                    <Button Content="Tracks &amp; subtitles" Click="Settings_Click" Margin="0,0,8,6" />
+                    <ComboBox x:Name="SpeedBox" SelectedIndex="2" Width="85" Margin="0,0,8,6">
+                      <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
+                    </ComboBox>
+                    <Button x:Name="MuteButton" Content="Mute" Click="Mute_Click" Margin="0,0,2,6" />
+                    <Slider x:Name="VolumeBar" Minimum="0" Maximum="100" Value="80" Width="90" Margin="0,0,8,6" />
+                    <Button Content="Open file" Click="Open_Click" Margin="0,0,0,6" />
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,190" HorizontalAlignment="Right" Padding="18">
+                <ScrollViewer>
+                  <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Tracks &amp; subtitles" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="1" Content="Close" Click="Settings_Click" /></Grid>
+                    <TextBlock Text="Audio track" Foreground="#BFB5D1" />
+                    <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
+                    <TextBlock Text="Subtitle track" Foreground="#BFB5D1" />
+                    <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" />
+                    <Button Content="Load subtitle file…" Click="Subtitle_Click" HorizontalAlignment="Left" />
+                    <TextBlock Text="Subtitle delay (seconds)" Foreground="#BFB5D1" />
+                    <NumericUpDown x:Name="SubtitleDelayInput" Minimum="-300" Maximum="300" Increment="0.05" FormatString="0.00" Value="0" ValueChanged="SubtitleDelayChanged" />
+                    <TextBlock Text="Positive = later · Negative = earlier" FontSize="11" Foreground="#9E95B0" />
+                    <TextBlock Text="Text subtitle appearance" FontSize="16" FontWeight="SemiBold" Margin="0,6,0,0" />
+                    <TextBlock Text="For external SRT / VTT files. Embedded tracks keep their original styling." FontSize="11" Foreground="#AAA0BA" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,*">
+                      <StackPanel Spacing="6" Margin="0,0,8,0"><TextBlock Text="Size" /><ComboBox x:Name="SubtitleSizePicker" HorizontalAlignment="Stretch" SelectedIndex="1" SelectionChanged="SubtitleStyleChanged"><ComboBoxItem Content="Small" /><ComboBoxItem Content="Medium" /><ComboBoxItem Content="Large" /><ComboBoxItem Content="Extra large" /></ComboBox></StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="Color" /><ComboBox x:Name="SubtitleColorPicker" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SubtitleStyleChanged"><ComboBoxItem Content="White" /><ComboBoxItem Content="Yellow" /><ComboBoxItem Content="Mint" /></ComboBox></StackPanel>
+                    </Grid>
+                    <CheckBox x:Name="SubtitleBackgroundCheck" Content="Dark background" IsChecked="True" IsCheckedChanged="SubtitleBackgroundChanged" />
+                    <TextBlock Text="Space: pause · F: fullscreen · M: mute
+G / H: subtitles earlier / later" FontSize="11" Foreground="#9E95B0" TextWrapping="Wrap" />
+                  </StackPanel>
+                </ScrollViewer>
+              </Border>
+            </Grid>
+          </vlc:VideoView>
         </Border>
-        <StackPanel Grid.Row="1" Margin="0,14,0,8" Spacing="6">
-          <TextBlock x:Name="NowPlaying" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
-          <Slider x:Name="SeekBar" Minimum="0" Maximum="1000" Value="0" />
-          <TextBlock x:Name="TimeLabel" Text="00:00 / 00:00" Classes="muted" />
-        </StackPanel>
-        <WrapPanel Grid.Row="2">
-          <Button x:Name="PlayButton" Content="Play / Pause" Click="Play_Click" Margin="0,0,8,0" />
-          <Button Content="−10s" Click="Back_Click" Margin="0,0,8,0" />
-          <Button Content="+10s" Click="Forward_Click" Margin="0,0,8,0" />
-          <Button Content="Fullscreen" Click="Fullscreen_Click" Margin="0,0,8,0" />
-          <Button Content="Subtitle file" Click="Subtitle_Click" Margin="0,0,8,0" />
-          <ComboBox x:Name="SpeedBox" SelectedIndex="2" Width="85" Margin="0,0,12,0">
-            <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
-          </ComboBox>
-          <TextBlock Text="Volume" VerticalAlignment="Center" Classes="muted" />
-          <Slider x:Name="VolumeBar" Minimum="0" Maximum="100" Value="80" Width="100" />
-        </WrapPanel>
       </Grid>
       <ScrollViewer x:Name="AddonsPage" Grid.Row="1" IsVisible="False">
         <StackPanel Spacing="16">
@@ -136,7 +179,7 @@
         </StackPanel>
       </ScrollViewer>
     </Grid>
-    <Border Grid.Column="1" Grid.Row="1" Background="#191923" Padding="24,10">
+    <Border x:Name="StatusFooter" Grid.Column="1" Grid.Row="1" Background="#191923" Padding="24,10">
       <TextBlock x:Name="StatusLabel" Text="Ready • Open a local video to begin" Classes="muted" TextWrapping="Wrap" />
     </Border>
   </Grid>

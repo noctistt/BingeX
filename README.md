@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.2. The desktop app includes a poster library, searchable add-on catalogs, movie and series detail pages, season/episode selection, source selection, and local playback. No production release is available yet.
+Early development preview 0.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -51,7 +51,24 @@ You can also use `./run.ps1`, or pass a workspace SDK with `./run.ps1 -DotnetPat
 
 Run persistence and protocol smoke checks with `dotnet run --project tests/BingeX.SmokeTests`. Optionally append `-- --live-addon` to check the public Cinemeta catalog, or append `-- 'path/to/test-video.avi'` to test native decoding, pause, and seeking with a known seekable clip.
 
-Open media using **Open media** or pass a local filename as a command-line argument. In the Player page, Space toggles pause, Left/Right skip ten seconds, F toggles fullscreen, and Escape exits fullscreen. Volume, seeking, speed, and external subtitle files have visible controls.
+Open media using **Open media**, drag a local file onto the app, or pass a filename as a command-line argument. Dropping a subtitle file loads it into the current video; dropping media and subtitles together opens the first media file with the first subtitle file.
+
+### Player controls
+
+- **Tracks & subtitles** selects embedded audio and subtitle tracks, switches subtitles off, and loads external files.
+- External **SRT / WebVTT** captions support live size, color, background, and timing changes. Embedded and ASS/SSA/image subtitle tracks retain their native styling. Subtitle delay applies to both native tracks and custom text captions; positive delay shows captions later.
+- Fullscreen removes the sidebar and page chrome. Controls and the pointer hide after three idle seconds while playing, and return on mouse movement. Controls stay visible when paused, finished, or interacting with settings.
+- Space toggles pause or replays a completed video; Left/Right skip ten seconds; F/F11 toggles fullscreen; S opens track/subtitle settings; M toggles mute; G/H shifts subtitles earlier/later by 50 ms. Escape closes settings first, then exits fullscreen. Double-clicking the video also toggles fullscreen.
+- Volume and text subtitle appearance persist between sessions. Per-video subtitle delay resets for a new file.
+- Resume uses stable local paths or catalog/episode IDs. Completed videos restart from the beginning, short clips use a proportional completion margin, and non-seekable streams play from the start.
+
+To open a video with an external subtitle file from the command line:
+
+```powershell
+dotnet run --project src/BingeX/BingeX.csproj -- 'C:/media/video.mkv' --subtitle 'C:/media/subtitles.srt'
+```
+
+For isolated development checks, set `BINGEX_DATA_DIRECTORY` to a separate writable data folder before launching.
 
 Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDATA%/BingeX/library.db`. Configured manifest URLs can contain provider tokens: treat this database as private. Remote playback URLs are not saved to watch history. Streamed titles and episodes use stable media IDs so Continue Watching can find fresh sources before resuming. Local video thumbnails are stored in the adjacent `thumbnails` folder.
 

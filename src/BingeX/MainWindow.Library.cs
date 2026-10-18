@@ -280,7 +280,7 @@ public partial class MainWindow
     private void RefreshHistory()
     {
         HistoryItems.Children.Clear();
-        var history = store.History().Where(x => x.Position > 0 && (x.Duration <= 0 || x.Position < x.Duration - 10000)).ToArray();
+        var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration)).ToArray();
         EmptyHistory.IsVisible = history.Length == 0;
         HistorySection.IsVisible = history.Length > 0 || store.Addons().Count == 0;
         foreach (var media in history)

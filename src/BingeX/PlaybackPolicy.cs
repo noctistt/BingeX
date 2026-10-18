@@ -1,0 +1,15 @@
+namespace BingeX;
+
+public static class PlaybackPolicy
+{
+    public static bool IsIncomplete(long position, long duration) => position > 0 &&
+        (duration <= 0 || position < duration - Math.Min(10000, Math.Max(1, duration / 20)));
+
+    public static long ResumeTarget(long savedPosition, long duration) =>
+        duration > 0 && IsIncomplete(savedPosition, duration) ? Math.Clamp(savedPosition, 0, duration) : 0;
+
+    public static long SeekTarget(long time, long delta, long duration) =>
+        Math.Clamp(time + delta, 0, Math.Max(0, duration));
+}
+
+public record PlayerPreferences(int Volume = 80, int SubtitleSize = 28, string SubtitleColor = "White", bool SubtitleBackground = true);
