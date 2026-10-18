@@ -10,6 +10,9 @@
       <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Button.primary"><Setter Property="Background" Value="#8B5CF6" /><Setter Property="Foreground" Value="White" /></Style>
+    <Style Selector="Button.poster:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#252035" /></Style>
+    <Style Selector="Button.nav"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#A9A3BC" /><Setter Property="HorizontalContentAlignment" Value="Left" /></Style>
+    <Style Selector="Button.nav.active"><Setter Property="Background" Value="#302445" /><Setter Property="Foreground" Value="#D5C5FF" /></Style>
     <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#999BAF" /></Style>
   </Application.Styles>
 </Application>

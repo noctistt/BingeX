@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview. The initial desktop application includes local playback controls, local watch history, and an experimental Stremio add-on client. No production release is available yet.
+Early development preview 0.2. The desktop app includes a poster library, searchable add-on catalogs, movie and series detail pages, season/episode selection, source selection, and local playback. No production release is available yet.
 
 ## What we are building
 
@@ -23,7 +23,7 @@ Early development preview. The initial desktop application includes local playba
 - **SQLite** for local library and playback state.
 - **HTTP / JSON** for the Stremio add-on protocol.
 
-The first playback prototype will validate Avalonia video embedding, fullscreen behavior, and controls before the architecture is finalized.
+The playback prototype has verified native video rendering, pause, duration, and seeking. The visual library builds on that foundation.
 
 ## First milestones
 
@@ -53,9 +53,18 @@ Run persistence and protocol smoke checks with `dotnet run --project tests/Binge
 
 Open media using **Open media** or pass a local filename as a command-line argument. In the Player page, Space toggles pause, Left/Right skip ten seconds, F toggles fullscreen, and Escape exits fullscreen. Volume, seeking, speed, and external subtitle files have visible controls.
 
-Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDATA%/BingeX/library.db`. Configured manifest URLs can contain provider tokens: treat this database as private. Remote playback URLs are not saved to watch history.
+Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDATA%/BingeX/library.db`. Configured manifest URLs can contain provider tokens: treat this database as private. Remote playback URLs are not saved to watch history. Streamed titles and episodes use stable media IDs so Continue Watching can find fresh sources before resuming. Local video thumbnails are stored in the adjacent `thumbnails` folder.
 
-The add-on preview supports HTTPS manifests, basic catalogs, series episode metadata, and direct HTTP(S) streams. Poster artwork, search/pagination, add-on subtitles, manifest resource filtering, concurrent stream lookup, torrent streaming, custom request headers, and remote watch history are not implemented yet. Windows file associations and installers are also planned work.
+## Browsing and add-ons
+
+- Use **Connect movie catalog** to install Cinemeta, or install a configured HTTPS manifest in **Add-ons**.
+- Pick an installed catalog to browse posters. **Search** queries catalogs that declare search support, across both movies and series. Results are deduplicated by media type and ID.
+- Open a poster for the synopsis, release information, genres, and rating when provided. Series have a season picker and episode cards.
+- **Find streams** queries compatible installed providers concurrently. Direct HTTP(S) sources can play; unsupported sources show an explanation. Cinemeta supplies metadata, not playable movies.
+- Navigation cancels stale requests. Provider failures leave healthy results available, and loading, empty, and retry states are shown separately.
+- Continue Watching shows local thumbnails or provider posters with saved progress. Streamed items ask for a new source before resuming, so expired playback links are not reused.
+
+Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, add-on subtitles, torrent streaming, custom request headers, favorites, Windows file associations, and installers are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
 
 ## License
 

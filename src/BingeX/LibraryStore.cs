@@ -1,4 +1,7 @@
 using Microsoft.Data.Sqlite;
+using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace BingeX;
 
@@ -8,16 +11,19 @@ public record InstalledAddon(string Id, string Name, string ManifestUrl);
 public sealed class LibraryStore : IDisposable
 {
     private readonly SqliteConnection connection;
+    public string DataDirectory { get; }
     public LibraryStore(string? dataDirectory = null)
     {
         var directory = dataDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BingeX");
         Directory.CreateDirectory(directory);
+        DataDirectory = directory;
         connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "library.db") }.ToString());
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS history(path TEXT PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL, duration INTEGER NOT NULL, updated TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS addons(id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS media_context(path TEXT PRIMARY KEY, context TEXT NOT NULL);
             """;
         command.ExecuteNonQuery();
     }
@@ -42,6 +48,30 @@ public sealed class LibraryStore : IDisposable
         var result = new List<RecentMedia>();
         while (reader.Read()) result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetInt64(2), reader.GetInt64(3)));
         return result;
+    }
+
+    public void SaveContext(MediaContext context)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR REPLACE INTO media_context VALUES($path,$context)";
+        command.Parameters.AddWithValue("$path", context.HistoryKey);
+        command.Parameters.AddWithValue("$context", JsonSerializer.Serialize(context));
+        command.ExecuteNonQuery();
+    }
+    public MediaContext? Context(string key)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT context FROM media_context WHERE path=$path";
+        command.Parameters.AddWithValue("$path", key);
+        var json = command.ExecuteScalar() as string;
+        try { return json == null ? null : JsonSerializer.Deserialize<MediaContext>(json); }
+        catch (JsonException) { return null; }
+    }
+    public string ThumbnailPath(string path)
+    {
+        var directory = Path.Combine(DataDirectory, "thumbnails");
+        Directory.CreateDirectory(directory);
+        return Path.Combine(directory, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path))) + ".png");
     }
 
     public void Install(InstalledAddon addon)
