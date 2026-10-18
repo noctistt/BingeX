@@ -31,6 +31,8 @@ public partial class MainWindow
     private int lastNonzeroVolume = 80;
     private long mediaGeneration;
     private string trackSignature = "";
+    private bool subtitleSettingsOpen;
+    private int? lastSubtitleTrack;
     private record TrackOption(int Id, string Name) { public override string ToString() => Name; }
     private const int TextSubtitleId = int.MinValue;
 
@@ -78,7 +80,7 @@ public partial class MainWindow
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
         if (!preserveSubtitles)
         {
-            textSubtitles = null; textSubtitleName = null; useTextSubtitles = false;
+            textSubtitles = null; textSubtitleName = null; useTextSubtitles = false; lastSubtitleTrack = null;
             subtitleDelayMs = 0; SubtitleDelayInput.Value = 0;
         }
         CaptionPanel.IsVisible = false;
@@ -172,10 +174,44 @@ public partial class MainWindow
             : "M 3,9 L 3,3 L 9,3 M 15,3 L 21,3 L 21,9 M 21,15 L 21,21 L 15,21 M 9,21 L 3,21 L 3,15");
         DescribeButton(FullscreenButton, full ? "Exit fullscreen" : "Fullscreen", "F");
     }
-    private void Settings_Click(object? sender, RoutedEventArgs e)
+    private void Settings_Click(object? sender, RoutedEventArgs e) => ShowPlayerSettings(false);
+    private void Captions_Click(object? sender, RoutedEventArgs e) => ShowPlayerSettings(true);
+    private void CloseSettings_Click(object? sender, RoutedEventArgs e)
     {
-        PlayerSettingsPanel.IsVisible = !PlayerSettingsPanel.IsVisible;
-        if (PlayerSettingsPanel.IsVisible) { RefreshTracks(); SettingsScroll.Offset = new Vector(0, 0); }
+        PlayerSettingsPanel.IsVisible = false;
+        RevealPlayerControls();
+        PlayerOverlay.Focus();
+    }
+    private void ShowPlayerSettings(bool subtitles)
+    {
+        var show = !PlayerSettingsPanel.IsVisible || subtitleSettingsOpen != subtitles;
+        subtitleSettingsOpen = subtitles;
+        PlaybackSettingsSection.IsVisible = !subtitles;
+        SubtitleSettingsSection.IsVisible = subtitles;
+        PlayerSettingsTitle.Text = subtitles ? "Subtitles" : "Playback settings";
+        PlayerSettingsPanel.IsVisible = show;
+        if (show) { RefreshTracks(); SettingsScroll.Offset = new Vector(0, 0); }
+        RevealPlayerControls();
+    }
+    private void ToggleSubtitles()
+    {
+        if (player == null || currentPath == null) { PlayerNotice("Open a video before enabling subtitles."); return; }
+        RefreshTracks();
+        var tracks = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.ToArray() ?? [];
+        var current = useTextSubtitles ? TextSubtitleId : player.Spu;
+        TrackOption? next;
+        if (current != -1)
+        {
+            lastSubtitleTrack = current;
+            next = tracks.FirstOrDefault(x => x.Id == -1);
+        }
+        else
+        {
+            next = tracks.FirstOrDefault(x => x.Id == lastSubtitleTrack && x.Id != -1)
+                ?? tracks.FirstOrDefault(x => x.Id != -1);
+        }
+        if (next == null) { PlayerNotice("No subtitles available. Use CC to load a subtitle file."); return; }
+        SubtitleTrackPicker.SelectedItem = next;
         RevealPlayerControls();
     }
     private static void DescribeButton(Button button, string label, string shortcut)
@@ -202,14 +238,6 @@ public partial class MainWindow
             ? "M 3,9 L 7,9 L 12,4 L 12,20 L 7,15 L 3,15 Z M 16,9 L 22,15 M 22,9 L 16,15"
             : "M 3,9 L 7,9 L 12,4 L 12,20 L 7,15 L 3,15 Z M 16,8 Q 20,12 16,16 M 19,4 Q 26,12 19,20");
         DescribeButton(MuteButton, volume == 0 ? "Unmute" : "Mute", "M");
-    }
-    private void Captions_Click(object? sender, RoutedEventArgs e)
-    {
-        PlayerSettingsPanel.IsVisible = true;
-        RefreshTracks();
-        // Wait for the newly visible panel to measure before scrolling to its track controls.
-        Dispatcher.UIThread.Post(() => AudioSettingsHeading.BringIntoView(), DispatcherPriority.Loaded);
-        RevealPlayerControls();
     }
     private void RefreshTracks()
     {
@@ -244,6 +272,7 @@ public partial class MainWindow
     private void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (updatingTracks || player == null || SubtitleTrackPicker.SelectedItem is not TrackOption track) return;
+        if (track.Id != -1) lastSubtitleTrack = track.Id;
         useTextSubtitles = track.Id == TextSubtitleId;
         if (useTextSubtitles)
         {
@@ -359,7 +388,7 @@ public partial class MainWindow
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || activePage != "Player") return;
+        if (e.Handled || activePage != "Player" || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0) return;
         var ancestors = e.Source is Visual visual ? visual.GetVisualAncestors().Prepend(visual).ToArray() : [];
         if (ancestors.Any(x => x is TextBox or ComboBox or NumericUpDown or Slider)) return;
         switch (e.Key)
@@ -370,6 +399,7 @@ public partial class MainWindow
             case Key.F: case Key.F11: SetFullscreen(WindowState != WindowState.FullScreen); break;
             case Key.M: Mute_Click(null, new()); break;
             case Key.S: Settings_Click(null, new()); break;
+            case Key.C: ToggleSubtitles(); break;
             case Key.G: SubtitleDelayInput.Value = Math.Max(-300, (SubtitleDelayInput.Value ?? 0) - .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.H: SubtitleDelayInput.Value = Math.Min(300, (SubtitleDelayInput.Value ?? 0) + .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.Escape:
