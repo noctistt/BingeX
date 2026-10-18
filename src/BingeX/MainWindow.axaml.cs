@@ -141,8 +141,9 @@ public partial class MainWindow : Window
 
     private void Tick(object? sender, EventArgs e)
     {
+        while (Program.Instance?.TryDequeue(out var request) == true) OpenLaunchRequest(request);
         if (player == null || currentPath == null) return;
-        if (playbackEnded) { PlayButton.Content = "Replay"; return; }
+        if (playbackEnded) { UpdatePlayIcon("Replay"); return; }
         if (player.Length > 0) lastDuration = player.Length;
         if (player.Time > 0) lastPosition = player.Time;
         if (resumeAt > 0 && player.IsSeekable && player.Length > 0)
@@ -172,7 +173,7 @@ public partial class MainWindow : Window
             var thumbnail = store.ThumbnailPath(currentPath);
             if (!File.Exists(thumbnail)) player.TakeSnapshot(0, thumbnail, 480, 0);
         }
-        PlayButton.Content = player.IsPlaying ? "Pause" : "Play";
+        UpdatePlayIcon(player.IsPlaying ? "Pause" : "Play");
         if (++saveTicks >= 10) { saveTicks = 0; SaveProgress(); }
     }
     private void Seek()

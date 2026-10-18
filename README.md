@@ -55,10 +55,10 @@ Open media using **Open media**, drag a local file onto the app, or pass a filen
 
 ### Player controls
 
-- **Tracks & subtitles** selects embedded audio and subtitle tracks, switches subtitles off, and loads external files.
+- The **CC** button opens audio and subtitle settings. The **settings** button also exposes playback speed. These settings select embedded audio and subtitle tracks, switches subtitles off, and loads external files.
 - External **SRT / WebVTT** captions support live size, color, background, and timing changes. Embedded and ASS/SSA/image subtitle tracks retain their native styling. Subtitle delay applies to both native tracks and custom text captions; positive delay shows captions later.
 - Fullscreen removes the sidebar and page chrome. Controls and the pointer hide after three idle seconds while playing, and return on mouse movement. Controls stay visible when paused, finished, or interacting with settings.
-- Space toggles pause or replays a completed video; Left/Right skip ten seconds; F/F11 toggles fullscreen; S opens track/subtitle settings; M toggles mute; G/H shifts subtitles earlier/later by 50 ms. Escape closes settings first, then exits fullscreen. Double-clicking the video also toggles fullscreen.
+- Space toggles pause or replays a completed video; Left/Right skip ten seconds; F/F11 toggles fullscreen; S opens playback settings; M toggles mute; G/H shifts subtitles earlier/later by 50 ms. Escape closes settings first, then exits fullscreen. Double-clicking the video also toggles fullscreen.
 - Volume and text subtitle appearance persist between sessions. Per-video subtitle delay resets for a new file.
 - Resume uses stable local paths or catalog/episode IDs. Completed videos restart from the beginning, short clips use a proportional completion margin, and non-seekable streams play from the start.
 
@@ -81,8 +81,27 @@ Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDA
 - Navigation cancels stale requests. Provider failures leave healthy results available, and loading, empty, and retry states are shown separately.
 - Continue Watching shows local thumbnails or provider posters with saved progress. Streamed items ask for a new source before resuming, so expired playback links are not reused.
 
-Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, add-on subtitles, torrent streaming, custom request headers, favorites, Windows file associations, and installers are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
+Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, add-on subtitles, torrent streaming, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
 
 ## License
 
 An open-source release is intended. The project license has not yet been selected. Third-party components retain their respective licenses. BingeX is an independent project and is not affiliated with VideoLAN or Stremio.
+
+
+## Windows preview package
+
+The compact player toolbar has tooltips, accessible button labels, a violet timeline, and icon controls that update for pause/replay, mute, and fullscreen. Speed lives in playback settings. The main window retains Open media; fullscreen keeps the playback toolbar compact.
+
+Build a self-contained Windows x64 package and installer with PowerShell 7, .NET 10 SDK, and [Inno Setup 6](https://jrsoftware.org/isdl.php):
+
+```powershell
+./packaging/build-windows.ps1
+# Or provide explicit tool/output paths:
+./packaging/build-windows.ps1 -DotnetPath 'path/to/dotnet.exe' -IsccPath 'path/to/ISCC.exe' -OutputDirectory 'path/to/output'
+```
+
+`-PortableOnly` skips installer compilation. Run `win-x64/BingeX.exe` from the published folder; keep its supporting files together. The runtime is bundled. Installer builds are currently unsigned development previews.
+
+Setup installs for the current user, adds a Start menu shortcut, and offers an optional desktop shortcut and Open with registration for common video/audio extensions. Registration adds BingeX as a candidate in Open with and Default apps; choose it in Windows to make it the default. Setup does not overwrite existing default-player choices. Uninstall removes its program files, shortcuts and registrations, while preserving the library/history in `%LOCALAPPDATA%/BingeX`.
+
+A second launch forwards its file and optional `--subtitle` to the running window instead of opening another player. A launch without a filename activates the existing window. Separate `BINGEX_DATA_DIRECTORY` values keep development instances independent. The secondary process returns a nonzero exit code if the existing instance cannot be reached within six seconds.

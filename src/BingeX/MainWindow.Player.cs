@@ -42,7 +42,7 @@ public partial class MainWindow
         SubtitleColorPicker.SelectedIndex = Array.IndexOf(new[] { "White", "Yellow", "Mint" }, preferences.SubtitleColor);
         SubtitleBackgroundCheck.IsChecked = preferences.SubtitleBackground;
         if (preferences.Volume > 0) lastNonzeroVolume = preferences.Volume;
-        MuteButton.Content = preferences.Volume == 0 ? "Unmute" : "Mute";
+        UpdateVolumeIcon(preferences.Volume);
         playerUiReady = true;
         ApplySubtitleAppearance();
         PlayerOverlay.AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
@@ -99,7 +99,7 @@ public partial class MainWindow
             playbackEnded = true;
             if (lastDuration > 0) lastPosition = lastDuration;
             SaveProgress();
-            PlayButton.Content = "Replay";
+            UpdatePlayIcon("Replay");
             TimeLabel.Text = Clock(lastDuration) + " / " + Clock(lastDuration);
             updatingSeek = true;
             SeekBar.Value = 1000;
@@ -167,12 +167,48 @@ public partial class MainWindow
         RootLayout.ColumnDefinitions[0].Width = new GridLength(full ? 0 : 205);
         MainContent.Margin = full ? new Thickness(0) : new Thickness(30, 24);
         VideoFrame.CornerRadius = new CornerRadius(full ? 0 : 12);
-        FullscreenButton.Content = full ? "Exit fullscreen" : "Fullscreen";
+        FullscreenIcon.Data = Geometry.Parse(full
+            ? "M 3,9 L 9,9 L 9,3 M 15,3 L 15,9 L 21,9 M 21,15 L 15,15 L 15,21 M 9,21 L 9,15 L 3,15"
+            : "M 3,9 L 3,3 L 9,3 M 15,3 L 21,3 L 21,9 M 21,15 L 21,21 L 15,21 M 9,21 L 3,21 L 3,15");
+        DescribeButton(FullscreenButton, full ? "Exit fullscreen" : "Fullscreen", "F");
     }
     private void Settings_Click(object? sender, RoutedEventArgs e)
     {
         PlayerSettingsPanel.IsVisible = !PlayerSettingsPanel.IsVisible;
-        if (PlayerSettingsPanel.IsVisible) RefreshTracks();
+        if (PlayerSettingsPanel.IsVisible) { RefreshTracks(); SettingsScroll.Offset = new Vector(0, 0); }
+        RevealPlayerControls();
+    }
+    private static void DescribeButton(Button button, string label, string shortcut)
+    {
+        ToolTip.SetTip(button, label + " (" + shortcut + ")");
+        Avalonia.Automation.AutomationProperties.SetName(button, label);
+    }
+    private string playIconState = "";
+    private void UpdatePlayIcon(string state)
+    {
+        if (playIconState == state) return;
+        playIconState = state;
+        PlayIcon.Data = Geometry.Parse(state switch
+        {
+            "Pause" => "M 5,3 L 10,3 L 10,21 L 5,21 Z M 14,3 L 19,3 L 19,21 L 14,21 Z",
+            "Replay" => "M 12,3 A 9,9 0 1 1 3,12 L 6,12 A 6,6 0 1 0 12,6 L 12,10 L 5,4 L 12,0 Z",
+            _ => "M 6,3 L 21,12 L 6,21 Z"
+        });
+        DescribeButton(PlayButton, state, "Space");
+    }
+    private void UpdateVolumeIcon(int volume)
+    {
+        VolumeIcon.Data = Geometry.Parse(volume == 0
+            ? "M 3,9 L 7,9 L 12,4 L 12,20 L 7,15 L 3,15 Z M 16,9 L 22,15 M 22,9 L 16,15"
+            : "M 3,9 L 7,9 L 12,4 L 12,20 L 7,15 L 3,15 Z M 16,8 Q 20,12 16,16 M 19,4 Q 26,12 19,20");
+        DescribeButton(MuteButton, volume == 0 ? "Unmute" : "Mute", "M");
+    }
+    private void Captions_Click(object? sender, RoutedEventArgs e)
+    {
+        PlayerSettingsPanel.IsVisible = true;
+        RefreshTracks();
+        // Wait for the newly visible panel to measure before scrolling to its track controls.
+        Dispatcher.UIThread.Post(() => AudioSettingsHeading.BringIntoView(), DispatcherPriority.Loaded);
         RevealPlayerControls();
     }
     private void RefreshTracks()
@@ -277,7 +313,7 @@ public partial class MainWindow
         preferences = preferences with { Volume = volume };
         if (volume > 0) lastNonzeroVolume = volume;
         if (player != null) player.Volume = volume;
-        MuteButton.Content = volume == 0 ? "Unmute" : "Mute";
+        UpdateVolumeIcon(volume);
     }
     private void Mute_Click(object? sender, RoutedEventArgs e)
     {
@@ -301,6 +337,25 @@ public partial class MainWindow
         if (media != null) Play(media, Path.GetFileName(media));
         var subtitle = files.FirstOrDefault(IsSubtitleFile);
         if (subtitle != null) await LoadSubtitle(subtitle);
+    }
+    private void OpenLaunchRequest(string[] args)
+    {
+        string? media = null, subtitle = null;
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--subtitle" && i + 1 < args.Length)
+            {
+                var candidate = args[++i];
+                if (File.Exists(candidate)) subtitle = candidate;
+            }
+            else if (media == null && File.Exists(args[i])) media = args[i];
+        }
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Show();
+        Activate();
+        if (media != null) Play(media, Path.GetFileName(media));
+        if (subtitle != null) _ = LoadSubtitle(subtitle);
+        RevealPlayerControls();
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {

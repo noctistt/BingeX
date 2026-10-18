@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
-        x:Class="BingeX.MainWindow" Title="BingeX" Width="1240" Height="820"
+        x:Class="BingeX.MainWindow" Icon="/Assets/BingeX.ico" Title="BingeX" Width="1240" Height="820"
         MinWidth="960" MinHeight="680" Background="#101018">
   <Grid x:Name="RootLayout" ColumnDefinitions="205,*" RowDefinitions="*,Auto">
     <Border x:Name="Sidebar" Background="#161620" Padding="22,30" Grid.RowSpan="2">
@@ -13,7 +13,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.3" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.4" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -119,28 +119,47 @@
                 <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#00101018" Offset="0" /><GradientStop Color="#F0101018" Offset="0.25" /><GradientStop Color="#FA101018" Offset="1" /></LinearGradientBrush></Border.Background>
                 <StackPanel Spacing="8">
                   <TextBlock x:Name="NowPlaying" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
-                  <Slider x:Name="SeekBar" Minimum="0" Maximum="1000" Value="0" />
-                  <TextBlock x:Name="TimeLabel" Text="00:00 / --:--" Foreground="#BBB5CC" FontSize="12" />
-                  <WrapPanel>
-                    <Button x:Name="PlayButton" Content="Play" Click="Play_Click" Margin="0,0,8,6" />
-                    <Button Content="−10s" Click="Back_Click" Margin="0,0,8,6" />
-                    <Button Content="+10s" Click="Forward_Click" Margin="0,0,8,6" />
-                    <Button x:Name="FullscreenButton" Content="Fullscreen" Click="Fullscreen_Click" Margin="0,0,8,6" />
-                    <Button Content="Tracks &amp; subtitles" Click="Settings_Click" Margin="0,0,8,6" />
-                    <ComboBox x:Name="SpeedBox" SelectedIndex="2" Width="85" Margin="0,0,8,6">
-                      <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
-                    </ComboBox>
-                    <Button x:Name="MuteButton" Content="Mute" Click="Mute_Click" Margin="0,0,2,6" />
-                    <Slider x:Name="VolumeBar" Minimum="0" Maximum="100" Value="80" Width="90" Margin="0,0,8,6" />
-                    <Button Content="Open file" Click="Open_Click" Margin="0,0,0,6" />
-                  </WrapPanel>
+                  <Slider x:Name="SeekBar" Classes="playerSlider" AutomationProperties.Name="Playback position" Minimum="0" Maximum="1000" Value="0" />
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <Button x:Name="PlayButton" Classes="playerIcon primary" Click="Play_Click" ToolTip.Tip="Play (Space)" AutomationProperties.Name="Play">
+                        <Path x:Name="PlayIcon" Width="20" Height="20" Stretch="Uniform" Fill="White" Data="M 6,3 L 21,12 L 6,21 Z" />
+                      </Button>
+                      <Button Classes="playerIcon" Click="Back_Click" ToolTip.Tip="Back 10 seconds (Left)" AutomationProperties.Name="Back 10 seconds">
+                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 5,7 A 9,9 0 1 1 3,14 M 5,2 L 5,8 L 11,8" /><TextBlock Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
+                      </Button>
+                      <Button Classes="playerIcon" Click="Forward_Click" ToolTip.Tip="Forward 10 seconds (Right)" AutomationProperties.Name="Forward 10 seconds">
+                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 19,7 A 9,9 0 1 0 21,14 M 19,2 L 19,8 L 13,8" /><TextBlock Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
+                      </Button>
+                      <TextBlock x:Name="TimeLabel" Text="00:00 / --:--" Foreground="#C8C3D5" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <Button x:Name="MuteButton" Classes="playerIcon" Click="Mute_Click" ToolTip.Tip="Mute (M)" AutomationProperties.Name="Mute">
+                        <Path x:Name="VolumeIcon" Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 3,9 L 7,9 L 12,4 L 12,20 L 7,15 L 3,15 Z M 16,8 Q 20,12 16,16 M 19,4 Q 26,12 19,20" />
+                      </Button>
+                      <Slider x:Name="VolumeBar" Classes="playerSlider" Minimum="0" Maximum="100" Value="80" Width="72" Margin="0,0,10,0" ToolTip.Tip="Volume" AutomationProperties.Name="Volume" />
+                      <Button Classes="playerIcon" Click="Captions_Click" ToolTip.Tip="Audio and subtitles" AutomationProperties.Name="Audio and subtitles">
+                        <Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 3,4 L 21,4 L 21,20 L 3,20 Z M 10,9 C 5,7 5,17 10,15 M 18,9 C 13,7 13,17 18,15" />
+                      </Button>
+                      <Button Classes="playerIcon" Click="Settings_Click" ToolTip.Tip="Playback settings (S)" AutomationProperties.Name="Playback settings">
+                        <Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 3,6 L 9,6 M 15,6 L 21,6 M 3,12 L 14,12 M 20,12 L 21,12 M 3,18 L 5,18 M 11,18 L 21,18 M 9,3 L 15,3 L 15,9 L 9,9 Z M 14,9 L 20,9 L 20,15 L 14,15 Z M 5,15 L 11,15 L 11,21 L 5,21 Z" />
+                      </Button>
+                      <Button x:Name="FullscreenButton" Classes="playerIcon" Click="Fullscreen_Click" ToolTip.Tip="Fullscreen (F)" AutomationProperties.Name="Fullscreen">
+                        <Path x:Name="FullscreenIcon" Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 3,9 L 3,3 L 9,3 M 15,3 L 21,3 L 21,9 M 21,15 L 21,21 L 15,21 M 9,21 L 3,21 L 3,15" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
                 </StackPanel>
               </Border>
-              <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,190" HorizontalAlignment="Right" Padding="18">
-                <ScrollViewer>
+              <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,145" HorizontalAlignment="Right" Padding="18">
+                <ScrollViewer x:Name="SettingsScroll">
                   <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Tracks &amp; subtitles" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="1" Content="Close" Click="Settings_Click" /></Grid>
-                    <TextBlock Text="Audio track" Foreground="#BFB5D1" />
+                    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Playback settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="1" Content="Close" Click="Settings_Click" /></Grid>
+                    <TextBlock Text="Playback speed" Foreground="#BFB5D1" />
+                    <ComboBox x:Name="SpeedBox" SelectedIndex="2" HorizontalAlignment="Stretch" AutomationProperties.Name="Playback speed">
+                      <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
+                    </ComboBox>
+                    <TextBlock x:Name="AudioSettingsHeading" Text="Audio track" Foreground="#BFB5D1" />
                     <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
                     <TextBlock Text="Subtitle track" Foreground="#BFB5D1" />
                     <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" />

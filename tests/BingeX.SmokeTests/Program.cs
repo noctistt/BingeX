@@ -7,6 +7,19 @@ static void Assert(bool condition, string message) { if (!condition) throw new E
 var directory = Path.Combine(Path.GetTempPath(), "BingeX-test-" + Guid.NewGuid());
 try
 {
+    // Keep the mutex-owning thread fixed while the client uses asynchronous I/O.
+    using (var first = new SingleInstance(directory))
+    using (var second = new SingleInstance(directory))
+    using (var separate = new SingleInstance(directory + "-separate"))
+    {
+        Assert(first.IsPrimary && !second.IsPrimary && separate.IsPrimary, "One owner per library; isolated libraries remain independent.");
+        var launchArgs = new[] { "C:\\media\\a quoted ü title.mkv", "--subtitle", "C:\\media\\test.srt" };
+        Assert(second.Forward(launchArgs).GetAwaiter().GetResult(), "Second launch must reach the running instance.");
+        Assert(first.TryDequeue(out var received) && received.SequenceEqual(launchArgs), "Forwarded filenames and subtitle arguments must survive exactly.");
+        Assert(second.Forward([]).GetAwaiter().GetResult() && first.TryDequeue(out var empty) && empty.Length == 0, "Launching without files must request activation.");
+    }
+    using (var reopened = new SingleInstance(directory)) Assert(reopened.IsPrimary, "Closing the owner must allow a new primary instance.");
+    Console.WriteLine("PASS: single-instance ownership, file forwarding, activation, isolation, and reopening.");
     using (var store = new LibraryStore(directory))
     {
         store.Save(new("C:\\media\\O'Brien.mkv", "O'Brien", 12000, 60000));

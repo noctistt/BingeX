@@ -13,6 +13,17 @@
     <Style Selector="Button.poster:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#252035" /></Style>
     <Style Selector="Button.nav"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#A9A3BC" /><Setter Property="HorizontalContentAlignment" Value="Left" /></Style>
     <Style Selector="Button.nav.active"><Setter Property="Background" Value="#302445" /><Setter Property="Foreground" Value="#D5C5FF" /></Style>
+    <Style Selector="Button.playerIcon">
+      <Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="8" /><Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.playerIcon.primary"><Setter Property="Background" Value="#8B5CF6" /></Style>
+    <Style Selector="Button.playerIcon:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#554365" /></Style>
+    <Style Selector="Slider.playerSlider"><Setter Property="Foreground" Value="#B69AFF" /><Setter Property="MinHeight" Value="24" /></Style>
+    <Style Selector="Slider.playerSlider /template/ Thumb"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /><Setter Property="Background" Value="#B69AFF" /></Style>
+    <Style Selector="Slider.playerSlider:pointerover /template/ Thumb, Slider.playerSlider:pressed /template/ Thumb"><Setter Property="Background" Value="#D5C5FF" /></Style>
+    <Style Selector="Slider.playerSlider:pointerover /template/ RepeatButton#PART_DecreaseButton, Slider.playerSlider:pressed /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="#B69AFF" /></Style>
     <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#999BAF" /></Style>
   </Application.Styles>
 </Application>
