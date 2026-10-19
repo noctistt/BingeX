@@ -61,7 +61,7 @@ public partial class MainWindow : Window
         {
             localClosing = true;
             CancelLocalScan();
-            timer.Stop(); overlayTimer.Stop();
+            timer.Stop(); overlayTimer.Stop(); videoClickTimer.Stop();
             SaveProgress();
             mediaGeneration++;
             CancelOnlineSubtitles();
@@ -94,6 +94,8 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        videoClickTimer.Stop();
+        videoPressPoint = null;
         if (page != "Player") CancelOnlineSubtitles();
         if (page != "Player" && WindowState == WindowState.FullScreen) SetFullscreen(false);
         if (page != "Library") { browseWork.Cancel(); posterWork.Cancel(); }
@@ -210,6 +212,7 @@ public partial class MainWindow : Window
     }
     private void Play_Click(object? sender, RoutedEventArgs e)
     {
+        videoClickTimer.Stop();
         if (player == null || currentPath == null) return;
         if (playbackEnded || player.State is VLCState.Ended or VLCState.Stopped) Play(currentPath, currentTitle, currentContext);
         else player.Pause();

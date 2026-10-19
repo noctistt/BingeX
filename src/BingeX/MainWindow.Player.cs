@@ -13,6 +13,9 @@ namespace BingeX;
 
 public partial class MainWindow
 {
+    private readonly DispatcherTimer videoClickTimer = new();
+    private Point? videoPressPoint;
+    private long videoClickGeneration;
     private readonly DispatcherTimer overlayTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private PlayerPreferences preferences = new();
     private DateTime lastPlayerInteraction = DateTime.UtcNow;
@@ -50,18 +53,47 @@ public partial class MainWindow
         playerUiReady = true;
         ApplySubtitleAppearance();
         PlayerOverlay.AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
-        PlayerOverlay.PointerMoved += (_, _) => RevealPlayerControls();
+        videoClickTimer.Tick += (_, _) =>
+        {
+            videoClickTimer.Stop();
+            if (activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible)
+                Play_Click(null, new RoutedEventArgs());
+        };
+        PlayerOverlay.PointerMoved += (_, e) =>
+        {
+            RevealPlayerControls();
+            if (videoPressPoint is { } start && VideoPointerMoved(e.GetPosition(PlayerOverlay), start)) videoPressPoint = null;
+        };
         PlayerOverlay.PointerPressed += (_, e) =>
         {
             RevealPlayerControls();
-            if (Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel)) return;
+            videoClickTimer.Stop();
+            videoPressPoint = null;
+            if (Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) ||
+                !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
-            if (e.ClickCount == 2 && e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed)
+            if (e.ClickCount == 2)
             {
                 SetFullscreen(WindowState != WindowState.FullScreen);
                 e.Handled = true;
+                return;
             }
+            videoPressPoint = e.GetPosition(PlayerOverlay);
         };
+        PlayerOverlay.PointerReleased += (_, e) =>
+        {
+            var start = videoPressPoint;
+            videoPressPoint = null;
+            if (start == null || e.InitialPressMouseButton != MouseButton.Left ||
+                Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) ||
+                VideoPointerMoved(e.GetPosition(PlayerOverlay), start.Value)) return;
+            // Wait out the native double-click interval so fullscreen never also pauses playback.
+            videoClickTimer.Interval = PlatformSettings?.GetDoubleTapTime(e.Pointer.Type) ?? TimeSpan.FromMilliseconds(500);
+            videoClickGeneration = mediaGeneration;
+            videoClickTimer.Start();
+            e.Handled = true;
+        };
+        PlayerOverlay.PointerCaptureLost += (_, _) => videoPressPoint = null;
         PlayerOverlay.SizeChanged += (_, _) => ApplySubtitleAppearance();
         DragDrop.SetAllowDrop(this, true);
         DragDrop.SetAllowDrop(PlayerOverlay, true);
@@ -73,11 +105,14 @@ public partial class MainWindow
         overlayTimer.Tick += (_, _) => UpdatePlayerOverlay();
         overlayTimer.Start();
     }
+    private static bool VideoPointerMoved(Point a, Point b) => Math.Abs(a.X - b.X) > 8 || Math.Abs(a.Y - b.Y) > 8;
     private static bool Inside(object? source, Control parent) => source is Visual visual &&
         (ReferenceEquals(visual, parent) || visual.GetVisualAncestors().Any(x => ReferenceEquals(x, parent)));
 
     private void ResetMediaControls(bool preserveSubtitles)
     {
+        videoClickTimer.Stop();
+        videoPressPoint = null;
         mediaGeneration++;
         ResetOnlineSubtitles();
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
