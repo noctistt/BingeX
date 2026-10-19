@@ -109,6 +109,7 @@ try
     Console.WriteLine("PASS: remote episode resume, search encoding, provider scope filtering, catalog capabilities, episode ordering, source compatibility, partial failures, cancellation.");
     LocalLibraryChecks.Run(Path.Combine(directory, "local-library"));
     await SubtitleChecks.Run(args.Contains("--live-subtitles"));
+    await TorrentChecks.Run(directory, args.Contains("--torrent") ? args.FirstOrDefault(File.Exists) : null);
     if (args.Contains("--live-addon"))
     {
         const string manifestUrl = "https://v3-cinemeta.strem.io/manifest.json";

@@ -42,7 +42,13 @@ public partial class MainWindow : Window
                 player = new MediaPlayer(engine) { Volume = preferences.Volume, EnableKeyInput = false, EnableMouseInput = false };
                 player.EndReached += PlayerEnded;
                 VideoSurface.MediaPlayer = player;
-                player.EncounteredError += (_, _) => Dispatcher.UIThread.Post(() => Status("Playback failed. The source may be unavailable, damaged, or unsupported."));
+                player.EncounteredError += (_, _) => Dispatcher.UIThread.Post(() =>
+                {
+                    if (localClosing || player?.State != VLCState.Error) return;
+                    var failure = torrentSession?.Failure ?? "Playback failed. The source may be unavailable, damaged, or unsupported.";
+                    if (torrentSession != null) StopTorrentPlayback();
+                    Status(failure); PlayerNotice(failure);
+                });
                 timer.Tick += Tick;
                 timer.Start();
                 _ = RefreshCatalogs();
@@ -57,9 +63,24 @@ public partial class MainWindow : Window
         SeekBar.PropertyChanged += (_, e) => { if (e.Property.Name == "Value" && !updatingSeek && !seekDragging) Seek(); };
         SpeedBox.SelectionChanged += (_, _) => { if (player != null) player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]); };
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
-        Closing += (_, _) =>
+        Closing += async (_, e) =>
         {
+            if (torrentCloseInProgress && !torrentCloseReady) { e.Cancel = true; return; }
+            if (!torrentCloseReady && (torrentSession != null || torrentStarting || !torrentCleanup.IsCompleted))
+            {
+                e.Cancel = true;
+                torrentCloseInProgress = true;
+                localClosing = true;
+                SaveProgress();
+                StopTorrentPlayback();
+                await torrentCleanup;
+                torrentCloseReady = true;
+                Close();
+                return;
+            }
             localClosing = true;
+            SaveProgress();
+            StopTorrentPlayback();
             CancelLocalScan();
             timer.Stop(); overlayTimer.Stop(); videoClickTimer.Stop();
             SaveProgress();
@@ -96,6 +117,7 @@ public partial class MainWindow : Window
     {
         videoClickTimer.Stop();
         videoPressPoint = null;
+        if (page != "Player" && torrentStarting) StopTorrentPlayback();
         if (page != "Player") CancelOnlineSubtitles();
         if (page != "Player" && WindowState == WindowState.FullScreen) SetFullscreen(false);
         if (page != "Library") { browseWork.Cancel(); posterWork.Cancel(); }
@@ -130,13 +152,15 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private void Play(string path, string title, MediaContext? context = null)
+    private void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null)
     {
+        if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
         if (player == null || engine == null) { Status("Playback engine is unavailable."); return; }
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
         thumbnailWork.Cancel();
         SaveProgress();
+        if (input == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
         player.Stop();
         suppressCurrentHistory = false;
         currentContext = context;
@@ -148,8 +172,8 @@ public partial class MainWindow : Window
         thumbnailAttempted = false;
         currentPath = path;
         currentTitle = title;
-        using var media = new Media(engine, uri);
-        if (!player.Play(media)) { Status("Unable to start this media."); return; }
+        using var media = input == null ? new Media(engine, uri) : new Media(engine, input);
+        if (!player.Play(media)) { if (input != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
         player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]);
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title;
@@ -214,7 +238,11 @@ public partial class MainWindow : Window
     {
         videoClickTimer.Stop();
         if (player == null || currentPath == null) return;
-        if (playbackEnded || player.State is VLCState.Ended or VLCState.Stopped) Play(currentPath, currentTitle, currentContext);
+        if (playbackEnded || player.State is VLCState.Ended or VLCState.Stopped)
+        {
+            if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
+            else Play(currentPath, currentTitle, currentContext);
+        }
         else player.Pause();
         RevealPlayerControls();
     }

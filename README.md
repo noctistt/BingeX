@@ -78,11 +78,11 @@ Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDA
 - Use **Connect movie catalog** to install Cinemeta, or install a configured HTTPS manifest in **Add-ons**.
 - Pick an installed catalog to browse posters. **Search** queries catalogs that declare search support, across both movies and series. Results are deduplicated by media type and ID.
 - Open a poster for the synopsis, release information, genres, and rating when provided. Series have a season picker and episode cards.
-- **Find streams** queries compatible installed providers concurrently. Direct HTTP(S) sources can play; unsupported sources show an explanation. Cinemeta supplies metadata, not playable movies.
+- **Find streams** queries compatible installed providers concurrently. Direct HTTP(S) and BitTorrent v1 infoHash sources can play; unsupported sources show an explanation. Cinemeta supplies metadata, not playable movies.
 - Navigation cancels stale requests. Provider failures leave healthy results available, and loading, empty, and retry states are shown separately.
 - Continue Watching shows local thumbnails or provider posters with saved progress. Streamed items ask for a new source before resuming, so expired playback links are not reused.
 
-Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, torrent streaming, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
+Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
 
 ## License
 
@@ -130,3 +130,11 @@ Episode filenames using S01E02 or 1x02 are grouped by show and season, with nume
 On **Home**, the small **×** in a Continue Watching card removes that item's history/progress without deleting the video, subtitle settings, or saved audio-track choice. If the item is still playing, progress saving is suppressed for that playback so the dismissed card does not immediately reappear. Explicitly opening the video again allows a new history entry.
 
 Click the video picture to pause or resume; double-click toggles fullscreen without changing playback. Clicks on the controls/settings and pointer drags do not toggle playback. A single click waits briefly for the system double-click interval.
+
+## Torrent playback (0.8 preview)
+
+Choose **Stream torrent** on a compatible add-on result, or open/drop a local `.torrent` file. BingeX uses MonoTorrent 3.0.2 to fetch metadata and verified video pieces, and supplies a seekable stream directly to the existing LibVLC player. Provider `fileIdx` is preserved; when absent, the largest supported video is selected. Tracker hints are used for discovery, with DHT available; IPv4 peer hints are added after metadata retrieval. Subtitle and audio controls continue to use the same player.
+
+The player shows torrent state, selected-file download percentage, download rate, connected peers, and **Stop torrent**. The percentage is the file download progress, not a guarantee of playable buffer duration. Startup and stalled reads time out after two minutes. Stop, switching sources, reaching the end, and closing release the stream and clean its cache. Partial data left by a crash or locked file is retried at the next torrent launch. Watch history keeps the stable show/episode identity and audio choice, not the downloaded cache; resuming an add-on title finds fresh sources again.
+
+Temporary sessions are stored under `%LOCALAPPDATA%/BingeX/torrent-cache-v1`. One session is active at a time. The initial cache budget is 32 GiB for the **entire torrent**, including unselected files; bigger season packs are rejected rather than silently overfilling the cache. Only the selected file is prioritized. Uploads are limited to 256 KiB/s while the session is active, and stop when the session ends. Peer-to-peer connections share your IP address with peers; using an add-on does not make this traffic anonymous. Port forwarding is disabled. V2-only hashes, magnet-URL input, private-tracker login flows, archive extraction, and custom stream headers are not supported in this preview. An available listing does not guarantee healthy peers or a valid video.

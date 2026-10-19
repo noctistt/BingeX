@@ -69,7 +69,7 @@ public partial class MainWindow
             RevealPlayerControls();
             videoClickTimer.Stop();
             videoPressPoint = null;
-            if (Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) ||
+            if (Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
                 !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
             if (e.ClickCount == 2)
@@ -85,7 +85,7 @@ public partial class MainWindow
             var start = videoPressPoint;
             videoPressPoint = null;
             if (start == null || e.InitialPressMouseButton != MouseButton.Left ||
-                Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) ||
+                Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
                 VideoPointerMoved(e.GetPosition(PlayerOverlay), start.Value)) return;
             // Wait out the native double-click interval so fullscreen never also pauses playback.
             videoClickTimer.Interval = PlatformSettings?.GetDoubleTapTime(e.Pointer.Type) ?? TimeSpan.FromMilliseconds(500);
@@ -138,9 +138,14 @@ public partial class MainWindow
         Dispatcher.UIThread.Post(() =>
         {
             if (generation != mediaGeneration || player == null || player.State is VLCState.Playing or VLCState.Opening) return;
+            if (torrentSession?.Failure is { } failure)
+            {
+                StopTorrentPlayback(); Status(failure); PlayerNotice(failure); return;
+            }
             playbackEnded = true;
             if (lastDuration > 0) lastPosition = lastDuration;
             SaveProgress();
+            if (torrentSession != null) StopTorrentPlayback();
             UpdatePlayIcon("Replay");
             TimeLabel.Text = Clock(lastDuration) + " / " + Clock(lastDuration);
             updatingSeek = true;
@@ -177,6 +182,7 @@ public partial class MainWindow
             PlayerOverlay.Cursor = hide ? new Cursor(StandardCursorType.None) : Cursor.Default;
             PositionCaptions();
         }
+        TorrentPanel.IsVisible = torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible);
         if (useTextSubtitles && textSubtitles != null && player != null && !playbackEnded)
         {
             var text = textSubtitles.TextAt(Math.Max(0, player.Time), subtitleDelayMs);

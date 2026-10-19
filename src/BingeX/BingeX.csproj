@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.7.1</Version>
+    <Version>0.8.0</Version>
     <Product>BingeX</Product>
     <Description>BingeX media player</Description>
     <ApplicationIcon>Assets/BingeX.ico</ApplicationIcon>
@@ -21,6 +21,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
     <PackageReference Include="LibVLCSharp.Avalonia" Version="3.10.2" />
+    <PackageReference Include="MonoTorrent" Version="3.0.2" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
   </ItemGroup>

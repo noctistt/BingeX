@@ -15,7 +15,7 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
     public string HistoryKey => $"stremio:{Type}:{EpisodeId ?? Id}";
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
-public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason);
+public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null);
 public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures);
 
@@ -149,10 +149,15 @@ public sealed class MediaLibrary(AddonClient client)
     {
         var url = AddonClient.Text(stream, "url");
         string? reason = null;
-        if (stream.TryGetProperty("infoHash", out _)) reason = "Torrent playback is coming later";
+        TorrentSource? torrent = null;
+        if (stream.TryGetProperty("infoHash", out _))
+        {
+            try { torrent = TorrentSource.Parse(stream); }
+            catch (FormatException error) { reason = error.Message; }
+        }
         else if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")) reason = "External or unsupported playback source";
         else if (stream.TryGetProperty("behaviorHints", out var hints) && hints.ValueKind == JsonValueKind.Object && hints.TryGetProperty("proxyHeaders", out _)) reason = "Requires custom request headers";
-        return new(provider, AddonClient.Text(stream, "name", "Direct stream"), AddonClient.Text(stream, "description", AddonClient.Text(stream, "title")), url, reason);
+        return new(provider, AddonClient.Text(stream, "name", "Direct stream"), AddonClient.Text(stream, "description", AddonClient.Text(stream, "title")), url, reason, torrent);
     }
     public static TitleInfo ParseTitle(JsonElement meta, string addonId, string fallbackType)
     {

@@ -263,9 +263,9 @@ public partial class MainWindow
                 var column = new StackPanel { Spacing = 5 };
                 column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
                 if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, MaxLines = 4, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE"), TextTrimming = TextTrimming.WordEllipsis });
-                column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? "▶ Play this source", FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
+                column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
                 var button = new Button { Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
-                button.Click += (_, _) => Play(stream.Url, context.DisplayName, context);
+                button.Click += (_, _) => { if (stream.Torrent != null) StartTorrent(stream, context); else Play(stream.Url, context.DisplayName, context); };
                 StreamItems.Children.Add(button);
             }
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
@@ -298,7 +298,8 @@ public partial class MainWindow
             var button = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent };
             button.Click += async (_, _) =>
             {
-                if (context == null) Play(media.Path, media.Title);
+                if (context?.Type == "torrent-file") StartTorrentFile(context.Id);
+                else if (context == null) Play(media.Path, media.Title);
                 else await ShowTitle(new(context.Id, context.Type, context.Name, context.Poster, "", "", "", "", "", context.AddonId, []), context.EpisodeId);
             };
             var card = new Grid { Width = 246, Margin = new Thickness(0, 0, 18, 16) };

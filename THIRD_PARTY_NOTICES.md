@@ -2,6 +2,9 @@
 
 BingeX uses these independently maintained projects. Their licenses apply to their respective components; this file does not assign a license to BingeX.
 
+- MonoTorrent 3.0.2: MIT — https://github.com/alanmcgovern/monotorrent/tree/release-v3.0.2
+- Mono.Nat: MIT — https://github.com/alanmcgovern/Mono.Nat
+- ReusableTasks: MIT — https://github.com/alanmcgovern/ReusableTasks
 - Avalonia: MIT — https://github.com/AvaloniaUI/Avalonia
 - LibVLCSharp: LGPL-2.1-or-later — https://code.videolan.org/videolan/LibVLCSharp
 - LibVLC 3.0.24 and its native plugins: upstream component licenses, including LGPL-2.1-or-later — https://code.videolan.org/videolan/vlc/-/tree/3.0.24
