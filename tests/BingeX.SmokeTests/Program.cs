@@ -97,6 +97,7 @@ try
     }
     Console.WriteLine("PASS: persistent history, parameterized titles, add-on persistence/removal, configured episode URLs, manifest scheme validation.");
     Console.WriteLine("PASS: remote episode resume, search encoding, provider scope filtering, catalog capabilities, episode ordering, source compatibility, partial failures, cancellation.");
+    await SubtitleChecks.Run(args.Contains("--live-subtitles"));
     if (args.Contains("--live-addon"))
     {
         const string manifestUrl = "https://v3-cinemeta.strem.io/manifest.json";

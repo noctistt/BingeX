@@ -59,6 +59,7 @@ public partial class MainWindow : Window
             timer.Stop(); overlayTimer.Stop();
             SaveProgress();
             mediaGeneration++;
+            CancelOnlineSubtitles();
             // Stop native output while the window's graphics resources are still alive.
             player?.Stop();
         };
@@ -69,6 +70,8 @@ public partial class MainWindow : Window
             streamWork.Cancel();
             posterWork.Cancel();
             artwork.Dispose();
+            subtitleDownloads.Dispose();
+            subtitleWork.Dispose();
             overlayTimer.Stop();
             store.SavePreferences(preferences);
             timer.Stop();
@@ -85,6 +88,7 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        if (page != "Player") CancelOnlineSubtitles();
         if (page != "Player" && WindowState == WindowState.FullScreen) SetFullscreen(false);
         if (page != "Library") { browseWork.Cancel(); posterWork.Cancel(); }
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }

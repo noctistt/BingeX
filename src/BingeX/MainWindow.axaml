@@ -13,7 +13,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.4.1" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.5" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -154,7 +154,7 @@
               <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,145" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="18">
                 <ScrollViewer x:Name="SettingsScroll" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="PlayerSettingsTitle" Text="Playback settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="1" Content="Close" Click="CloseSettings_Click" /></Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto"><Button x:Name="SubtitleSearchBack" IsVisible="False" Content="←" Click="SubtitleSearchBack_Click" ToolTip.Tip="Back to subtitles" AutomationProperties.Name="Back to subtitles" Padding="8" Margin="0,0,8,0" /><TextBlock Grid.Column="1" x:Name="PlayerSettingsTitle" Text="Playback settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="2" Content="Close" Click="CloseSettings_Click" /></Grid>
                     <StackPanel x:Name="PlaybackSettingsSection" Spacing="12">
                       <TextBlock Text="Playback speed" Foreground="#BFB5D1" />
                       <ComboBox x:Name="SpeedBox" SelectedIndex="2" HorizontalAlignment="Stretch" AutomationProperties.Name="Playback speed">
@@ -164,6 +164,7 @@
                       <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
                     </StackPanel>
                     <StackPanel x:Name="SubtitleSettingsSection" Spacing="12" IsVisible="False">
+                      <Button Content="Search online…" Classes="primary" Click="OnlineSubtitles_Click" HorizontalAlignment="Stretch" />
                       <TextBlock Text="Subtitle track" Foreground="#BFB5D1" />
                       <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" />
                       <Button Content="Load subtitle file…" Click="Subtitle_Click" HorizontalAlignment="Left" />
@@ -178,6 +179,23 @@
                       </Grid>
                       <CheckBox x:Name="SubtitleBackgroundCheck" Content="Dark background" IsChecked="True" IsCheckedChanged="SubtitleBackgroundChanged" />
                       <TextBlock Text="C: subtitles on / off · G / H: earlier / later" FontSize="11" Foreground="#9E95B0" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel x:Name="OnlineSubtitleSection" IsVisible="False" Spacing="10">
+                      <TextBlock Text="Find a matching title, choose a language, then load a subtitle. OpenSubtitles and your subtitle add-ons supply results." FontSize="11" Foreground="#BFB5D1" TextWrapping="Wrap" />
+                      <Button x:Name="CurrentVideoSubtitlesButton" Content="Find for this video" Click="CurrentVideoSubtitles_Click" HorizontalAlignment="Stretch" IsVisible="False" />
+                      <TextBox x:Name="SubtitleQueryInput" TextChanged="SubtitleSearchInputsChanged" Watermark="Movie / series title or IMDb ID" KeyDown="SubtitleQuery_KeyDown" AutomationProperties.Name="Subtitle title search" />
+                      <ComboBox x:Name="SubtitleMediaType" SelectedIndex="0" HorizontalAlignment="Stretch" SelectionChanged="SubtitleMediaTypeChanged" AutomationProperties.Name="Subtitle media type"><ComboBoxItem Content="Movie" /><ComboBoxItem Content="Series" /></ComboBox>
+                      <Grid x:Name="SubtitleEpisodeFields" IsVisible="False" ColumnDefinitions="*,*">
+                        <StackPanel Spacing="4" Margin="0,0,8,0"><TextBlock Text="Season" FontSize="11" /><NumericUpDown x:Name="SubtitleSeason" ValueChanged="SubtitleSearchEpisodeChanged" Minimum="0" Maximum="999" Value="1" FormatString="0" AutomationProperties.Name="Subtitle season" /></StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="Episode" FontSize="11" /><NumericUpDown x:Name="SubtitleEpisode" ValueChanged="SubtitleSearchEpisodeChanged" Minimum="1" Maximum="9999" Value="1" FormatString="0" AutomationProperties.Name="Subtitle episode" /></StackPanel>
+                      </Grid>
+                      <Button Content="Search titles" Click="SearchSubtitleTitles_Click" Classes="primary" HorizontalAlignment="Stretch" />
+                      <ProgressBar x:Name="OnlineSubtitleBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="#B69AFF" />
+                      <TextBlock x:Name="OnlineSubtitleMessage" Foreground="#CFC5DF" TextWrapping="Wrap" FontSize="12" />
+                      <StackPanel x:Name="SubtitleTitleResults" Spacing="8" />
+                      <ComboBox x:Name="OnlineSubtitleLanguage" IsVisible="False" HorizontalAlignment="Stretch" SelectionChanged="OnlineSubtitleLanguageChanged" AutomationProperties.Name="Subtitle language" />
+                      <TextBlock x:Name="OnlineSubtitleResultCount" IsVisible="False" Foreground="#BFB5D1" FontSize="11" />
+                      <StackPanel x:Name="OnlineSubtitleResults" Spacing="8" />
                     </StackPanel>
                   </StackPanel>
                 </ScrollViewer>

@@ -16,6 +16,7 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
 public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason);
+public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures);
 
 public sealed class MediaLibrary(AddonClient client)
@@ -124,6 +125,25 @@ public sealed class MediaLibrary(AddonClient client)
             catch { return new ProviderResult<StreamChoice>([], 1); }
         }));
         return new(results.SelectMany(x => x.Items).ToArray(), results.Sum(x => x.Failures));
+    }
+    public async Task<ProviderResult<SubtitleChoice>> Subtitles(string type, string id, IReadOnlyList<InstalledAddon> installed, CancellationToken token)
+    {
+        var results = await Task.WhenAll(installed.Select(async addon =>
+        {
+            try
+            {
+                if (!Supports(await Manifest(addon, token), "subtitles", type, id)) return new ProviderResult<SubtitleChoice>([], 0);
+                var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "subtitles", type, id), token);
+                if (!response.TryGetProperty("subtitles", out var items) || items.ValueKind != JsonValueKind.Array) return new ProviderResult<SubtitleChoice>([], 0);
+                var choices = items.EnumerateArray().Take(400).Select(x => new SubtitleChoice(addon.Name,
+                    AddonClient.Text(x, "id"), AddonClient.Text(x, "lang"), AddonClient.Text(x, "label"), AddonClient.Text(x, "url")))
+                    .Where(x => x.Id.Length > 0 && x.Language.Length > 0 && OnlineSubtitles.IsDownloadUrl(x.Url)).ToArray();
+                return new ProviderResult<SubtitleChoice>(choices, 0);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch { return new ProviderResult<SubtitleChoice>([], 1); }
+        }));
+        return new(results.SelectMany(x => x.Items).DistinctBy(x => (x.Language, x.Url)).Take(800).ToArray(), results.Sum(x => x.Failures));
     }
     public static StreamChoice ParseStream(string provider, JsonElement stream)
     {

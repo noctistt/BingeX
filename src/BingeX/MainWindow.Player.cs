@@ -77,6 +77,7 @@ public partial class MainWindow
     private void ResetMediaControls(bool preserveSubtitles)
     {
         mediaGeneration++;
+        ResetOnlineSubtitles();
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
         if (!preserveSubtitles)
         {
@@ -178,13 +179,18 @@ public partial class MainWindow
     private void Captions_Click(object? sender, RoutedEventArgs e) => ShowPlayerSettings(true);
     private void CloseSettings_Click(object? sender, RoutedEventArgs e)
     {
+        CancelOnlineSubtitles();
         PlayerSettingsPanel.IsVisible = false;
         RevealPlayerControls();
         PlayerOverlay.Focus();
     }
     private void ShowPlayerSettings(bool subtitles)
     {
-        var show = !PlayerSettingsPanel.IsVisible || subtitleSettingsOpen != subtitles;
+        var show = onlineSubtitleView || !PlayerSettingsPanel.IsVisible || subtitleSettingsOpen != subtitles;
+        CancelOnlineSubtitles();
+        onlineSubtitleView = false;
+        OnlineSubtitleSection.IsVisible = false;
+        SubtitleSearchBack.IsVisible = false;
         subtitleSettingsOpen = subtitles;
         PlaybackSettingsSection.IsVisible = !subtitles;
         SubtitleSettingsSection.IsVisible = subtitles;
@@ -403,7 +409,7 @@ public partial class MainWindow
             case Key.G: SubtitleDelayInput.Value = Math.Max(-300, (SubtitleDelayInput.Value ?? 0) - .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.H: SubtitleDelayInput.Value = Math.Min(300, (SubtitleDelayInput.Value ?? 0) + .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.Escape:
-                if (PlayerSettingsPanel.IsVisible) PlayerSettingsPanel.IsVisible = false;
+                if (PlayerSettingsPanel.IsVisible) { CancelOnlineSubtitles(); PlayerSettingsPanel.IsVisible = false; }
                 else if (WindowState == WindowState.FullScreen) SetFullscreen(false);
                 else return;
                 RevealPlayerControls();

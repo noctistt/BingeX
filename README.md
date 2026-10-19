@@ -81,7 +81,7 @@ Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDA
 - Navigation cancels stale requests. Provider failures leave healthy results available, and loading, empty, and retry states are shown separately.
 - Continue Watching shows local thumbnails or provider posters with saved progress. Streamed items ask for a new source before resuming, so expired playback links are not reused.
 
-Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, add-on subtitles, torrent streaming, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
+Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, torrent streaming, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
 
 ## License
 
@@ -105,3 +105,14 @@ Build a self-contained Windows x64 package and installer with PowerShell 7, .NET
 Setup installs for the current user, adds a Start menu shortcut, and offers an optional desktop shortcut and Open with registration for common video/audio extensions. Registration adds BingeX as a candidate in Open with and Default apps; choose it in Windows to make it the default. Setup does not overwrite existing default-player choices. Uninstall removes its program files, shortcuts and registrations, while preserving the library/history in `%LOCALAPPDATA%/BingeX`.
 
 A second launch forwards its file and optional `--subtitle` to the running window instead of opening another player. A launch without a filename activates the existing window. Separate `BINGEX_DATA_DIRECTORY` values keep development instances independent. The secondary process returns a nonzero exit code if the existing instance cannot be reached within six seconds.
+
+
+## Search online for subtitles
+
+Open **CC → Search online…**. Search a movie or series name (or enter its IMDb ID), choose the matching title, filter by language, and press **Load**. For series, choose the season and episode before searching. Catalog playback also offers **Find for this video**, using its existing movie or episode ID. Local filenames supply an editable title hint; the app never sends the full local path.
+
+Results come from installed Stremio add-ons that declare the `subtitles` resource, plus the official OpenSubtitles v3 add-on. An installed configuration for that provider takes precedence over the included endpoint. Title search uses a compatible connected catalog, with Cinemeta as a fallback when none is available. Provider availability and subtitle synchronization vary; use G/H or the delay control to adjust timing.
+
+Downloads load readable SRT / WebVTT captions into memory, without saving subtitle files or playback URLs to history. The existing caption appearance controls and C toggle work on downloaded subtitles. This preview accepts HTTPS subtitle links, follows up to five redirects, limits files to 8 MB, and cancels stale requests when the video/search changes or the panel closes. Archives, ASS downloads, provider login flows, and custom request headers are not supported by online search yet; local subtitle loading remains available.
+
+Run offline protocol/download checks with the smoke test project. Append `-- --live-subtitles` for an optional live search and download from the official subtitle add-on.
