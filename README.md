@@ -117,3 +117,14 @@ Results come from installed Stremio add-ons that declare the `subtitles` resourc
 Downloads load readable SRT / WebVTT captions into memory, without saving subtitle files or playback URLs to history. The existing caption appearance controls and C toggle work on downloaded subtitles. This preview accepts HTTPS subtitle links, follows up to five redirects, limits files to 8 MB, and cancels stale requests when the video/search changes or the panel closes. Archives, ASS downloads, provider login flows, and custom request headers are not supported by online search yet; local subtitle loading remains available.
 
 Run offline protocol/download checks with the smoke test project. Append `-- --live-subtitles` for an optional live search and download from the official subtitle add-on.
+
+
+## My Library and Continue Watching
+
+Choose **My Library** in the sidebar, then **Add folder**. BingeX scans common video formats in that folder and its subfolders in the background. Added folders and discovered files are saved locally; startup scans and **Rescan folders** pick up changes. Search by filename/subfolder, filter by an added folder, and select a video to play it. Overlapping folders show each physical path once. Large libraries initially show 100 results; **Show more videos** adds the next batch.
+
+Files stay in their original locations. **Remove folder** removes that folder's index entries while preserving physical files and playback history. Missing drives/incomplete scans retain cached entries. Junctions and symlinks are skipped to avoid loops and scanning outside the selected tree. New files appear on the next scan; continuous filesystem watching is not included yet.
+
+Videos are grouped by subfolder (for example, Show / Season 1). Cards show filenames, file sizes, saved playback progress, and thumbnails after a video has been played. Automatic movie posters/title matching and grouping episodes into show pages are separate future work.
+
+On **Home**, the small **×** in a Continue Watching card removes that item's history/progress without deleting the video, subtitle settings, or saved audio-track choice. If the item is still playing, progress saving is suppressed for that playback so the dismissed card does not immediately reappear. Explicitly opening the video again allows a new history entry.

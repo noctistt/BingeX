@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private int saveTicks;
     private bool updatingSeek;
     private bool seekDragging;
+    private bool suppressCurrentHistory;
 
     public MainWindow()
     {
@@ -30,8 +31,10 @@ public partial class MainWindow : Window
         SetupPlayerControls();
         RefreshHistory();
         RefreshAddons();
+        SetupLocalLibrary();
         Opened += (_, _) =>
         {
+            _ = ScanMediaFolders();
             try
             {
                 Core.Initialize();
@@ -56,6 +59,7 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Closing += (_, _) =>
         {
+            CancelLocalScan();
             timer.Stop(); overlayTimer.Stop();
             SaveProgress();
             mediaGeneration++;
@@ -69,6 +73,7 @@ public partial class MainWindow : Window
             detailWork.Cancel();
             streamWork.Cancel();
             posterWork.Cancel();
+            localScanWork.Dispose();
             artwork.Dispose();
             subtitleDownloads.Dispose();
             subtitleWork.Dispose();
@@ -94,15 +99,18 @@ public partial class MainWindow : Window
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }
         activePage = page;
         LibraryNav.Classes.Set("active", page is "Library" or "Details");
+        LocalLibraryNav.Classes.Set("active", page == "My Library");
         PlayerNav.Classes.Set("active", page == "Player");
         AddonsNav.Classes.Set("active", page == "Add-ons");
         DetailsPage.IsVisible = page == "Details";
         LibraryPage.IsVisible = page == "Library";
+        LocalLibraryPage.IsVisible = page == "My Library";
         PlayerPage.IsVisible = page == "Player";
         VideoSurface.IsVisible = page == "Player";
         AddonsPage.IsVisible = page == "Add-ons";
         if (page == "Player") RevealPlayerControls();
-        PageTitle.Text = page == "Library" ? "Your library" : page == "Details" ? "Discover" : page;
+        if (page == "My Library") RefreshLocalLibrary();
+        PageTitle.Text = page == "Library" ? "Home" : page == "Details" ? "Discover" : page;
         if (page == "Library") { RefreshHistory(); ResumePosterArtwork(); }
     }
     private async void Library_Click(object? sender, RoutedEventArgs e)
@@ -126,6 +134,7 @@ public partial class MainWindow : Window
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
         SaveProgress();
         player.Stop();
+        suppressCurrentHistory = false;
         currentContext = context;
         currentHistoryKey = context?.HistoryKey ?? path;
         if (context != null) store.SaveContext(context);
@@ -191,7 +200,7 @@ public partial class MainWindow : Window
     private void SaveProgress()
     {
         // Stable title/episode IDs keep expiring playback URLs out of history.
-        if (player == null || currentPath == null || currentHistoryKey == null || lastDuration <= 0 || resumeAt > 0) return;
+        if (suppressCurrentHistory || player == null || currentPath == null || currentHistoryKey == null || lastDuration <= 0 || resumeAt > 0) return;
         if (currentContext == null && !File.Exists(currentPath)) return;
         if (playbackEnded) store.Save(new(currentHistoryKey, currentTitle, lastDuration, lastDuration));
         else if (player.State is VLCState.Playing or VLCState.Paused && lastDuration > 0)

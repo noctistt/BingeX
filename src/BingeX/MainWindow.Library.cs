@@ -295,13 +295,29 @@ public partial class MainWindow
             column.Children.Add(new ProgressBar { Minimum = 0, Maximum = Math.Max(1, media.Duration), Value = media.Position, Height = 3, Foreground = Brush.Parse("#A78BFA") });
             column.Children.Add(new TextBlock { Text = media.Title, MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = FontWeight.SemiBold });
             column.Children.Add(new TextBlock { Text = Clock(media.Position) + " / " + Clock(media.Duration), FontSize = 11, Foreground = Brush.Parse("#9E9BAE") });
-            var button = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 18, 16) };
+            var button = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent };
             button.Click += async (_, _) =>
             {
                 if (context == null) Play(media.Path, media.Title);
                 else await ShowTitle(new(context.Id, context.Type, context.Name, context.Poster, "", "", "", "", "", context.AddonId, []), context.EpisodeId);
             };
-            HistoryItems.Children.Add(button);
+            var card = new Grid { Width = 246, Margin = new Thickness(0, 0, 18, 16) };
+            card.Children.Add(button);
+            var remove = new Button { Content = "×", Width = 28, Height = 28, Padding = new Thickness(0), FontSize = 21,
+                CornerRadius = new CornerRadius(14), Background = Brush.Parse("#E5101018"), Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6) };
+            ToolTip.SetTip(remove, "Remove from Continue Watching");
+            AutomationProperties.SetName(remove, "Remove " + media.Title + " from Continue Watching");
+            remove.Click += (_, e) =>
+            {
+                e.Handled = true;
+                if (currentHistoryKey == media.Path) suppressCurrentHistory = true;
+                store.RemoveHistory(media.Path);
+                RefreshHistory();
+                Status("Removed from Continue Watching. The video file was kept.");
+            };
+            card.Children.Add(remove);
+            HistoryItems.Children.Add(card);
             var artLocation = context?.Poster ?? store.ThumbnailPath(media.Path);
             if (context != null || File.Exists(artLocation)) _ = artwork.Fill(image, artLocation);
         }
@@ -334,7 +350,7 @@ public partial class MainWindow
         try
         {
             var addon = await InstallAddon(ManifestInput.Text?.Trim() ?? "");
-            ManifestInput.Text = ""; Status("Installed " + addon.Name + ". Browse it from Library.");
+            ManifestInput.Text = ""; Status("Installed " + addon.Name + ". Browse it from Home.");
             catalogs = [];
         }
         catch { Status("Could not install this add-on. Use its configured HTTPS manifest URL."); }
