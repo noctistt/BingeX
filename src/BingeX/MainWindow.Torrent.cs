@@ -63,7 +63,9 @@ public partial class MainWindow
             {
                 if (revision != torrentRevision || localClosing) return;
                 TorrentState.Text = update.Stage;
-                TorrentDetails.Text = $"{update.DownloadedPercent:0.0}% downloaded · {update.DownloadRate / 1024d:0} KB/s · {update.Peers} peer(s) · cache limit 32 GB";
+                TorrentDetails.Text = update.HasMetadata
+                    ? $"{update.DownloadedPercent:0.0}% downloaded · {update.DownloadRate / 1024d:0} KB/s · {update.Peers} peer(s) · cache limit 32 GB"
+                    : $"{update.ElapsedSeconds}s elapsed · {update.Peers} peer(s) · {update.Discovery}";
                 TorrentProgress.IsVisible = torrentStarting || update.Waiting;
             });
             var video = await Task.Run(() => session.OpenAsync(choice.Torrent, progress, token), token);
@@ -80,7 +82,7 @@ public partial class MainWindow
             if (revision != torrentRevision || localClosing) return;
             StopTorrentPlayback();
             PlayerNotice(error is IOException ? error.Message : "This torrent could not start. Try another source or check your connection.");
-            Status("Torrent playback could not start.");
+            Status(error is IOException ? error.Message : "Torrent playback could not start. Try another source or check your connection.");
         }
         finally { if (revision == torrentRevision) torrentStarting = false; }
     }

@@ -2,11 +2,14 @@ using BingeX;
 using MonoTorrent;
 using MonoTorrent.Client;
 using MonoTorrent.BEncoding;
+using MonoTorrent.PieceWriter;
+using ReusableTasks;
 using LibVLCSharp.Shared;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
 
 internal static class TorrentChecks
 {
@@ -71,6 +74,26 @@ internal static class TorrentChecks
             Console.WriteLine("READY: synthetic torrent fixture at " + exported);
             await Task.Delay(TimeSpan.FromMinutes(8));
         }
+        using (var release = new CancellationTokenSource())
+        {
+            var sink = new RecordingWriter();
+            using var gate = new TorrentWriteGate(sink, seedPath, release.Token);
+            var pendingWrite = gate.WriteAsync(seed.Files.First(), 0, new byte[16]).AsTask();
+            await Task.Delay(20);
+            Check(!pendingWrite.IsCompleted && sink.Writes == 0, "Torrent payload writes must remain blocked before metadata validation.");
+            gate.Approve(); await pendingWrite;
+            Check(sink.Writes == 1, "Approved payload writes must reach the cache writer.");
+        }
+        using (var release = new CancellationTokenSource())
+        {
+            var sink = new RecordingWriter();
+            using var gate = new TorrentWriteGate(sink, seedPath, release.Token);
+            var pendingWrite = gate.WriteAsync(seed.Files.First(), 0, new byte[16]).AsTask();
+            release.Cancel();
+            var observed = false;
+            try { await pendingWrite; } catch (OperationCanceledException) { observed = true; }
+            Check(observed && sink.Writes == 0, "Stopping before validation must cancel queued writes without touching payload files.");
+        }
         Check(seed.Complete, "Synthetic video fixture must be seeded completely.");
         var fileIndex = seed.Files.Select((f, index) => (f, index)).Single(x => x.f.Path.EndsWith(".mkv")).index;
         Check(TorrentPlayback.SelectFile(seed.Files, null).Path.EndsWith(".mkv"), "Default selection must choose a video rather than a sidecar.");
@@ -83,9 +106,9 @@ internal static class TorrentChecks
         try
         {
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            var source = new TorrentSource(torrent.InfoHashes.V1!.ToHex(), fileIndex, [tracker.Url], [$"ipv4://127.0.0.1:{seedPort}"]);
+            var source = new TorrentSource(torrent.InfoHashes.V1!.ToHex(), fileIndex, [], [$"ipv4://127.0.0.1:{seedPort}"]);
             var stream = await session.OpenAsync(source, new Progress<TorrentStatus>(), deadline.Token);
-            Check(session.FileName.EndsWith(".mkv"), "The exact indexed video must be selected after magnet metadata lookup.");
+            Check(session.FileName.EndsWith(".mkv"), "Peer hints alone must retrieve metadata before selecting the exact indexed video.");
             var actual = new byte[4096]; var expected = new byte[4096];
             using var original = File.OpenRead(mediaPath);
             await stream.ReadExactlyAsync(actual); await original.ReadExactlyAsync(expected);
@@ -115,11 +138,13 @@ internal static class TorrentChecks
         Check(!Directory.Exists(sessionPath), "Stopping must remove temporary torrent files after releasing the decoder.");
         await using (var canceled = new TorrentPlayback(data, localOnly: true))
         {
-            using var token = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
+            using var token = new CancellationTokenSource(TimeSpan.FromMilliseconds(1300));
             var observed = false;
-            try { await canceled.OpenAsync(new(new string('a', 40), null, [], []), new Progress<TorrentStatus>(), token.Token); }
+            var statuses = new ConcurrentQueue<TorrentStatus>();
+            try { await canceled.OpenAsync(new(new string('a', 40), null, [], []), new ImmediateProgress(statuses.Enqueue), token.Token); }
             catch (OperationCanceledException) { observed = true; }
             Check(observed, "Unavailable torrent metadata lookup must be cancellable.");
+            Check(statuses.Any(x => !x.HasMetadata && x.ElapsedSeconds >= 1), "Metadata lookup must publish elapsed discovery status instead of frozen download percentages.");
         }
         var unavailableData = BEncodedValue.Decode<BEncodedDictionary>(torrentData.Encode());
         unavailableData.Remove("announce"); unavailableData.Remove("announce-list");
@@ -138,6 +163,21 @@ internal static class TorrentChecks
         Check(lookup.IsCompleted && !Directory.Exists(duringLookup.SessionDirectory), "Disposal during metadata lookup must cancel and await startup before clearing its cache.");
         Console.WriteLine("PASS: local peer seeding, tracker/magnet metadata retrieval, exact file selection, verified reads, native torrent playback/seek, cancellation and cache disposal.");
     }
+    private sealed class RecordingWriter : IPieceWriter
+    {
+        public int Writes;
+        public int OpenFiles => 0;
+        public int MaximumOpenFiles => 1;
+        public ReusableTask WriteAsync(ITorrentManagerFile file, long offset, ReadOnlyMemory<byte> data) { Writes++; return ReusableTask.CompletedTask; }
+        public async ReusableTask<int> ReadAsync(ITorrentManagerFile file, long offset, Memory<byte> data) { await Task.CompletedTask; return 0; }
+        public async ReusableTask<bool> ExistsAsync(ITorrentManagerFile file) { await Task.CompletedTask; return false; }
+        public ReusableTask CloseAsync(ITorrentManagerFile file) => ReusableTask.CompletedTask;
+        public ReusableTask FlushAsync(ITorrentManagerFile file) => ReusableTask.CompletedTask;
+        public ReusableTask MoveAsync(ITorrentManagerFile file, string path, bool overwrite) => ReusableTask.CompletedTask;
+        public ReusableTask SetMaximumOpenFilesAsync(int count) => ReusableTask.CompletedTask;
+        public void Dispose() { }
+    }
+    private sealed class ImmediateProgress(Action<TorrentStatus> report) : IProgress<TorrentStatus> { public void Report(TorrentStatus value) => report(value); }
     private sealed class NeverReadyStream : MemoryStream
     {
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
