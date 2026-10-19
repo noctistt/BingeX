@@ -1,6 +1,6 @@
 namespace BingeX;
 
-public record LocalVideo(string Path, string Folder, string Title, string RelativePath, long Size, long ModifiedTicks);
+public record LocalVideo(string Path, string Folder, string Title, string RelativePath, long Size, long ModifiedTicks, long AddedTicks = 0, long LastWatchedTicks = 0);
 public record FolderScan(string Folder, IReadOnlyList<LocalVideo> Videos, bool Complete, int Skipped);
 
 public static class LocalLibraryScanner

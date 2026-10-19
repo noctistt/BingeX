@@ -59,6 +59,7 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Closing += (_, _) =>
         {
+            localClosing = true;
             CancelLocalScan();
             timer.Stop(); overlayTimer.Stop();
             SaveProgress();
@@ -132,6 +133,7 @@ public partial class MainWindow : Window
         if (player == null || engine == null) { Status("Playback engine is unavailable."); return; }
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
+        thumbnailWork.Cancel();
         SaveProgress();
         player.Stop();
         suppressCurrentHistory = false;

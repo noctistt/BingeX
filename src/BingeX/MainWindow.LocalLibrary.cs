@@ -13,6 +13,11 @@ public partial class MainWindow
     private CancellationTokenSource localScanWork = new();
     private int localScanRevision;
     private int localDisplayLimit = 100;
+    private readonly Dictionary<string, bool> localAvailability = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> thumbnailAttempts = new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource thumbnailWork = new();
+    private bool thumbnailRunning;
+    private bool localClosing;
     private bool localLibraryReady;
     private bool changingLocalFolders;
     private record LocalFolderChoice(string? Path, string Name) { public override string ToString() => Name; }
@@ -79,11 +84,13 @@ public partial class MainWindow
     {
         localScanRevision++;
         localScanWork.Cancel();
+        thumbnailWork.Cancel();
         LocalScanBusy.IsVisible = false;
     }
     private async Task ScanMediaFolders()
     {
         CancelLocalScan();
+        thumbnailAttempts.Clear();
         localScanWork.Dispose();
         localScanWork = new();
         var token = localScanWork.Token;
@@ -101,8 +108,14 @@ public partial class MainWindow
                 if (token.IsCancellationRequested || revision != localScanRevision) return;
                 store.ApplyFolderScan(result);
                 if (!result.Complete) incomplete++;
+                foreach (var item in result.Videos) localAvailability[item.Path] = true;
                 RefreshLocalLibrary();
             }
+            var cachedPaths = store.LocalVideos().Select(x => x.Path).ToArray();
+            var availability = await Task.Run(() => cachedPaths.ToDictionary(x => x, File.Exists, StringComparer.OrdinalIgnoreCase), token);
+            if (token.IsCancellationRequested || revision != localScanRevision) return;
+            foreach (var item in availability) localAvailability[item.Key] = item.Value;
+            RefreshLocalLibrary();
             var count = store.LocalVideos().Count;
             LocalScanMessage.Text = $"{count} video{(count == 1 ? "" : "s")} in {folders.Count} folder{(folders.Count == 1 ? "" : "s")}." +
                 (incomplete > 0 ? $" {incomplete} folder scan(s) were incomplete. Previously indexed videos were kept; check drive access and rescan." : " Scan complete.");
@@ -133,7 +146,7 @@ public partial class MainWindow
         if (!localLibraryReady) return;
         var folder = (LocalFolderFilter.SelectedItem as LocalFolderChoice)?.Path;
         var query = LocalVideoSearch.Text?.Trim() ?? "";
-        var videos = store.LocalVideos(folder).Where(x => query.Length == 0 || x.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+        var videos = LocalVideoPresentation.Sort(store.LocalVideos(folder), LocalSort.SelectedIndex).Where(x => query.Length == 0 || x.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
             || x.RelativePath.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
         LocalVideoCount.Text = $"{videos.Length} video{(videos.Length == 1 ? "" : "s")}" + (videos.Length > localDisplayLimit ? $" · showing {localDisplayLimit}" : "");
         LocalLibraryEmpty.IsVisible = videos.Length == 0;
@@ -141,36 +154,74 @@ public partial class MainWindow
             : store.Folders().Count == 0 ? "Add your first folder to build your library." : "No videos indexed here yet. Add a video file and rescan.";
         LocalLoadMore.IsVisible = videos.Length > localDisplayLimit;
         LocalVideoItems.Children.Clear();
-        foreach (var group in videos.Take(localDisplayLimit).GroupBy(x => (x.Folder, Parent: Path.GetDirectoryName(x.RelativePath) ?? "")))
+        foreach (var group in videos.Take(localDisplayLimit).GroupBy(x => (x.Folder, Heading: LocalVideoPresentation.Episode(x) is { } episode ? episode.Show + " · Season " + episode.Season : Path.GetDirectoryName(x.RelativePath) ?? "")))
         {
-            var heading = FolderName(group.Key.Folder) + (group.Key.Parent.Length > 0 ? " / " + group.Key.Parent.Replace(Path.DirectorySeparatorChar, '/') : "");
+            var heading = group.Key.Heading.Length > 0 ? group.Key.Heading.Replace(Path.DirectorySeparatorChar, '/') : FolderName(group.Key.Folder);
             LocalVideoItems.Children.Add(new TextBlock { Text = heading, FontSize = 18, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             var tiles = new WrapPanel();
             LocalVideoItems.Children.Add(tiles);
-            foreach (var video in group)
+            foreach (var video in LocalSort.SelectedIndex == 0 ? group.OrderBy(x => LocalVideoPresentation.Episode(x)?.Episode ?? 0).ThenBy(x => x.Title, StringComparer.OrdinalIgnoreCase) : group.AsEnumerable())
             {
-            var column = new StackPanel { Width = 210, Spacing = 8 };
-            var art = new Grid { Width = 210, Height = 118 };
-            art.Children.Add(new TextBlock { Text = "▶", FontSize = 30, Foreground = Brush.Parse("#B69AFF"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-            var thumbnail = store.ThumbnailPath(video.Path);
-            if (File.Exists(thumbnail))
+                var column = new StackPanel { Width = 210, Spacing = 8 };
+                var art = new Grid { Width = 210, Height = 118 };
+                art.Children.Add(new TextBlock { Text = "▶", FontSize = 30, Foreground = Brush.Parse("#B69AFF"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                var thumbnail = store.ThumbnailPath(video.Path);
+                if (File.Exists(thumbnail))
+                {
+                    var image = new Image { Stretch = Stretch.UniformToFill };
+                    art.Children.Add(image);
+                    _ = artwork.Fill(image, thumbnail);
+                }
+                column.Children.Add(new Border { Background = Brush.Parse("#2D2440"), CornerRadius = new CornerRadius(10), ClipToBounds = true, Child = art });
+                var unavailable = localAvailability.TryGetValue(video.Path, out var available) && !available;
+                if (unavailable) column.Children.Add(new TextBlock { Text = "Unavailable · reconnect drive or rescan", Foreground = Brush.Parse("#E7B779"), FontSize = 11, TextWrapping = TextWrapping.Wrap });
+                var history = store.FindHistory(video.Path);
+                if (history is { Duration: > 0 }) column.Children.Add(new ProgressBar { Minimum = 0, Maximum = history.Duration, Value = history.Position, Height = 3, Foreground = Brush.Parse("#B69AFF") });
+                column.Children.Add(new TextBlock { Text = video.Title, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 2, Height = 38, FontWeight = FontWeight.SemiBold });
+                var parent = Path.GetDirectoryName(video.RelativePath);
+                column.Children.Add(new TextBlock { Text = (string.IsNullOrEmpty(parent) ? FolderName(video.Folder) : parent) + " · " + FormatVideoSize(video.Size), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11, Foreground = Brush.Parse("#AAA0BA") });
+                var play = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 16, 18), VerticalAlignment = VerticalAlignment.Top };
+                ToolTip.SetTip(play, video.Path);
+                AutomationProperties.SetName(play, "Play " + video.Title);
+                play.Click += (_, _) =>
+                {
+                    if (!File.Exists(video.Path)) { localAvailability[video.Path] = false; RefreshLocalLibrary(); LocalScanMessage.Text = "This video is unavailable. Reconnect its drive or restore the file, then rescan."; return; }
+                    thumbnailWork.Cancel();
+                    Play(video.Path, video.Title);
+                };
+                tiles.Children.Add(play);
+            }
+        }
+        if (activePage == "My Library" && !thumbnailRunning) _ = GenerateLibraryThumbnails(videos.Take(localDisplayLimit).ToArray());
+    }
+    private async Task GenerateLibraryThumbnails(LocalVideo[] videos)
+    {
+        thumbnailRunning = true;
+        thumbnailWork.Dispose(); thumbnailWork = new();
+        var token = thumbnailWork.Token;
+        try
+        {
+            foreach (var video in videos)
             {
-                var image = new Image { Stretch = Stretch.UniformToFill };
-                art.Children.Add(image);
-                _ = artwork.Fill(image, thumbnail);
+                if (token.IsCancellationRequested || activePage != "My Library" || player?.IsPlaying == true) break;
+                var destination = store.ThumbnailPath(video.Path);
+                if (File.Exists(destination) || !thumbnailAttempts.Add(video.Path) || localAvailability.GetValueOrDefault(video.Path, true) == false) continue;
+                try
+                {
+                    var success = await Task.Run(() => File.Exists(video.Path) && LocalThumbnail.Create(video.Path, destination, token), token);
+                    if (token.IsCancellationRequested) { thumbnailAttempts.Remove(video.Path); break; }
+                    if (success) RefreshLocalLibrary();
+                }
+                catch (OperationCanceledException) { thumbnailAttempts.Remove(video.Path); throw; }
+                catch { /* Keep a placeholder for this file and continue with the next video. */ }
             }
-            column.Children.Add(new Border { Background = Brush.Parse("#2D2440"), CornerRadius = new CornerRadius(10), ClipToBounds = true, Child = art });
-            var history = store.FindHistory(video.Path);
-            if (history is { Duration: > 0 }) column.Children.Add(new ProgressBar { Minimum = 0, Maximum = history.Duration, Value = history.Position, Height = 3, Foreground = Brush.Parse("#B69AFF") });
-            column.Children.Add(new TextBlock { Text = video.Title, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 2, Height = 38, FontWeight = FontWeight.SemiBold });
-            var parent = Path.GetDirectoryName(video.RelativePath);
-            column.Children.Add(new TextBlock { Text = (string.IsNullOrEmpty(parent) ? FolderName(video.Folder) : parent) + " · " + FormatVideoSize(video.Size), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11, Foreground = Brush.Parse("#AAA0BA") });
-            var play = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 16, 18), VerticalAlignment = VerticalAlignment.Top };
-            ToolTip.SetTip(play, video.Path);
-            AutomationProperties.SetName(play, "Play " + video.Title);
-            play.Click += (_, _) => Play(video.Path, video.Title);
-            tiles.Children.Add(play);
-            }
+        }
+        catch (OperationCanceledException) { }
+        catch { /* A damaged video must not prevent browsing or playing other files. */ }
+        finally
+        {
+            thumbnailRunning = false;
+            if (!localClosing && activePage == "My Library" && token.IsCancellationRequested) RefreshLocalLibrary();
         }
     }
     private static string FormatVideoSize(long bytes) => bytes >= 1024L * 1024 * 1024 ? $"{bytes / (1024d * 1024 * 1024):0.0} GB" : $"{bytes / (1024d * 1024):0.#} MB";

@@ -133,6 +133,18 @@ try
         // The headless host has no UI renderer holding D3D11 alive. Some GPU drivers
         // retain worker callbacks after LibVLC releases its last graphics reference.
         if (OperatingSystem.IsWindows()) System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(Environment.SystemDirectory, "d3d11.dll"));
+        Avalonia.Skia.SkiaPlatform.Initialize();
+        var generated = Path.Combine(directory, "generated.png");
+        Assert(LocalThumbnail.Create(Path.GetFullPath(videoPath), generated, CancellationToken.None), "Background thumbnails must decode without a video window.");
+        using (var bitmap = new Avalonia.Media.Imaging.Bitmap(generated)) Assert(bitmap.PixelSize.Width > 0 && bitmap.PixelSize.Width <= 480 && bitmap.PixelSize.Height > 0 && bitmap.PixelSize.Height <= 480, "Generated thumbnails must be valid, bounded images.");
+        using (var canceledThumbnail = new CancellationTokenSource())
+        {
+            canceledThumbnail.Cancel();
+            var canceledCapture = false;
+            try { LocalThumbnail.Create(Path.GetFullPath(videoPath), generated + "cancel", canceledThumbnail.Token); } catch (OperationCanceledException) { canceledCapture = true; }
+            Assert(canceledCapture && !File.Exists(generated + "cancel"), "Canceled thumbnail work must not create an output.");
+        }
+        Console.WriteLine("PASS: silent background video frame extraction, PNG decoding, and cancellation.");
         Core.Initialize();
         using var engine = new LibVLC("--vout=dummy", "--aout=dummy", "--no-video-title-show", "--avcodec-hw=none");
         using var player = new MediaPlayer(engine);

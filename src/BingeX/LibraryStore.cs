@@ -26,6 +26,7 @@ public sealed partial class LibraryStore : IDisposable
             CREATE TABLE IF NOT EXISTS media_context(path TEXT PRIMARY KEY, context TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS preferences(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS media_audio(path TEXT PRIMARY KEY, track_id INTEGER NOT NULL, track_name TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS library_added(path TEXT PRIMARY KEY COLLATE NOCASE, added INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS library_folders(path TEXT PRIMARY KEY COLLATE NOCASE);
             CREATE TABLE IF NOT EXISTS library_files(folder TEXT COLLATE NOCASE NOT NULL,path TEXT COLLATE NOCASE NOT NULL,title TEXT NOT NULL,relative_path TEXT NOT NULL,size INTEGER NOT NULL,modified INTEGER NOT NULL,PRIMARY KEY(folder,path));
             """;
