@@ -131,6 +131,7 @@ public partial class MainWindow : Window
         if (context != null) store.SaveContext(context);
         resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
         ResetMediaControls(string.Equals(path, currentPath, StringComparison.Ordinal));
+        pendingAudioSelection = store.AudioSelection(currentHistoryKey);
         thumbnailAttempted = false;
         currentPath = path;
         currentTitle = title;

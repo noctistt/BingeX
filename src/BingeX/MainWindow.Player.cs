@@ -33,6 +33,8 @@ public partial class MainWindow
     private string trackSignature = "";
     private bool subtitleSettingsOpen;
     private int? lastSubtitleTrack;
+    private AudioTrackSelection? pendingAudioSelection;
+    private DateTime? audioRestoreUntil;
     private record TrackOption(int Id, string Name) { public override string ToString() => Name; }
     private const int TextSubtitleId = int.MinValue;
 
@@ -79,6 +81,8 @@ public partial class MainWindow
         mediaGeneration++;
         ResetOnlineSubtitles();
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
+        pendingAudioSelection = null;
+        audioRestoreUntil = null;
         if (!preserveSubtitles)
         {
             textSubtitles = null; textSubtitleName = null; useTextSubtitles = false; lastSubtitleTrack = null;
@@ -249,6 +253,7 @@ public partial class MainWindow
     {
         if (player == null || currentPath == null || player.State is VLCState.Opening or VLCState.Stopped) return;
         var audio = player.AudioTrackDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)).ToArray();
+        RestoreSavedAudioTrack(audio);
         if (useTextSubtitles && player.Spu >= 0) player.SetSpu(-1);
         var subtitles = new List<TrackOption> { new(-1, "Off") };
         subtitles.AddRange(player.SpuDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)));
@@ -273,7 +278,30 @@ public partial class MainWindow
     {
         if (updatingTracks || player == null || AudioTrackPicker.SelectedItem is not TrackOption track) return;
         if (!player.SetAudioTrack(track.Id)) PlayerNotice("This audio track could not be selected.");
-        else PlayerNotice("Audio: " + track.Name);
+        else
+        {
+            // An explicit choice takes precedence over any pending startup restoration.
+            pendingAudioSelection = null;
+            if (currentHistoryKey != null) store.SaveAudioSelection(currentHistoryKey, new(track.Id, track.Name));
+            PlayerNotice("Audio: " + track.Name);
+        }
+    }
+    private void RestoreSavedAudioTrack(IReadOnlyList<TrackOption> audio)
+    {
+        if (pendingAudioSelection == null || player == null || audio.Count == 0) return;
+        // Track descriptions often arrive after playback starts, especially for streams.
+        audioRestoreUntil ??= DateTime.UtcNow.AddSeconds(15);
+        if (DateTime.UtcNow > audioRestoreUntil)
+        {
+            pendingAudioSelection = null;
+            PlayerNotice("Saved audio track is unavailable. Using the available audio track.");
+            return;
+        }
+        var id = pendingAudioSelection.Resolve(audio.Select(x => (x.Id, x.Name)));
+        if (id == null) return;
+        if (player.AudioTrack == id) { pendingAudioSelection = null; return; }
+        // Confirm on the next refresh rather than assuming a native track change is immediate.
+        player.SetAudioTrack(id.Value);
     }
     private void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {

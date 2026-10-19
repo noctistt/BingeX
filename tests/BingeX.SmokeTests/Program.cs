@@ -29,6 +29,8 @@ try
         store.SaveContext(context);
         store.Save(new(context.HistoryKey, context.DisplayName, 15000, 90000));
         store.SavePreferences(new(42, 36, "Yellow", false));
+        store.SaveAudioSelection("C:\\media\\O'Brien.mkv", new(2, "Hindi"));
+        store.SaveAudioSelection(context.HistoryKey, new(7, "Japanese"));
     }
     using (var store = new LibraryStore(directory))
     {
@@ -37,6 +39,14 @@ try
         var context = store.Context("stremio:series:tt123:2:3");
         Assert(context?.EpisodeId == "tt123:2:3" && context.AddonId == "test.provider", "Remote resume must use stable episode identity without storing a playback URL.");
         Assert(store.Preferences() == new PlayerPreferences(42, 36, "Yellow", false), "Player volume and subtitle appearance must survive reopening.");
+        Assert(store.AudioSelection("C:\\media\\O'Brien.mkv") == new AudioTrackSelection(2, "Hindi"), "The last selected local audio track must survive closing/reopening the library.");
+        Assert(store.AudioSelection("stremio:series:tt123:2:3") == new AudioTrackSelection(7, "Japanese"), "Remote audio choices must use stable episode IDs.");
+        Assert(store.AudioSelection("another-video") == null, "Audio choices must remain per video.");
+        var choice = new AudioTrackSelection(2, "Hindi");
+        Assert(choice.Resolve([]) == null && choice.Resolve([(1, "English")]) == null, "Delayed or missing audio tracks must not silently select a different language.");
+        Assert(choice.Resolve([(1, "English"), (2, "Hindi")]) == 2 && choice.Resolve([(2, "English"), (9, "Hindi")]) == 9, "Audio restoration must handle both stable and remapped native IDs.");
+        Assert(choice.Resolve([(9, "Hindi"), (10, "Hindi")]) == null, "Ambiguous remapped tracks must not be guessed.");
+        Console.WriteLine("PASS: persisted per-video audio choices, stable episode IDs, delayed/missing tracks, remapped IDs and ambiguity.");
         Assert(store.Addons().Count == 1, "Installed add-ons must survive reopening.");
         store.RemoveAddon("test.provider");
         Assert(store.Addons().Count == 0, "Removed add-ons must not remain installed.");
@@ -137,6 +147,8 @@ try
             Assert(player.SetAudioTrack(audioTracks[1].Id), "A second embedded audio track must be selectable.");
             await Task.Delay(700);
             Assert(player.AudioTrack == audioTracks[1].Id, "The chosen audio track must become active.");
+            using (var audioStore = new LibraryStore(directory)) audioStore.SaveAudioSelection(videoPath, new(audioTracks[1].Id, audioTracks[1].Name));
+            Console.WriteLine($"Saved native audio choice: {audioTracks[1].Id} · {audioTracks[1].Name}");
             Assert(player.SetSpu(subtitleTracks[0].Id), "An embedded subtitle track must be selectable.");
             await Task.Delay(700);
             Assert(player.Spu == subtitleTracks[0].Id, "The chosen subtitle track must become active.");
@@ -157,6 +169,23 @@ try
         Console.WriteLine("Native test: stopping");
         player.Stop();
         Console.WriteLine("PASS: native LibVLC decoding, duration, pause, seek, and stop.");
+        if (args.Contains("--multitrack"))
+        {
+            using var reopenedStore = new LibraryStore(directory);
+            // Obtain fresh native IDs after reopening.
+            using var reopenedMedia = new Media(engine, new Uri(Path.GetFullPath(videoPath)));
+            Assert(player.Play(reopenedMedia), "Fixture must reopen for saved audio restoration.");
+            await Task.Delay(1200);
+            var audio = player.AudioTrackDescription.Where(x => x.Id >= 0).ToArray();
+            Assert(audio.Length >= 2, "Fixture must provide a non-default audio track.");
+            var saved = reopenedStore.AudioSelection(videoPath)!;
+            var restoreId = saved.Resolve(audio.Select(x => (x.Id, x.Name)));
+            Assert(restoreId.HasValue && player.SetAudioTrack(restoreId.Value), "A persisted selection must be applicable to a newly opened video.");
+            await Task.Delay(700);
+            Assert(player.AudioTrack == restoreId, "Reopened native playback must use the saved non-default audio track.");
+            player.Stop();
+            Console.WriteLine("PASS: persisted audio track restoration during native playback after reopening.");
+        }
     }
 }
 

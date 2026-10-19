@@ -59,6 +59,7 @@ Open media using **Open media**, drag a local file onto the app, or pass a filen
 - External **SRT / WebVTT** captions support live size, color, background, and timing changes. Embedded and ASS/SSA/image subtitle tracks retain their native styling. Subtitle delay applies to both native tracks and custom text captions; positive delay shows captions later.
 - Fullscreen removes the sidebar and page chrome. Controls and the pointer hide after three idle seconds while playing, and return on mouse movement. Controls stay visible when paused, finished, or interacting with settings.
 - Space toggles pause or replays a completed video; Left/Right skip ten seconds; F/F11 toggles fullscreen; S opens playback settings; C toggles subtitles; M toggles mute; G/H shifts subtitles earlier/later by 50 ms. Escape closes settings first, then exits fullscreen. Double-clicking the video also toggles fullscreen.
+- Audio track choices persist per video and restore after reopening, once tracks become available. Remote titles use stable episode IDs; if a saved track is missing, playback keeps the available default. A new manual selection overrides pending restoration.
 - Volume and text subtitle appearance persist between sessions. Per-video subtitle delay resets for a new file.
 - Resume uses stable local paths or catalog/episode IDs. Completed videos restart from the beginning, short clips use a proportional completion margin, and non-seekable streams play from the start.
 

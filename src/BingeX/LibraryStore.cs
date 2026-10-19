@@ -25,6 +25,7 @@ public sealed class LibraryStore : IDisposable
             CREATE TABLE IF NOT EXISTS addons(id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS media_context(path TEXT PRIMARY KEY, context TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS preferences(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS media_audio(path TEXT PRIMARY KEY, track_id INTEGER NOT NULL, track_name TEXT NOT NULL);
             """;
         command.ExecuteNonQuery();
     }
@@ -81,6 +82,24 @@ public sealed class LibraryStore : IDisposable
         var directory = Path.Combine(DataDirectory, "thumbnails");
         Directory.CreateDirectory(directory);
         return Path.Combine(directory, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path))) + ".png");
+    }
+
+    public AudioTrackSelection? AudioSelection(string key)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT track_id,track_name FROM media_audio WHERE path=$path";
+        command.Parameters.AddWithValue("$path", key);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? new(reader.GetInt32(0), reader.GetString(1)) : null;
+    }
+    public void SaveAudioSelection(string key, AudioTrackSelection selection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR REPLACE INTO media_audio VALUES($path,$id,$name)";
+        command.Parameters.AddWithValue("$path", key);
+        command.Parameters.AddWithValue("$id", selection.Id);
+        command.Parameters.AddWithValue("$name", selection.Name);
+        command.ExecuteNonQuery();
     }
 
     public PlayerPreferences Preferences()
