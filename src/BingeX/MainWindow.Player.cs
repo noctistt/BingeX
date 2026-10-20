@@ -56,7 +56,7 @@ public partial class MainWindow
         videoClickTimer.Tick += (_, _) =>
         {
             videoClickTimer.Stop();
-            if (activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible)
+            if (!NativePlaybackBusy && activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible)
                 Play_Click(null, new RoutedEventArgs());
         };
         PlayerOverlay.PointerMoved += (_, e) =>
@@ -69,7 +69,7 @@ public partial class MainWindow
             RevealPlayerControls();
             videoClickTimer.Stop();
             videoPressPoint = null;
-            if (Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
+            if (NativePlaybackBusy || Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
                 !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
             if (miniPlayer) { RestorePlayer_Click(null, new()); e.Handled = true; return; }
@@ -120,7 +120,7 @@ public partial class MainWindow
         pendingAudioSelection = null;
         audioRestoreUntil = null;
         audioDelayMs = 0; AudioDelayInput.Value = 0;
-        player?.SetAudioDelay(0);
+
         if (!preserveSubtitles) externalAudioPath = null;
         ExternalAudioLabel.Text = externalAudioPath == null ? "Use an audio file that matches this video's cut." : "Loaded: " + Path.GetFileName(externalAudioPath);
         if (!preserveSubtitles)
@@ -142,7 +142,7 @@ public partial class MainWindow
         var generation = mediaGeneration;
         Dispatcher.UIThread.Post(() =>
         {
-            if (generation != mediaGeneration || player == null || player.State is VLCState.Playing or VLCState.Opening) return;
+            if (NativePlaybackBusy || generation != mediaGeneration || player == null || player.State is VLCState.Playing or VLCState.Opening) return;
             if (lastDuration <= 0 && activeSource != null && !sourceStarted)
             {
                 if (TryScheduleNextSource("This source ended before video playback could start.")) return;
@@ -184,7 +184,7 @@ public partial class MainWindow
     }
     private void UpdatePlayerOverlay()
     {
-        if (activePage != "Player" && !miniPlayer) return;
+        if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
         var hide = WindowState == WindowState.FullScreen && player?.IsPlaying == true && !playbackEnded &&
@@ -260,7 +260,7 @@ public partial class MainWindow
     }
     private void ToggleSubtitles()
     {
-        if (player == null || currentPath == null) { PlayerNotice("Open a video before enabling subtitles."); return; }
+        if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before enabling subtitles."); return; }
         RefreshTracks();
         var tracks = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.ToArray() ?? [];
         var current = useTextSubtitles ? TextSubtitleId : player.Spu;
@@ -307,7 +307,7 @@ public partial class MainWindow
     }
     private void RefreshTracks()
     {
-        if (player == null || currentPath == null || player.State is VLCState.Opening or VLCState.Stopped) return;
+        if (NativePlaybackBusy || player == null || currentPath == null || player.State is VLCState.Opening or VLCState.Buffering or VLCState.Stopped) return;
         var audio = player.AudioTrackDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)).ToArray();
         RestoreSavedAudioTrack(audio);
         if (useTextSubtitles && player.Spu >= 0) player.SetSpu(-1);
@@ -332,7 +332,7 @@ public partial class MainWindow
     }
     private void AudioTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (updatingTracks || player == null || AudioTrackPicker.SelectedItem is not TrackOption track) return;
+        if (NativePlaybackBusy || updatingTracks || player == null || AudioTrackPicker.SelectedItem is not TrackOption track) return;
         if (!player.SetAudioTrack(track.Id)) PlayerNotice("This audio track could not be selected.");
         else
         {
@@ -361,7 +361,7 @@ public partial class MainWindow
     }
     private void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (updatingTracks || player == null || SubtitleTrackPicker.SelectedItem is not TrackOption track) return;
+        if (NativePlaybackBusy || updatingTracks || player == null || SubtitleTrackPicker.SelectedItem is not TrackOption track) return;
         if (track.Id != -1) lastSubtitleTrack = track.Id;
         useTextSubtitles = track.Id == TextSubtitleId;
         if (useTextSubtitles)
@@ -376,7 +376,7 @@ public partial class MainWindow
     }
     private async Task LoadSubtitle(string path)
     {
-        if (player == null || currentPath == null) { PlayerNotice("Open a video before adding subtitles."); return; }
+        if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before adding subtitles."); return; }
         var generation = mediaGeneration;
         try
         {
@@ -386,7 +386,7 @@ public partial class MainWindow
                 if (new FileInfo(path).Length > 8 * 1024 * 1024) { PlayerNotice("This subtitle file is too large to load."); return; }
                 var contents = await File.ReadAllTextAsync(path);
                 var document = await Task.Run(() => SubtitleDocument.Parse(contents));
-                if (generation != mediaGeneration) return;
+                if (NativePlaybackBusy || generation != mediaGeneration) return;
                 textSubtitles = document; textSubtitleName = Path.GetFileName(path); useTextSubtitles = true;
                 player.SetSpu(-1);
                 trackSignature = "";
@@ -409,7 +409,7 @@ public partial class MainWindow
     {
         if (!playerUiReady) return;
         subtitleDelayMs = (long)((SubtitleDelayInput.Value ?? 0) * 1000);
-        if (player != null && !useTextSubtitles) player.SetSpuDelay(subtitleDelayMs * 1000);
+        if (!NativePlaybackBusy && player != null && !useTextSubtitles) player.SetSpuDelay(subtitleDelayMs * 1000);
         UpdatePlayerOverlay();
     }
     private void SubtitleStyleChanged(object? sender, SelectionChangedEventArgs e) => ApplySubtitleAppearance();
@@ -431,7 +431,7 @@ public partial class MainWindow
         var volume = (int)VolumeBar.Value;
         preferences = preferences with { Volume = volume };
         if (volume > 0) lastNonzeroVolume = volume;
-        if (player != null) player.Volume = volume;
+        if (!NativePlaybackBusy && player != null) player.Volume = volume;
         UpdateVolumeIcon(volume);
     }
     private void Mute_Click(object? sender, RoutedEventArgs e)

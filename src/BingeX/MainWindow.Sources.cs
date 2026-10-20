@@ -21,7 +21,7 @@ public partial class MainWindow
     {
         sourceTimer.Tick += (_, _) =>
         {
-            if (localClosing) return;
+            if (localClosing || NativePlaybackBusy) return;
             if (pendingSource != null)
             {
                 var remaining = Math.Max(0, (int)Math.Ceiling((switchAt - DateTime.UtcNow).TotalSeconds));
@@ -68,7 +68,7 @@ public partial class MainWindow
         sourcePerformance[SourceSelection.Key(activeSource)] = new(true, 0);
         SaveProgress();
         StopTorrentPlayback();
-        player?.Stop();
+        _ = StopNativePlayerAsync();
         Page("Player");
         pendingSource = next;
         switchAt = DateTime.UtcNow.AddSeconds(8);

@@ -226,7 +226,7 @@ public partial class MainWindow
             textSubtitleName = OnlineSubtitles.LanguageName(choice.Language) + " · " + choice.Provider + " #" + choice.Id;
             useTextSubtitles = true;
             lastSubtitleTrack = TextSubtitleId;
-            player.SetSpu(-1);
+            if (!NativePlaybackBusy) player.SetSpu(-1);
             trackSignature = "";
             RefreshTracks();
             ShowPlayerSettings(true);

@@ -203,7 +203,7 @@ public partial class MainWindow
         {
             foreach (var video in videos)
             {
-                if (token.IsCancellationRequested || activePage != "My Library" || player?.IsPlaying == true) break;
+                if (token.IsCancellationRequested || activePage != "My Library" || NativePlaybackBusy || player?.IsPlaying == true) break;
                 var destination = store.ThumbnailPath(video.Path);
                 if (File.Exists(destination) || !thumbnailAttempts.Add(video.Path) || localAvailability.GetValueOrDefault(video.Path, true) == false) continue;
                 try

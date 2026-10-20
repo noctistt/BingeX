@@ -56,7 +56,7 @@ public partial class MainWindow : Window
                 VideoSurface.MediaPlayer = player;
                 player.EncounteredError += (_, _) => Dispatcher.UIThread.Post(() =>
                 {
-                    if (localClosing || player?.State != VLCState.Error) return;
+                    if (localClosing || NativePlaybackBusy || player?.State != VLCState.Error) return;
                     var failure = torrentSession?.Failure ?? "Playback failed. The source may be unavailable, damaged, or unsupported.";
                     if (TryScheduleNextSource(failure)) return;
                     if (torrentSession != null) StopTorrentPlayback();
@@ -74,36 +74,18 @@ public partial class MainWindow : Window
         SeekBar.AddHandler(PointerPressedEvent, (_, _) => seekDragging = true, RoutingStrategies.Tunnel);
         SeekBar.AddHandler(PointerReleasedEvent, (_, _) => { seekDragging = false; Seek(); }, RoutingStrategies.Tunnel);
         SeekBar.PropertyChanged += (_, e) => { if (e.Property.Name == "Value" && !updatingSeek && !seekDragging) Seek(); };
-        SpeedBox.SelectionChanged += (_, _) => { if (player != null) player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]); };
+        SpeedBox.SelectionChanged += (_, _) => { if (!NativePlaybackBusy && player != null) player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]); };
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Closing += async (_, e) =>
         {
-            sourceTimer.Stop();
-            ResetSourceAttempts();
-            if (torrentCloseInProgress && !torrentCloseReady) { e.Cancel = true; return; }
-            if (!torrentCloseReady && (torrentSession != null || torrentStarting || !torrentCleanup.IsCompleted))
-            {
-                e.Cancel = true;
-                torrentCloseInProgress = true;
-                localClosing = true;
-                SaveProgress();
-                StopTorrentPlayback();
-                await torrentCleanup;
-                torrentCloseReady = true;
-                Close();
-                return;
-            }
-            localClosing = true;
-            addonCheckLifetime.Cancel();
-            SaveProgress();
-            StopTorrentPlayback();
-            CancelLocalScan();
-            timer.Stop(); overlayTimer.Stop(); videoClickTimer.Stop();
-            SaveProgress();
-            mediaGeneration++;
-            CancelOnlineSubtitles();
-            // Stop native output while the window's graphics resources are still alive.
-            player?.Stop();
+            sourceTimer.Stop(); ResetSourceAttempts();
+            if (torrentCloseReady) return;
+            e.Cancel = true;
+            if (torrentCloseInProgress) return;
+            torrentCloseInProgress = true;
+            await FinishWindowCloseAsync();
+            torrentCloseReady = true;
+            Close();
         };
         Closed += (_, _) =>
         {
@@ -171,43 +153,88 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null)
     {
+        if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
         if (player == null || engine == null) { Status("Playback engine is unavailable."); return; }
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
         if (input == null && playbackUrl == null && (activeSource == null || activeSource.Url != path)) ResetSourceAttempts();
-        thumbnailWork.Cancel();
-        SaveProgress();
-        if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
-        player.Stop();
-        suppressCurrentHistory = false;
-        currentContext = context;
-        currentHistoryKey = context?.HistoryKey ?? path;
-        if (context != null) store.SaveContext(context);
-        resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
-        ResetMediaControls(string.Equals(path, currentPath, StringComparison.Ordinal));
-        pendingAudioSelection = store.AudioSelection(currentHistoryKey);
-        thumbnailAttempted = false;
-        currentPath = path;
-        currentTitle = title;
-        using var media = input == null ? new Media(engine, playbackUrl == null ? uri : new Uri(playbackUrl)) : new Media(engine, input);
-        if (externalAudioPath != null && File.Exists(externalAudioPath)) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(externalAudioPath));
-        if (!player.Play(media)) { if (TryScheduleNextSource("This source could not start.")) return; if (input != null || playbackUrl != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
-        player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]);
-        PlayerEmpty.IsVisible = false;
-        NowPlaying.Text = title;
-        MiniTitle.Text = title;
-        Page("Player");
-        Status("Loading " + title);
+        SaveProgress(); thumbnailWork.Cancel();
+        var request = ++playbackRequest;
+        var preserve = string.Equals(path, currentPath, StringComparison.Ordinal);
+        playbackStarting = true;
+        videoClickTimer.Stop(); videoPressPoint = null;
+        Status("Opening " + title + "…");
+        try
+        {
+            if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
+            await StopNativePlayerAsync();
+            if (localClosing || request != playbackRequest) return;
+            suppressCurrentHistory = false;
+            currentContext = context;
+            currentHistoryKey = context?.HistoryKey ?? path;
+            if (context != null) store.SaveContext(context);
+            resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
+            ResetMediaControls(preserve);
+            pendingAudioSelection = store.AudioSelection(currentHistoryKey);
+            thumbnailAttempted = false;
+            currentPath = path; currentTitle = title;
+            PlayerEmpty.IsVisible = false;
+            NowPlaying.Text = title; MiniTitle.Text = title;
+            // Realize and arrange the native video surface before the decoder starts.
+            Page("Player");
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Loaded);
+            if (localClosing || request != playbackRequest) return;
+            var native = player;
+            if (OperatingSystem.IsWindows() && native.Hwnd == IntPtr.Zero)
+            {
+                VideoSurface.MediaPlayer = null;
+                VideoSurface.MediaPlayer = native;
+                if (native.Hwnd == IntPtr.Zero) throw new InvalidOperationException("The video surface is not ready.");
+            }
+            var playbackEngine = engine;
+            var speed = new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)];
+            var extraAudio = externalAudioPath;
+            var started = false;
+            await nativePlayback.Enqueue(() =>
+            {
+                if (request != Volatile.Read(ref playbackRequest)) return;
+                using var media = input == null ? new Media(playbackEngine, playbackUrl == null ? uri : new Uri(playbackUrl)) : new Media(playbackEngine, input);
+                if (extraAudio != null && File.Exists(extraAudio)) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(extraAudio));
+                started = native.Play(media);
+                if (started) { native.SetRate(speed); native.SetAudioDelay(0); }
+            });
+            if (localClosing || request != playbackRequest) return;
+            playbackStarting = false;
+            if (!started || native.State == VLCState.Error)
+            {
+                if (TryScheduleNextSource("This source could not start.")) return;
+                if (input != null || playbackUrl != null) StopTorrentPlayback();
+                Status("Unable to start this media."); return;
+            }
+            native.Volume = preferences.Volume;
+            Status("Loading " + title);
+        }
+        catch (Exception)
+        {
+            if (!localClosing && request == playbackRequest) { playbackStarting = false; PlayerNotice("Playback could not start. Try another source."); }
+        }
+        finally { if (request == playbackRequest) playbackStarting = false; }
     }
 
     private void Tick(object? sender, EventArgs e)
     {
         while (Program.Instance?.TryDequeue(out var request) == true) OpenLaunchRequest(request);
-        if (player == null || currentPath == null) return;
+        if (NativePlaybackBusy || player == null || currentPath == null) return;
         if (playbackEnded) { UpdatePlayIcon("Replay"); return; }
+        if (player.State is VLCState.Opening or VLCState.Buffering)
+        {
+            UpdatePlayIcon("Pause");
+            Status("Buffering · " + currentTitle);
+            return;
+        }
         if (player.Length > 0) lastDuration = player.Length;
         if (lastDuration > 0) torrentSession?.UpdateDuration(lastDuration);
         if (player.Time > 0) lastPosition = player.Time;
@@ -236,14 +263,19 @@ public partial class MainWindow : Window
         {
             thumbnailAttempted = true;
             var thumbnail = store.ThumbnailPath(currentPath);
-            if (!File.Exists(thumbnail)) player.TakeSnapshot(0, thumbnail, 480, 0);
+            if (!File.Exists(thumbnail))
+            {
+                var native = player;
+                _ = nativePlayback.Enqueue(() => native.TakeSnapshot(0, thumbnail, 480, 0));
+                return;
+            }
         }
         UpdatePlayIcon(player.IsPlaying ? "Pause" : "Play");
         if (++saveTicks >= 10) { saveTicks = 0; SaveProgress(); }
     }
     private void Seek()
     {
-        if (player?.IsSeekable != true || player.Length <= 0) return;
+        if (NativePlaybackBusy || player?.IsSeekable != true || player.Length <= 0) return;
         resumeAt = 0;
         player.Time = (long)(SeekBar.Value / 1000 * player.Length);
         RevealPlayerControls();
@@ -254,26 +286,27 @@ public partial class MainWindow : Window
         if (suppressCurrentHistory || player == null || currentPath == null || currentHistoryKey == null || lastDuration <= 0 || resumeAt > 0) return;
         if (currentContext == null && !File.Exists(currentPath)) return;
         if (playbackEnded) store.Save(new(currentHistoryKey, currentTitle, lastDuration, lastDuration));
+        else if (NativePlaybackBusy) store.Save(new(currentHistoryKey, currentTitle, Math.Max(0, lastPosition), lastDuration));
         else if (player.State is VLCState.Playing or VLCState.Paused && lastDuration > 0)
             store.Save(new(currentHistoryKey, currentTitle, Math.Max(0, player.Time), lastDuration));
     }
-    private void Play_Click(object? sender, RoutedEventArgs e)
+    private async void Play_Click(object? sender, RoutedEventArgs e)
     {
         videoClickTimer.Stop();
-        if (player == null || currentPath == null) return;
+        if (NativePlaybackBusy || player == null || currentPath == null) return;
         if (playbackEnded || player.State is VLCState.Ended or VLCState.Stopped)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
             else Play(currentPath, currentTitle, currentContext);
         }
-        else player.Pause();
+        else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();
     }
     private void Back_Click(object? sender, RoutedEventArgs e) => Skip(-10000);
     private void Forward_Click(object? sender, RoutedEventArgs e) => Skip(10000);
     private void Skip(long delta)
     {
-        if (player?.IsSeekable != true) return;
+        if (NativePlaybackBusy || player?.IsSeekable != true) return;
         resumeAt = 0;
         player.Time = PlaybackPolicy.SeekTarget(player.Time, delta, player.Length);
         RevealPlayerControls();

@@ -11,7 +11,7 @@ public partial class MainWindow
     private string? externalAudioPath;
     private async void LoadAudio_Click(object? sender, RoutedEventArgs e)
     {
-        if (player == null || currentPath == null) { PlayerNotice("Open a video before adding audio."); return; }
+        if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before adding audio."); return; }
         var generation = mediaGeneration;
         var files = await StorageProvider.OpenFilePickerAsync(new()
         {
@@ -22,7 +22,7 @@ public partial class MainWindow
     }
     private void LoadExternalAudio(string path)
     {
-        if (player == null || currentPath == null) { PlayerNotice("Open a video before adding audio."); return; }
+        if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before adding audio."); return; }
         try
         {
             if (!File.Exists(path)) { PlayerNotice("This audio file is no longer available."); return; }
@@ -42,7 +42,7 @@ public partial class MainWindow
     {
         if (!playerUiReady) return;
         audioDelayMs = (long)((AudioDelayInput.Value ?? 0) * 1000);
-        if (player != null && currentPath != null && !player.SetAudioDelay(audioDelayMs * 1000))
+        if (!NativePlaybackBusy && player != null && currentPath != null && !player.SetAudioDelay(audioDelayMs * 1000))
             PlayerNotice("Audio timing could not be changed for this source.");
     }
 }

@@ -30,8 +30,9 @@ public partial class MainWindow
     {
         if (choice.Torrent == null || player == null || engine == null) return;
         SaveProgress();
+        playbackRequest++; playbackStarting = false;
         StopTorrentPlayback();
-        player.Stop();
+        var stop = StopNativePlayerAsync();
         currentPath = null;
         thumbnailWork.Cancel();
         lastTorrentChoice = choice; lastTorrentContext = context;
@@ -51,6 +52,7 @@ public partial class MainWindow
         Status("Preparing torrent playback…");
         try
         {
+            await stop;
             await torrentCleanup;
             token.ThrowIfCancellationRequested();
             var dataDirectory = store.DataDirectory;
@@ -132,11 +134,11 @@ public partial class MainWindow
         {
             session.Cancel(); // Release blocked HTTP reads before stopping the player.
             mediaGeneration++;
-            player?.Stop();
+            var stop = StopNativePlayerAsync();
             var previous = torrentCleanup;
             torrentCleanup = Task.Run(async () =>
             {
-                try { await previous; await session.DisposeAsync(); }
+                try { await previous; await stop; await session.DisposeAsync(); }
                 catch { /* Locked cache files are retried at the next torrent launch. */ }
             });
         }

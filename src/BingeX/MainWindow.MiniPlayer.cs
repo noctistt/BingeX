@@ -36,14 +36,18 @@ public partial class MainWindow
     }
     private void MinimizePlayer_Click(object? sender, RoutedEventArgs e) => Page(playerReturnPage == "Player" ? "Library" : playerReturnPage);
     private void RestorePlayer_Click(object? sender, RoutedEventArgs e) => Page("Player");
-    private void CloseMiniPlayer_Click(object? sender, RoutedEventArgs e)
+    private async void CloseMiniPlayer_Click(object? sender, RoutedEventArgs e)
     {
         videoClickTimer.Stop(); SaveProgress(); ResetSourceAttempts();
-        StopTorrentPlayback(); mediaGeneration++; player?.Stop();
+        var request = ++playbackRequest; playbackStarting = false;
+        StopTorrentPlayback();
+        var stopped = StopNativePlayerAsync();
+        await stopped;
+        if (localClosing || request != playbackRequest) return;
         currentPath = null; currentContext = null;
         PlayerEmpty.IsVisible = true;
         CaptionPanel.IsVisible = false;
         UpdatePlayerLayout();
-        Status("Playback stopped. Your progress is saved.");
+        if (!localClosing) Status("Playback stopped. Your progress is saved.");
     }
 }

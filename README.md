@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.11. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.11.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -159,3 +159,7 @@ Use **← Back** or **Alt+Left** in the player to return to the page you opened 
 - **External audio:** open playback settings → Add audio file, then select the added audio track if necessary. Common audio formats and MKA are supported by the bundled VLC engine. Adjust Audio delay in seconds (positive plays later). Use a file from the same cut of the video; offsets cannot correct different edits or ongoing drift. The attachment stays through mini/full transitions, and can be reapplied when replaying the same local/direct path in the current session. Changing media or restarting the app requires loading the external audio again. Audio delay resets when opening media.
 - **Installed add-ons:** Check connection requests the configured manifest and distinguishes access errors, rate limits, timeouts, invalid manifests and configuration requirements. Existing stream lookups also record whether the last title returned no streams, unsupported sources, or a request failure. Results are local observations with timestamps, not global uptime or playback guarantees. Manual manifest checks have a short cooldown.
 - **Community reports:** known provider hosts link directly to their public stremio-addons.net page; unknown hosts open the directory so you can locate the correct listing. The link never contains the installed URL's private path or query tokens. Community charts stay on that site because its documented API does not expose report history. Reports may refer to another hosted instance of the same add-on. No reports are submitted automatically.
+
+## Playback startup fix (0.11.1)
+
+The main video surface is shown and arranged before starting VLC. Native stop/start operations run in a serialized background queue; UI polling and playback gestures wait while a native transition is active. Newer source selections supersede pending starts, preventing an old stop from interrupting a new stream. Closing the mini-player or app waits for native playback to stop before hiding or disposing its video surface. Video snapshots also run outside the UI dispatcher. Regression checks cover first HLS startup, repeated mini-to-full source changes, rapid selections, stalled HTTP recovery and closing while buffering using local fixtures; they do not certify any third-party provider's availability.
