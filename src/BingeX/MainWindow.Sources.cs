@@ -58,8 +58,8 @@ public partial class MainWindow
             sourceLastProgress = DateTime.UtcNow;
         sourceLastPercent = update.DownloadedPercent;
         if (sourceStarted && update.MeasuredRate > 0) sourcePerformance[SourceSelection.Key(activeSource)] = new(false, update.MeasuredRate);
-        if (sourceStarted && player?.IsPlaying == true && update.Waiting && DateTime.UtcNow - sourceLastProgress > TimeSpan.FromSeconds(30))
-            TryScheduleNextSource("The current source stopped delivering video.");
+        // A seek can legitimately wait for a different piece. The torrent service
+        // reports a real delivery timeout; a short buffering pause is not failure.
     }
     private bool TryScheduleNextSource(string reason)
     {

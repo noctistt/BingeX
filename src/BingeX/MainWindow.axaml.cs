@@ -23,6 +23,18 @@ public partial class MainWindow : Window
     private bool updatingSeek;
     private bool seekDragging;
     private bool suppressCurrentHistory;
+    private string playerReturnPage = "Library";
+
+    private void NavigateBack_Click(object? sender, RoutedEventArgs e)
+    {
+        if (activePage == "Player")
+        {
+            SaveProgress();
+            if (player?.IsPlaying == true) player.SetPause(true);
+            Page(playerReturnPage);
+        }
+        else if (activePage == "Details") Page("Library");
+    }
 
     public MainWindow()
     {
@@ -119,6 +131,7 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        if (page == "Player" && activePage != "Player") playerReturnPage = activePage;
         if (page != "Player" && pendingSource != null) ResetSourceAttempts();
         videoClickTimer.Stop();
         videoPressPoint = null;
@@ -128,6 +141,7 @@ public partial class MainWindow : Window
         if (page != "Library") { browseWork.Cancel(); posterWork.Cancel(); }
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }
         activePage = page;
+        NavigateBackButton.IsVisible = page is "Player" or "Details";
         LibraryNav.Classes.Set("active", page is "Library" or "Details");
         LocalLibraryNav.Classes.Set("active", page == "My Library");
         PlayerNav.Classes.Set("active", page == "Player");
@@ -157,16 +171,16 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null)
+    private void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null)
     {
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
         if (player == null || engine == null) { Status("Playback engine is unavailable."); return; }
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
-        if (input == null && (activeSource == null || activeSource.Url != path)) ResetSourceAttempts();
+        if (input == null && playbackUrl == null && (activeSource == null || activeSource.Url != path)) ResetSourceAttempts();
         thumbnailWork.Cancel();
         SaveProgress();
-        if (input == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
+        if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
         player.Stop();
         suppressCurrentHistory = false;
         currentContext = context;
@@ -178,8 +192,8 @@ public partial class MainWindow : Window
         thumbnailAttempted = false;
         currentPath = path;
         currentTitle = title;
-        using var media = input == null ? new Media(engine, uri) : new Media(engine, input);
-        if (!player.Play(media)) { if (TryScheduleNextSource("This source could not start.")) return; if (input != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
+        using var media = input == null ? new Media(engine, playbackUrl == null ? uri : new Uri(playbackUrl)) : new Media(engine, input);
+        if (!player.Play(media)) { if (TryScheduleNextSource("This source could not start.")) return; if (input != null || playbackUrl != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
         player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]);
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title;

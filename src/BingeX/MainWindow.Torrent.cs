@@ -6,7 +6,6 @@ namespace BingeX;
 public partial class MainWindow
 {
     private TorrentPlayback? torrentSession;
-    private StreamMediaInput? torrentInput;
     private CancellationTokenSource torrentRequest = new();
     private Task torrentCleanup = Task.CompletedTask;
     private int torrentRevision;
@@ -48,7 +47,7 @@ public partial class MainWindow
         TorrentProgress.IsIndeterminate = true;
         TorrentBufferDetails.Text = "";
         TorrentState.Text = "Finding peers and torrent information…";
-        TorrentDetails.Text = "Temporary cache: up to 32 GB · upload limit: 256 KB/s";
+        TorrentDetails.Text = "Saved video cache: up to 32 GB · upload limit: 256 KB/s";
         Status("Preparing torrent playback…");
         try
         {
@@ -58,7 +57,7 @@ public partial class MainWindow
             var session = await Task.Run(() =>
             {
                 TorrentPlayback.CleanOldSessions(dataDirectory);
-                return new TorrentPlayback(dataDirectory);
+                return new TorrentPlayback(dataDirectory, infoHash: choice.Torrent.InfoHash);
             }, token);
             if (token.IsCancellationRequested || revision != torrentRevision) { await session.DisposeAsync(); return; }
             torrentSession = session;
@@ -74,7 +73,7 @@ public partial class MainWindow
                 TorrentBufferDetails.Text = update.HasMetadata
                     ? update.StartupTarget > 0 && torrentStarting
                         ? $"Startup buffer: {update.StartupBuffered / 1048576d:0.0} / {update.StartupTarget / 1048576d:0.0} MB"
-                        : update.DownloadedPercent >= 100 ? "Video fully downloaded in temporary cache" : (update.BufferedSeconds is { } seconds ? $"≈ {seconds:0}s of data ahead (estimate)" : $"{update.BufferedBytes / 1048576d:0.0} MB verified ahead") +
+                        : update.DownloadedPercent >= 100 ? "Video fully cached · seeking reads from disk" : (update.BufferedSeconds is { } seconds ? $"≈ {seconds:0}s of data ahead (estimate)" : $"{update.BufferedBytes / 1048576d:0.0} MB verified ahead") +
                           (update.RequiredRate is { } required ? $" · average needed ≈ {required / 1048576d:0.00} MB/s" : "") +
                           $" · measured {update.MeasuredRate / 1048576d:0.00} MB/s"
                     : "Download progress begins after torrent information arrives.";
@@ -82,12 +81,11 @@ public partial class MainWindow
                 if (!TorrentProgress.IsIndeterminate) { TorrentProgress.Maximum = update.StartupTarget; TorrentProgress.Value = update.StartupBuffered; }
                 TorrentProgress.IsVisible = torrentStarting || update.Waiting;
             });
-            var video = await Task.Run(() => session.OpenAsync(choice.Torrent, progress, token, durationSeconds: context.DurationSeconds), token);
+            await Task.Run(() => session.OpenAsync(choice.Torrent, progress, token, durationSeconds: context.DurationSeconds), token);
             token.ThrowIfCancellationRequested();
             if (revision != torrentRevision) return;
             torrentStarting = false;
-            torrentInput = new StreamMediaInput(video);
-            Play("binge-torrent://" + choice.Torrent.InfoHash + "/" + (choice.Torrent.FileIndex?.ToString() ?? "largest"), context.DisplayName, context, torrentInput);
+            Play("binge-torrent://" + choice.Torrent.InfoHash + "/" + (choice.Torrent.FileIndex?.ToString() ?? "largest"), context.DisplayName, context, playbackUrl: session.StartHttpServer());
             TorrentPanel.IsVisible = torrentSession == session;
         }
         catch (OperationCanceledException) { }
@@ -107,9 +105,21 @@ public partial class MainWindow
         SaveProgress();
         StopTorrentPlayback();
         currentPath = null;
-        Status("Torrent stopped. Temporary cache is being cleared.");
+        Status("Torrent stopped. Downloaded data is kept for next time.");
         PlayerNotice("Torrent stopped. Choose another source to continue.");
         RefreshHistory();
+    }
+    private async void ClearVideoCache_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var root = Path.GetFullPath(Path.Combine(store.DataDirectory, "torrent-cache-v1"));
+            var removed = await Task.Run(() => !Directory.Exists(root) ? 0 : Directory.EnumerateDirectories(root)
+                .Where(x => TorrentCache.IsOwned(Path.GetFileName(x))).Count(x => TorrentCache.Delete(root, x)));
+            if (!localClosing) Status($"Cleared {removed} unused video cache(s). The active video is kept.");
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { if (!localClosing) Status("The video cache could not be cleared. Check that its folder is accessible."); }
     }
     private void StopTorrentPlayback()
     {
@@ -120,10 +130,9 @@ public partial class MainWindow
         torrentSession = null;
         if (session != null)
         {
-            session.Cancel(); // Release a blocked native read before stopping the player.
+            session.Cancel(); // Release blocked HTTP reads before stopping the player.
             mediaGeneration++;
             player?.Stop();
-            torrentInput?.Dispose(); torrentInput = null;
             var previous = torrentCleanup;
             torrentCleanup = Task.Run(async () =>
             {

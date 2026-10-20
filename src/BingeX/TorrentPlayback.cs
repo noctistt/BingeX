@@ -11,6 +11,9 @@ public sealed class TorrentPlayback : IAsyncDisposable
 {
     public const long CacheLimit = 32L * 1024 * 1024 * 1024;
     private readonly string root;
+    private readonly string? cacheHash;
+    private readonly FileStream cacheLease;
+    private TorrentHttpServer? server;
     public string SessionDirectory { get; }
     private readonly CancellationTokenSource lifetime = new();
     private readonly ClientEngine engine;
@@ -36,17 +39,21 @@ public sealed class TorrentPlayback : IAsyncDisposable
     private bool disposed;
     public string FileName { get; private set; } = "";
     public string? Failure { get; private set; }
-    public TorrentPlayback(string dataDirectory, bool localOnly = false)
+    public TorrentPlayback(string dataDirectory, bool localOnly = false, string? infoHash = null)
     {
         this.localOnly = localOnly;
         root = Path.GetFullPath(Path.Combine(dataDirectory, "torrent-cache-v1"));
         Directory.CreateDirectory(root);
         if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) throw new IOException("The torrent cache must be a regular folder.");
-        SessionDirectory = Path.Combine(root, "session-" + Guid.NewGuid().ToString("N"));
+        if (infoHash != null && !Regex.IsMatch(infoHash, "^[a-fA-F0-9]{40}$")) throw new ArgumentException("Invalid torrent hash.", nameof(infoHash));
+        cacheHash = infoHash?.ToLowerInvariant();
+        SessionDirectory = Path.Combine(root, cacheHash == null ? "session-" + Guid.NewGuid().ToString("N") : "torrent-" + cacheHash);
         Directory.CreateDirectory(SessionDirectory);
+        if ((File.GetAttributes(SessionDirectory) & FileAttributes.ReparsePoint) != 0) throw new IOException("The torrent cache must be a regular folder.");
+        cacheLease = new FileStream(Path.Combine(SessionDirectory, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var settings = new EngineSettingsBuilder
         {
-            CacheDirectory = Path.Combine(root, "discovery"),
+            CacheDirectory = Path.Combine(SessionDirectory, "engine"),
             DiskCacheBytes = 8 * 1024 * 1024,
             MaximumConnections = 60,
             MaximumHalfOpenConnections = 8,
@@ -54,20 +61,25 @@ public sealed class TorrentPlayback : IAsyncDisposable
             AllowPortForwarding = false,
             AllowLocalPeerDiscovery = false,
             AutoSaveLoadDhtCache = !localOnly,
-            AutoSaveLoadFastResume = false,
-            AutoSaveLoadMagnetLinkMetadata = false,
+            AutoSaveLoadFastResume = cacheHash != null,
+            AutoSaveLoadMagnetLinkMetadata = cacheHash != null,
             DhtEndPoint = localOnly ? null : new IPEndPoint(IPAddress.Any, 0)
         };
         settings.ListenEndPoints.Clear();
         settings.ListenEndPoints.Add("ipv4", new IPEndPoint(localOnly ? IPAddress.Loopback : IPAddress.Any, 0));
         TorrentWriteGate? gate = null;
         var factories = Factories.Default.WithPieceWriterCreator(count => gate = new TorrentWriteGate(Factories.Default.CreatePieceWriter(count), Path.Combine(SessionDirectory, "video"), lifetime.Token));
-        engine = new ClientEngine(settings.ToSettings(), factories);
-        writeGate = gate ?? throw new InvalidOperationException("The torrent cache writer could not start.");
+        try
+        {
+            engine = new ClientEngine(settings.ToSettings(), factories);
+            writeGate = gate ?? throw new InvalidOperationException("The torrent cache writer could not start.");
+        }
+        catch { cacheLease.Dispose(); throw; }
     }
     public Task<Stream> OpenAsync(TorrentSource source, IProgress<TorrentStatus> progress, CancellationToken token, Torrent? fixture = null, int? durationSeconds = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        if (cacheHash != null && !cacheHash.Equals(source.InfoHash, StringComparison.OrdinalIgnoreCase)) throw new IOException("The cached torrent does not match this source.");
         if (opening != null) throw new InvalidOperationException("This torrent session has already been started.");
         return opening = OpenCoreAsync(source, progress, token, fixture, durationSeconds);
     }
@@ -98,8 +110,13 @@ public sealed class TorrentPlayback : IAsyncDisposable
             torrent = manager.Torrent!;
             if (torrent.InfoHashes.V1?.ToHex().Equals(source.InfoHash, StringComparison.OrdinalIgnoreCase) != true) throw new IOException("Torrent metadata does not match the selected source.");
             ValidateTorrent(torrent);
+            TorrentCache.Reserve(root, SessionDirectory, torrent.Size);
             var drive = new DriveInfo(Path.GetPathRoot(SessionDirectory)!);
-            if (drive.AvailableFreeSpace < torrent.Size + 64L * 1024 * 1024) throw new IOException("There is not enough free space for this torrent. Choose a smaller source or free some disk space.");
+            // Sparse file lengths include holes that still need disk space.
+            long alreadyStored = 0;
+            for (var index = 0; index < manager.Bitfield.Length; index++)
+                if (manager.Bitfield[index]) alreadyStored += Math.Min(torrent.PieceLength, torrent.Size - (long)index * torrent.PieceLength);
+            if (drive.AvailableFreeSpace < Math.Max(0, torrent.Size - alreadyStored) + 64L * 1024 * 1024) throw new IOException("There is not enough free space for this torrent. Choose a smaller source or free some disk space.");
             var file = SelectFile(manager.Files, source.FileIndex);
             foreach (var item in manager.Files)
                 await manager.SetFilePriorityAsync(item, ReferenceEquals(item, file) ? Priority.Normal : Priority.DoNotDownload);
@@ -193,6 +210,19 @@ public sealed class TorrentPlayback : IAsyncDisposable
         catch (OperationCanceledException) { }
     }
     public void Cancel() => lifetime.Cancel();
+    public string StartHttpServer()
+    {
+        if (!prepared || stream == null) throw new InvalidOperationException("The video is not ready.");
+        return (server ??= new TorrentHttpServer(stream, () =>
+        {
+            var file = selectedFile;
+            if (file == null || manager == null) return null;
+            var first = (int)(file.OffsetInTorrent / manager.Torrent!.PieceLength);
+            var last = (int)((file.OffsetInTorrent + file.Length - 1) / manager.Torrent.PieceLength);
+            for (var i = first; i <= last; i++) if (!manager.Bitfield[i]) return null;
+            return file.FullPath;
+        })).Url;
+    }
     public async ValueTask DisposeAsync()
     {
         if (disposed) return;
@@ -200,36 +230,22 @@ public sealed class TorrentPlayback : IAsyncDisposable
         Cancel();
         if (opening != null) { try { await opening; } catch { /* The caller reports startup errors; disposal still releases resources. */ } }
         if (monitor != null) await monitor;
+        if (server != null) await server.DisposeAsync();
         stream?.Dispose();
         try { if (manager != null) await manager.StopAsync(TimeSpan.FromSeconds(2)); }
-        finally { engine.Dispose(); DeleteSession(root, SessionDirectory); lifetime.Dispose(); }
+        finally
+        {
+            engine.Dispose(); cacheLease.Dispose();
+            if (cacheHash == null) TorrentCache.Delete(root, SessionDirectory);
+            else Directory.SetLastWriteTimeUtc(SessionDirectory, DateTime.UtcNow);
+            lifetime.Dispose();
+        }
     }
     public static void CleanOldSessions(string dataDirectory)
     {
         var root = Path.GetFullPath(Path.Combine(dataDirectory, "torrent-cache-v1"));
         if (!Directory.Exists(root) || (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) return;
-        foreach (var path in Directory.EnumerateDirectories(root)) DeleteSession(root, path);
-    }
-    private static void DeleteSession(string root, string path)
-    {
-        try
-        {
-            var resolved = Path.GetFullPath(path);
-            if (!string.Equals(Path.GetDirectoryName(resolved), root, StringComparison.OrdinalIgnoreCase) || !Regex.IsMatch(Path.GetFileName(resolved), "^session-[a-f0-9]{32}$")) return;
-            if (!Directory.Exists(resolved) || (File.GetAttributes(resolved) & FileAttributes.ReparsePoint) != 0) return;
-            // Never traverse links inside the cache, even if something outside the app placed one there.
-            var pending = new Stack<string>(); pending.Push(resolved);
-            while (pending.TryPop(out var directory))
-                foreach (var item in Directory.EnumerateFileSystemEntries(directory))
-                {
-                    var attributes = File.GetAttributes(item);
-                    if ((attributes & FileAttributes.ReparsePoint) != 0) return;
-                    if ((attributes & FileAttributes.Directory) != 0) pending.Push(item);
-                }
-            Directory.Delete(resolved, true);
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        foreach (var path in Directory.EnumerateDirectories(root).Where(x => Regex.IsMatch(Path.GetFileName(x), "^session-[a-f0-9]{32}$"))) TorrentCache.Delete(root, path);
     }
 }
 
@@ -249,6 +265,14 @@ internal sealed class CancellableTorrentStream(Stream inner, CancellationToken t
         finally { waiting(false); }
     }
     public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken);
+        waiting(true);
+        try { return await inner.ReadAsync(buffer, linked.Token); }
+        finally { waiting(false); }
+    }
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
     public override void Flush() { }
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();

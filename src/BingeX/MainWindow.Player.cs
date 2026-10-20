@@ -152,6 +152,7 @@ public partial class MainWindow
             playbackEnded = true;
             if (lastDuration > 0) lastPosition = lastDuration;
             SaveProgress();
+            // Release peer traffic; persistent verified pieces remain available for replay.
             if (torrentSession != null) StopTorrentPlayback();
             UpdatePlayIcon("Replay");
             TimeLabel.Text = Clock(lastDuration) + " / " + Clock(lastDuration);
@@ -218,6 +219,7 @@ public partial class MainWindow
         var full = WindowState == WindowState.FullScreen && activePage == "Player";
         Sidebar.IsVisible = !full;
         PageHeader.IsVisible = !full;
+        PlayerBackButton.IsVisible = full;
         StatusFooter.IsVisible = !full;
         RootLayout.ColumnDefinitions[0].Width = new GridLength(full ? 0 : 205);
         MainContent.Margin = full ? new Thickness(0) : new Thickness(30, 24);
@@ -470,6 +472,10 @@ public partial class MainWindow
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {
+        if (!e.Handled && e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt && activePage is "Player" or "Details")
+        {
+            NavigateBack_Click(null, new()); e.Handled = true; return;
+        }
         if (e.Handled || activePage != "Player" || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0) return;
         var ancestors = e.Source is Visual visual ? visual.GetVisualAncestors().Prepend(visual).ToArray() : [];
         if (ancestors.Any(x => x is TextBox or ComboBox or NumericUpDown or Slider)) return;

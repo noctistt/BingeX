@@ -29,6 +29,23 @@ internal static class TorrentChecks
         var tooLarge = false;
         try { TorrentPlayback.ValidateTorrent(Torrent.Load(oversized)); } catch (IOException) { tooLarge = true; }
         Check(tooLarge, "Oversized torrents must be rejected before downloading their files.");
+        Check(TorrentHttpServer.TryRange("bytes=10-19", 100, out var rangeStart, out var rangeEnd) && rangeStart == 10 && rangeEnd == 19, "Explicit byte ranges must preserve bounds.");
+        Check(TorrentHttpServer.TryRange("bytes=-20", 100, out rangeStart, out rangeEnd) && rangeStart == 80 && rangeEnd == 99, "Suffix ranges must be supported.");
+        Check(!TorrentHttpServer.TryRange("bytes=100-", 100, out _, out _) && !TorrentHttpServer.TryRange("bytes=1-2,4-5", 100, out _, out _), "Invalid and multipart ranges must be rejected.");
+        using (var missing = new MissingStartStream())
+        await using (var server = new TorrentHttpServer(missing, () => null))
+        using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) })
+        {
+            using var oldRequest = new HttpRequestMessage(HttpMethod.Get, server.Url);
+            oldRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 99);
+            var obsolete = http.SendAsync(oldRequest);
+            await missing.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            using var nextRequest = new HttpRequestMessage(HttpMethod.Get, server.Url);
+            nextRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(1000, 1099);
+            using var response = await http.SendAsync(nextRequest);
+            Check((await response.Content.ReadAsByteArrayAsync()).Length == 100, "A new seek must cancel a blocked old read and deliver the new range.");
+            try { using var ignored = await obsolete; } catch (HttpRequestException) { }
+        }
         using (var stopRead = new CancellationTokenSource())
         using (var blocked = new CancellableTorrentStream(new NeverReadyStream(), stopRead.Token, _ => { }, _ => { }))
         {
@@ -43,6 +60,20 @@ internal static class TorrentChecks
         Directory.CreateDirectory(Path.Combine(root, "keep-this-folder"));
         TorrentPlayback.CleanOldSessions(cacheData);
         Check(!Directory.Exists(old) && Directory.Exists(Path.Combine(root, "keep-this-folder")), "Cleanup must delete only owned torrent sessions.");
+        var retained = Path.Combine(root, "torrent-" + new string('c', 40));
+        var nextCache = Path.Combine(root, "torrent-" + new string('d', 40));
+        Directory.CreateDirectory(retained); Directory.CreateDirectory(nextCache);
+        File.WriteAllText(Path.Combine(retained, "reserved.txt"), TorrentPlayback.CacheLimit.ToString());
+        TorrentPlayback.CleanOldSessions(cacheData);
+        Check(Directory.Exists(retained), "Legacy cleanup must preserve persistent caches.");
+        using (var lease = new FileStream(Path.Combine(retained, "active.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+        {
+            var full = false;
+            try { TorrentCache.Reserve(root, nextCache, 1); } catch (IOException) { full = true; }
+            Check(full && Directory.Exists(retained), "Cache eviction must never delete an active video.");
+        }
+        TorrentCache.Reserve(root, nextCache, 1);
+        Check(!Directory.Exists(retained) && Directory.Exists(nextCache), "A full cache must evict inactive downloads to respect its total budget.");
         Console.WriteLine("PASS: torrent source parsing, episode index validation, tracker/peer filtering and scoped cache cleanup.");
         if (video == null) return;
         var seedPath = Path.Combine(directory, "seed"); Directory.CreateDirectory(seedPath);
@@ -101,7 +132,8 @@ internal static class TorrentChecks
         try { TorrentPlayback.SelectFile(seed.Files, seed.Files.Count + 1); } catch (IOException) { rejected = true; }
         Check(rejected, "Out-of-range episode selection must not fall back to another file.");
         var data = Path.Combine(directory, "torrent-download");
-        var session = new TorrentPlayback(data, localOnly: true);
+        var hash = torrent.InfoHashes.V1!.ToHex();
+        var session = new TorrentPlayback(data, localOnly: true, infoHash: hash);
         var sessionPath = session.SessionDirectory;
         try
         {
@@ -123,8 +155,15 @@ internal static class TorrentChecks
             Core.Initialize();
             using var vlc = new LibVLC("--vout=dummy", "--aout=dummy", "--avcodec-hw=none");
             using var player = new MediaPlayer(vlc);
-            using var input = new StreamMediaInput(stream);
-            using var media = new Media(vlc, input);
+            var url = session.StartHttpServer();
+            using var http = new HttpClient();
+            using (var rangeRequest = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                rangeRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(100, 199);
+                using var response = await http.SendAsync(rangeRequest);
+                Check(response.StatusCode == HttpStatusCode.PartialContent && (await response.Content.ReadAsByteArrayAsync()).SequenceEqual(File.ReadAllBytes(mediaPath).Skip(100).Take(100)), "HTTP ranges must return exact requested bytes.");
+            }
+            using var media = new Media(vlc, new Uri(url));
             try
             {
                 Check(player.Play(media), "Existing VLC player must accept the torrent stream.");
@@ -133,11 +172,55 @@ internal static class TorrentChecks
                 player.Time = 60000;
                 for (var attempt = 0; attempt < 60 && player.Time < 59000; attempt++) await Task.Delay(250);
                 Check(player.Time >= 59000, "Native seeking must work through the torrent stream.");
+                await Task.Delay(750);
+                Check(player.IsPlaying && player.Time > 60000, "Video playback must continue advancing after a forward seek.");
+                player.Time = 10000;
+                for (var attempt = 0; attempt < 60 && (player.Time < 9500 || player.Time > 20000); attempt++) await Task.Delay(250);
+                Check(player.Time >= 9500 && player.Time < 20000, "Backward HTTP seeking must preserve the active torrent session.");
+                await Task.Delay(750);
+                Check(player.IsPlaying && player.Time > 10000 && player.Time < 20000, "Video playback must continue advancing after a backward seek.");
             }
-            finally { session.Cancel(); player.Stop(); }
+            finally { player.Stop(); }
+            var download = await http.GetByteArrayAsync(url, deadline.Token);
+            Check(download.SequenceEqual(File.ReadAllBytes(mediaPath)), "The complete cached video must match the seed.");
         }
         finally { await session.DisposeAsync(); await seed.StopAsync(); }
-        Check(!Directory.Exists(sessionPath), "Stopping must remove temporary torrent files after releasing the decoder.");
+        Check(Directory.Exists(sessionPath), "Stopping must preserve a persistent torrent cache.");
+        await using (var reopened = new TorrentPlayback(data, localOnly: true, infoHash: hash))
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var restored = await reopened.OpenAsync(new(hash, fileIndex, [], []), new Progress<TorrentStatus>(), deadline.Token);
+            Check(reopened.SessionDirectory == sessionPath, "Reopening must use the existing cache.");
+            using var http = new HttpClient();
+            var url = reopened.StartHttpServer();
+            var expectedFile = File.ReadAllBytes(mediaPath);
+            foreach (var start in new long[] { expectedFile.Length - 4096, 0, expectedFile.Length / 2, 4096 })
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(start, start + 1023);
+                using var response = await http.SendAsync(request, deadline.Token);
+                Check((await response.Content.ReadAsByteArrayAsync(deadline.Token)).SequenceEqual(expectedFile.Skip((int)start).Take(1024)), "Completed cache must support random forward/backward reads with the seeder stopped.");
+            }
+            Core.Initialize();
+            using var vlc = new LibVLC("--vout=dummy", "--aout=dummy", "--avcodec-hw=none");
+            using var player = new MediaPlayer(vlc);
+            using var media = new Media(vlc, new Uri(url));
+            Check(player.Play(media), "Reopened cached video must play without live peers.");
+            try
+            {
+                for (var attempt = 0; attempt < 60 && player.Time < 500; attempt++) await Task.Delay(100);
+                Check(player.Time > 0, "Reopened cached video must decode with the seeder stopped.");
+                foreach (var target in new long[] { 90000, 5000, 60000, 10000 })
+                {
+                    player.Time = target;
+                    for (var attempt = 0; attempt < 60 && Math.Abs(player.Time - target) > 2000; attempt++) await Task.Delay(100);
+                    Check(Math.Abs(player.Time - target) <= 2000, "Completed cached video must seek both directions without peers.");
+                    await Task.Delay(750);
+                    Check(player.IsPlaying && player.Time > target && player.Time < target + 4000, "Cached playback must advance after each offline seek, not just report a new time.");
+                }
+            }
+            finally { player.Stop(); }
+        }
         await using (var canceled = new TorrentPlayback(data, localOnly: true))
         {
             using var token = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -163,7 +246,7 @@ internal static class TorrentChecks
         var lookup = duringLookup.OpenAsync(new(new string('b', 40), null, [], []), new Progress<TorrentStatus>(), CancellationToken.None);
         await duringLookup.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
         Check(lookup.IsCompleted && !Directory.Exists(duringLookup.SessionDirectory), "Disposal during metadata lookup must cancel and await startup before clearing its cache.");
-        Console.WriteLine("PASS: local peer seeding, tracker/magnet metadata retrieval, exact file selection, verified reads, native torrent playback/seek, cancellation and cache disposal.");
+        Console.WriteLine("PASS: local peer seeding, metadata retrieval, HTTP range cancellation, forward/backward native seeking, persistent cache reopen and random seeks with the seeder stopped, cancellation and scoped cleanup.");
     }
     private sealed class RecordingWriter : IPieceWriter
     {
@@ -184,6 +267,16 @@ internal static class TorrentChecks
     {
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
         { await Task.Delay(Timeout.InfiniteTimeSpan, token); return 0; }
+    }
+    private sealed class MissingStartStream : MemoryStream
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public MissingStartStream() : base(new byte[8192]) { }
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            if (Position == 0) { Started.TrySetResult(); await Task.Delay(Timeout.InfiniteTimeSpan, token); }
+            return await base.ReadAsync(buffer, token);
+        }
     }
     private static int FreePort() { var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port; }
     private sealed class LocalTracker : IAsyncDisposable

@@ -9,10 +9,9 @@ namespace BingeX;
 internal sealed class TorrentWriteGate(IPieceWriter writer, string directory, CancellationToken token) : IPieceWriter
 {
     private readonly TaskCompletionSource<bool> approval = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private bool approved;
     public int OpenFiles => writer.OpenFiles;
     public int MaximumOpenFiles => writer.MaximumOpenFiles;
-    public void Approve() { Volatile.Write(ref approved, true); approval.TrySetResult(true); }
+    public void Approve() { approval.TrySetResult(true); }
     private void CheckPath(string path)
     {
         var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)) + Path.DirectorySeparatorChar;
@@ -27,12 +26,10 @@ internal sealed class TorrentWriteGate(IPieceWriter writer, string directory, Ca
     }
     public async ReusableTask<int> ReadAsync(ITorrentManagerFile file, long offset, Memory<byte> buffer)
     {
-        if (!Volatile.Read(ref approved)) return 0;
         CheckPath(file.FullPath); return await writer.ReadAsync(file, offset, buffer);
     }
     public async ReusableTask<bool> ExistsAsync(ITorrentManagerFile file)
     {
-        if (!Volatile.Read(ref approved)) return false;
         CheckPath(file.FullPath); return await writer.ExistsAsync(file);
     }
     public ReusableTask CloseAsync(ITorrentManagerFile file) => writer.CloseAsync(file);
