@@ -9,13 +9,13 @@ public record CatalogInfo(InstalledAddon Addon, string Id, string Type, string N
 }
 public record EpisodeInfo(string Id, string Name, int Season, int Number, string Overview);
 public record TitleInfo(string Id, string Type, string Name, string Poster, string Background, string Description,
-    string Release, string Rating, string Genres, string AddonId, IReadOnlyList<EpisodeInfo> Episodes);
-public record MediaContext(string Id, string Type, string Name, string Poster, string AddonId, string? EpisodeId = null, string? EpisodeName = null)
+    string Release, string Rating, string Genres, string AddonId, IReadOnlyList<EpisodeInfo> Episodes, int? DurationSeconds = null);
+public record MediaContext(string Id, string Type, string Name, string Poster, string AddonId, string? EpisodeId = null, string? EpisodeName = null, int? DurationSeconds = null)
 {
     public string HistoryKey => $"stremio:{Type}:{EpisodeId ?? Id}";
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
-public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null);
+public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null);
 public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures);
 
@@ -157,7 +157,11 @@ public sealed class MediaLibrary(AddonClient client)
         }
         else if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")) reason = "External or unsupported playback source";
         else if (stream.TryGetProperty("behaviorHints", out var hints) && hints.ValueKind == JsonValueKind.Object && hints.TryGetProperty("proxyHeaders", out _)) reason = "Requires custom request headers";
-        return new(provider, AddonClient.Text(stream, "name", "Direct stream"), AddonClient.Text(stream, "description", AddonClient.Text(stream, "title")), url, reason, torrent);
+        var name = AddonClient.Text(stream, "name", "Direct stream");
+        var description = AddonClient.Text(stream, "description", AddonClient.Text(stream, "title"));
+        var evidence = SourceSelection.Read(stream, name, description);
+        if (torrent != null && evidence.Bytes > TorrentPlayback.CacheLimit) reason = "Above the 32 GB torrent cache limit";
+        return new(provider, name, description, url, reason, torrent, evidence);
     }
     public static TitleInfo ParseTitle(JsonElement meta, string addonId, string fallbackType)
     {
@@ -173,7 +177,14 @@ public sealed class MediaLibrary(AddonClient client)
         var rating = meta.TryGetProperty("imdbRating", out var r) ? r.ToString() : "";
         return new(AddonClient.Text(meta, "id"), AddonClient.Text(meta, "type", fallbackType), AddonClient.Text(meta, "name", "Untitled"),
             AddonClient.Text(meta, "poster"), AddonClient.Text(meta, "background"), AddonClient.Text(meta, "description"),
-            AddonClient.Text(meta, "releaseInfo", AddonClient.Text(meta, "year")), rating, genres, addonId, episodes.OrderBy(x => x.Season).ThenBy(x => x.Number).ToArray());
+            AddonClient.Text(meta, "releaseInfo", AddonClient.Text(meta, "year")), rating, genres, addonId, episodes.OrderBy(x => x.Season).ThenBy(x => x.Number).ToArray(), RuntimeSeconds(meta));
+    }
+    private static int? RuntimeSeconds(JsonElement meta)
+    {
+        if (!meta.TryGetProperty("runtime", out var runtime)) return null;
+        var value = runtime.ValueKind == JsonValueKind.String ? runtime.GetString() : runtime.ValueKind == JsonValueKind.Number ? runtime.ToString() : null;
+        var match = System.Text.RegularExpressions.Regex.Match(value ?? "", @"^\s*(\d{1,4})(?:\s*(?:min|minutes?))?\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return match.Success && int.TryParse(match.Groups[1].Value, out var minutes) && minutes is > 0 and <= 1440 ? minutes * 60 : null;
     }
     private static int Number(JsonElement item, string key) => item.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) ? number : 0;
 }

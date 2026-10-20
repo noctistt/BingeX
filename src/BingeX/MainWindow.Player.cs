@@ -138,8 +138,15 @@ public partial class MainWindow
         Dispatcher.UIThread.Post(() =>
         {
             if (generation != mediaGeneration || player == null || player.State is VLCState.Playing or VLCState.Opening) return;
+            if (lastDuration <= 0 && activeSource != null && !sourceStarted)
+            {
+                if (TryScheduleNextSource("This source ended before video playback could start.")) return;
+                Status("This source did not deliver playable video. Choose another source.");
+                return;
+            }
             if (torrentSession?.Failure is { } failure)
             {
+                if (TryScheduleNextSource(failure)) return;
                 StopTorrentPlayback(); Status(failure); PlayerNotice(failure); return;
             }
             playbackEnded = true;
@@ -182,7 +189,7 @@ public partial class MainWindow
             PlayerOverlay.Cursor = hide ? new Cursor(StandardCursorType.None) : Cursor.Default;
             PositionCaptions();
         }
-        TorrentPanel.IsVisible = torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible);
+        TorrentPanel.IsVisible = pendingSource != null || torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible);
         if (useTextSubtitles && textSubtitles != null && player != null && !playbackEnded)
         {
             var text = textSubtitles.TextAt(Math.Max(0, player.Time), subtitleDelayMs);

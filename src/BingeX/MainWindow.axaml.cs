@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         RefreshHistory();
         RefreshAddons();
         SetupLocalLibrary();
+        SetupSources();
         Opened += (_, _) =>
         {
             _ = ScanMediaFolders();
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
                 {
                     if (localClosing || player?.State != VLCState.Error) return;
                     var failure = torrentSession?.Failure ?? "Playback failed. The source may be unavailable, damaged, or unsupported.";
+                    if (TryScheduleNextSource(failure)) return;
                     if (torrentSession != null) StopTorrentPlayback();
                     Status(failure); PlayerNotice(failure);
                 });
@@ -65,6 +67,8 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Closing += async (_, e) =>
         {
+            sourceTimer.Stop();
+            ResetSourceAttempts();
             if (torrentCloseInProgress && !torrentCloseReady) { e.Cancel = true; return; }
             if (!torrentCloseReady && (torrentSession != null || torrentStarting || !torrentCleanup.IsCompleted))
             {
@@ -115,6 +119,7 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        if (page != "Player" && pendingSource != null) ResetSourceAttempts();
         videoClickTimer.Stop();
         videoPressPoint = null;
         if (page != "Player" && torrentStarting) StopTorrentPlayback();
@@ -158,6 +163,7 @@ public partial class MainWindow : Window
         if (player == null || engine == null) { Status("Playback engine is unavailable."); return; }
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
+        if (input == null && (activeSource == null || activeSource.Url != path)) ResetSourceAttempts();
         thumbnailWork.Cancel();
         SaveProgress();
         if (input == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
@@ -173,7 +179,7 @@ public partial class MainWindow : Window
         currentPath = path;
         currentTitle = title;
         using var media = input == null ? new Media(engine, uri) : new Media(engine, input);
-        if (!player.Play(media)) { if (input != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
+        if (!player.Play(media)) { if (TryScheduleNextSource("This source could not start.")) return; if (input != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
         player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]);
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title;
@@ -187,6 +193,7 @@ public partial class MainWindow : Window
         if (player == null || currentPath == null) return;
         if (playbackEnded) { UpdatePlayIcon("Replay"); return; }
         if (player.Length > 0) lastDuration = player.Length;
+        if (lastDuration > 0) torrentSession?.UpdateDuration(lastDuration);
         if (player.Time > 0) lastPosition = player.Time;
         if (resumeAt > 0 && player.IsSeekable && player.Length > 0)
         {

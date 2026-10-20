@@ -206,7 +206,7 @@ public partial class MainWindow
         catch { if (!token.IsCancellationRequested) { DetailBusy.IsVisible = false; DetailMessage.Text = "Title details are unavailable right now. Return to the library and try again."; } }
         finally { if (!token.IsCancellationRequested) MovieSourcesButton.IsEnabled = true; }
     }
-    private static MediaContext ContextFor(TitleInfo title) => new(title.Id, title.Type, title.Name, title.Poster, title.AddonId);
+    private static MediaContext ContextFor(TitleInfo title) => new(title.Id, title.Type, title.Name, title.Poster, title.AddonId, DurationSeconds: title.DurationSeconds);
     private void RenderTitle(TitleInfo title, CancellationToken token)
     {
         DetailTitle.Text = title.Name;
@@ -251,6 +251,7 @@ public partial class MainWindow
         var context = selectedContext;
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
+        SuggestedSource.IsVisible = false;
         StreamItems.Children.Clear(); StreamHeading.IsVisible = true;
         StreamHeading.Text = context.EpisodeName ?? "Available streams";
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Checking your stream providers…"; DetailMessage.Text = ""; DetailRetry.IsVisible = false;
@@ -258,16 +259,7 @@ public partial class MainWindow
         {
             var result = await library.Streams(context.Type, context.EpisodeId ?? context.Id, store.Addons(), token);
             token.ThrowIfCancellationRequested();
-            foreach (var stream in result.Items)
-            {
-                var column = new StackPanel { Spacing = 5 };
-                column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
-                if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, MaxLines = 4, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE"), TextTrimming = TextTrimming.WordEllipsis });
-                column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
-                var button = new Button { Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
-                button.Click += (_, _) => { if (stream.Torrent != null) StartTorrent(stream, context); else Play(stream.Url, context.DisplayName, context); };
-                StreamItems.Children.Add(button);
-            }
+            RenderSourceChoices(result.Items, context);
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
             DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
             if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) could not be reached.";
@@ -276,6 +268,25 @@ public partial class MainWindow
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch { if (!token.IsCancellationRequested) { DetailMessage.Text = "Stream lookup failed. Please try again."; DetailRetry.IsVisible = true; } }
         finally { if (!token.IsCancellationRequested) DetailBusy.IsVisible = false; }
+    }
+    private void RenderSourceChoices(IReadOnlyList<StreamChoice> options, MediaContext context)
+    {
+        StreamItems.Children.Clear();
+        availableSources = SourceSelection.Rank(options, sourcePerformance);
+        availableSourceContext = context;
+        SuggestedSource.IsVisible = availableSources.Any(x => x.UnsupportedReason == null);
+        foreach (var stream in availableSources)
+        {
+            var column = new StackPanel { Spacing = 5 };
+            column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+            var summary = SourceSelection.Summary(stream);
+            if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
+            if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, MaxLines = 4, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE"), TextTrimming = TextTrimming.WordEllipsis });
+            column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
+            var button = new Button { Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
+            button.Click += (_, _) => BeginSource(stream, context);
+            StreamItems.Children.Add(button);
+        }
     }
     private void RefreshHistory()
     {

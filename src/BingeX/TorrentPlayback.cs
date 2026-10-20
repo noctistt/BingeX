@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace BingeX;
 
-public record TorrentStatus(string Stage, double DownloadedPercent, long DownloadRate, int Peers, bool Waiting, bool HasMetadata = true, int ElapsedSeconds = 0, string Discovery = "");
+public record TorrentStatus(string Stage, double DownloadedPercent, long DownloadRate, int Peers, bool Waiting, bool HasMetadata = true, int ElapsedSeconds = 0, string Discovery = "", long BufferedBytes = 0, double? BufferedSeconds = null, long MeasuredRate = 0, long? RequiredRate = null, long StartupBuffered = 0, long StartupTarget = 0);
 
 public sealed class TorrentPlayback : IAsyncDisposable
 {
@@ -20,6 +20,13 @@ public sealed class TorrentPlayback : IAsyncDisposable
     private string stage = "Finding peers and torrent information…";
     private bool prepared;
     private int trackerReplies;
+    private ITorrentManagerFile? selectedFile;
+    private long durationMs;
+    private readonly DeliveryRate delivery = new();
+    private long measuredRate;
+    private long startupBuffered;
+    private long startupTarget;
+    public void UpdateDuration(long milliseconds) => Interlocked.Exchange(ref durationMs, Math.Max(0, milliseconds));
     private TorrentManager? manager;
     private Stream? stream;
     private Task? monitor;
@@ -58,18 +65,19 @@ public sealed class TorrentPlayback : IAsyncDisposable
         engine = new ClientEngine(settings.ToSettings(), factories);
         writeGate = gate ?? throw new InvalidOperationException("The torrent cache writer could not start.");
     }
-    public Task<Stream> OpenAsync(TorrentSource source, IProgress<TorrentStatus> progress, CancellationToken token, Torrent? fixture = null)
+    public Task<Stream> OpenAsync(TorrentSource source, IProgress<TorrentStatus> progress, CancellationToken token, Torrent? fixture = null, int? durationSeconds = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (opening != null) throw new InvalidOperationException("This torrent session has already been started.");
-        return opening = OpenCoreAsync(source, progress, token, fixture);
+        return opening = OpenCoreAsync(source, progress, token, fixture, durationSeconds);
     }
-    private async Task<Stream> OpenCoreAsync(TorrentSource source, IProgress<TorrentStatus> progress, CancellationToken token, Torrent? fixture)
+    private async Task<Stream> OpenCoreAsync(TorrentSource source, IProgress<TorrentStatus> progress, CancellationToken token, Torrent? fixture, int? durationSeconds)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
         timeout.CancelAfter(TimeSpan.FromMinutes(2));
         var work = timeout.Token;
+        if (durationSeconds is > 0) UpdateDuration(durationSeconds.Value * 1000L);
         progress.Report(new("Finding peers and torrent information…", 0, 0, 0, true, false, 0, "Starting peer discovery"));
         try
         {
@@ -95,6 +103,7 @@ public sealed class TorrentPlayback : IAsyncDisposable
             var file = SelectFile(manager.Files, source.FileIndex);
             foreach (var item in manager.Files)
                 await manager.SetFilePriorityAsync(item, ReferenceEquals(item, file) ? Priority.Normal : Priority.DoNotDownload);
+            selectedFile = file;
             FileName = file.Path;
             work.ThrowIfCancellationRequested();
             stage = "Buffering the start of the video…";
@@ -111,8 +120,16 @@ public sealed class TorrentPlayback : IAsyncDisposable
             raw.Seek(Math.Max(0, raw.Length - 1), SeekOrigin.Begin);
             await raw.ReadExactlyAsync(new byte[1], 0, 1, work);
             raw.Seek(0, SeekOrigin.Begin);
-            var buffer = new byte[(int)Math.Min(256 * 1024, stream.Length)];
-            await raw.ReadExactlyAsync(buffer, 0, buffer.Length, work);
+            startupTarget = TorrentBufferPolicy.StartupTarget(stream.Length, durationSeconds);
+            var buffer = new byte[256 * 1024];
+            while (startupBuffered < startupTarget)
+            {
+                var count = (int)Math.Min(buffer.Length, startupTarget - startupBuffered);
+                await raw.ReadExactlyAsync(buffer, 0, count, work);
+                Interlocked.Add(ref startupBuffered, count);
+                progress.Report(new("Building a playback buffer…", manager.PartialProgress, manager.Monitor.DownloadRate, manager.OpenConnections, true,
+                    StartupBuffered: startupBuffered, StartupTarget: startupTarget, MeasuredRate: measuredRate));
+            }
             raw.Seek(0, SeekOrigin.Begin);
             work.ThrowIfCancellationRequested();
             prepared = true;
@@ -161,9 +178,16 @@ public sealed class TorrentPlayback : IAsyncDisposable
                     progress.Report(new(current.OpenConnections > 0 ? "Connected to peers; requesting torrent information…" : elapsed >= 15 ? "Still searching for reachable peers…" : "Finding peers and torrent information…", 0, current.Monitor.DownloadRate, current.OpenConnections, true, false, elapsed, discovery));
                     continue;
                 }
+                measuredRate = delivery.Add(startup.Elapsed.TotalSeconds, current.Monitor.DataBytesReceived);
+                var file = selectedFile;
+                var position = stream?.Position ?? 0;
+                var contiguous = file == null ? 0 : TorrentBufferPolicy.ContiguousBytes(file.OffsetInTorrent, file.Length, position, current.Torrent!.PieceLength, index => current.Bitfield[index]);
+                var duration = Interlocked.Read(ref durationMs);
+                var secondsAhead = file == null ? null : TorrentBufferPolicy.EstimateSeconds(contiguous, file.Length, duration);
+                long? required = file != null && duration > 0 ? (long)(file.Length * 1000d / duration) : null;
                 var waiting = !prepared || Volatile.Read(ref reading) != 0;
                 if (waiting && DateTime.UtcNow - lastRead > TimeSpan.FromMinutes(2)) { Failure = "The torrent stopped delivering data. Try another source with more peers."; lifetime.Cancel(); break; }
-                progress.Report(new(!prepared ? stage : waiting ? "Buffering video…" : "Torrent connected", current.PartialProgress, current.Monitor.DownloadRate, current.OpenConnections, waiting));
+                progress.Report(new(!prepared ? stage : waiting ? "Buffering video…" : "Torrent connected", current.PartialProgress, current.Monitor.DownloadRate, current.OpenConnections, waiting, BufferedBytes: contiguous, BufferedSeconds: secondsAhead, MeasuredRate: measuredRate, RequiredRate: required, StartupBuffered: startupBuffered, StartupTarget: startupTarget));
             }
         }
         catch (OperationCanceledException) { }

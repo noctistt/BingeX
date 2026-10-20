@@ -107,6 +107,7 @@ try
     }
     Console.WriteLine("PASS: persistent history, parameterized titles, add-on persistence/removal, configured episode URLs, manifest scheme validation.");
     Console.WriteLine("PASS: remote episode resume, search encoding, provider scope filtering, catalog capabilities, episode ordering, source compatibility, partial failures, cancellation.");
+    SourceSelectionChecks.Run();
     LocalLibraryChecks.Run(Path.Combine(directory, "local-library"));
     await SubtitleChecks.Run(args.Contains("--live-subtitles"));
     await TorrentChecks.Run(directory, args.Contains("--torrent") ? args.FirstOrDefault(File.Exists) : null);

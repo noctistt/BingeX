@@ -107,7 +107,9 @@ internal static class TorrentChecks
         {
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             var source = new TorrentSource(torrent.InfoHashes.V1!.ToHex(), fileIndex, [], [$"ipv4://127.0.0.1:{seedPort}"]);
-            var stream = await session.OpenAsync(source, new Progress<TorrentStatus>(), deadline.Token);
+            var bufferStatus = new ConcurrentQueue<TorrentStatus>();
+            var stream = await session.OpenAsync(source, new ImmediateProgress(bufferStatus.Enqueue), deadline.Token);
+            Check(bufferStatus.Any(x => x.StartupTarget == TorrentBufferPolicy.StartupBytes && x.StartupBuffered == x.StartupTarget), "Playback must wait for its full bounded startup buffer and report its progress.");
             Check(session.FileName.EndsWith(".mkv"), "Peer hints alone must retrieve metadata before selecting the exact indexed video.");
             var actual = new byte[4096]; var expected = new byte[4096];
             using var original = File.OpenRead(mediaPath);
@@ -138,10 +140,10 @@ internal static class TorrentChecks
         Check(!Directory.Exists(sessionPath), "Stopping must remove temporary torrent files after releasing the decoder.");
         await using (var canceled = new TorrentPlayback(data, localOnly: true))
         {
-            using var token = new CancellationTokenSource(TimeSpan.FromMilliseconds(1300));
+            using var token = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var observed = false;
             var statuses = new ConcurrentQueue<TorrentStatus>();
-            try { await canceled.OpenAsync(new(new string('a', 40), null, [], []), new ImmediateProgress(statuses.Enqueue), token.Token); }
+            try { await canceled.OpenAsync(new(new string('a', 40), null, [], []), new ImmediateProgress(status => { statuses.Enqueue(status); if (!status.HasMetadata && status.ElapsedSeconds >= 1) token.Cancel(); }), token.Token); }
             catch (OperationCanceledException) { observed = true; }
             Check(observed, "Unavailable torrent metadata lookup must be cancellable.");
             Check(statuses.Any(x => !x.HasMetadata && x.ElapsedSeconds >= 1), "Metadata lookup must publish elapsed discovery status instead of frozen download percentages.");
