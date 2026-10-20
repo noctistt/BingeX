@@ -30,7 +30,6 @@ public partial class MainWindow : Window
         if (activePage == "Player")
         {
             SaveProgress();
-            if (player?.IsPlaying == true) player.SetPause(true);
             Page(playerReturnPage);
         }
         else if (activePage == "Details") Page("Library");
@@ -95,6 +94,7 @@ public partial class MainWindow : Window
                 return;
             }
             localClosing = true;
+            addonCheckLifetime.Cancel();
             SaveProgress();
             StopTorrentPlayback();
             CancelLocalScan();
@@ -123,6 +123,7 @@ public partial class MainWindow : Window
             player?.Dispose();
             engine?.Dispose();
             store.Dispose();
+            addonCheckLifetime.Cancel(); addonCheckLifetime.Dispose();
             addons.Dispose();
         };
     }
@@ -149,8 +150,7 @@ public partial class MainWindow : Window
         DetailsPage.IsVisible = page == "Details";
         LibraryPage.IsVisible = page == "Library";
         LocalLibraryPage.IsVisible = page == "My Library";
-        PlayerPage.IsVisible = page == "Player";
-        VideoSurface.IsVisible = page == "Player";
+        UpdatePlayerLayout();
         AddonsPage.IsVisible = page == "Add-ons";
         if (page == "Player") RevealPlayerControls();
         if (page == "My Library") RefreshLocalLibrary();
@@ -193,10 +193,12 @@ public partial class MainWindow : Window
         currentPath = path;
         currentTitle = title;
         using var media = input == null ? new Media(engine, playbackUrl == null ? uri : new Uri(playbackUrl)) : new Media(engine, input);
+        if (externalAudioPath != null && File.Exists(externalAudioPath)) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(externalAudioPath));
         if (!player.Play(media)) { if (TryScheduleNextSource("This source could not start.")) return; if (input != null || playbackUrl != null) StopTorrentPlayback(); Status("Unable to start this media."); return; }
         player.SetRate(new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)]);
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title;
+        MiniTitle.Text = title;
         Page("Player");
         Status("Loading " + title);
     }

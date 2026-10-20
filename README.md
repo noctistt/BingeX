@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.10. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.11. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -151,4 +151,11 @@ Torrent startup builds an 8 MiB verified starting buffer when runtime is unknown
 
 ## Back navigation (0.10 preview)
 
-Use **← Back** or **Alt+Left** in the player to return to the page you opened it from. Playback pauses, while movie details, selected season, episode/source list and scroll position remain in place. The Player sidebar entry returns to the paused video. Fullscreen controls include their own Back button. On a details page, Back returns to Home. Leaving during initial torrent startup cancels that attempt while retaining already downloaded data.
+Use **← Back** or **Alt+Left** in the player to return to the page you opened it from. Playback now continues in the mini-player while movie details, selected season, episode/source list and scroll position remain in place. Restore, or use the Player sidebar entry, to return to the full player. Fullscreen controls include their own Back button. On a details page, Back returns to Home. Leaving during initial torrent startup cancels that attempt while retaining already downloaded data.
+
+## Mini-player, external audio and add-on diagnostics (0.11 preview)
+
+- **Mini-player:** choose Mini-player in the video controls, use Back, or navigate to another app page to keep watching in the bottom-right corner. The existing video session, selected audio, subtitles and timing remain intact. Mini controls provide Pause/Play, Restore and Close. Close stops playback and saves progress; it does not remove the video or browsing page. This is an in-app player, not a separate desktop always-on-top window. During initial torrent startup, leaving still cancels preparation; once playback starts it can continue in miniature.
+- **External audio:** open playback settings → Add audio file, then select the added audio track if necessary. Common audio formats and MKA are supported by the bundled VLC engine. Adjust Audio delay in seconds (positive plays later). Use a file from the same cut of the video; offsets cannot correct different edits or ongoing drift. The attachment stays through mini/full transitions, and can be reapplied when replaying the same local/direct path in the current session. Changing media or restarting the app requires loading the external audio again. Audio delay resets when opening media.
+- **Installed add-ons:** Check connection requests the configured manifest and distinguishes access errors, rate limits, timeouts, invalid manifests and configuration requirements. Existing stream lookups also record whether the last title returned no streams, unsupported sources, or a request failure. Results are local observations with timestamps, not global uptime or playback guarantees. Manual manifest checks have a short cooldown.
+- **Community reports:** known provider hosts link directly to their public stremio-addons.net page; unknown hosts open the directory so you can locate the correct listing. The link never contains the installed URL's private path or query tokens. Community charts stay on that site because its documented API does not expose report history. Reports may refer to another hosted instance of the same add-on. No reports are submitted automatically.

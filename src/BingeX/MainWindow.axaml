@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.10" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.11" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -152,9 +152,10 @@
               <Border x:Name="PlayerControls" VerticalAlignment="Bottom" Padding="18,28,18,16">
                 <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#00101018" Offset="0" /><GradientStop Color="#F0101018" Offset="0.25" /><GradientStop Color="#FA101018" Offset="1" /></LinearGradientBrush></Border.Background>
                 <StackPanel Spacing="8">
-                  <Grid ColumnDefinitions="Auto,*">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
                     <Button x:Name="PlayerBackButton" Content="← Back" Click="NavigateBack_Click" IsVisible="False" Margin="0,0,12,0" ToolTip.Tip="Back (Alt+Left)" />
                     <TextBlock x:Name="NowPlaying" Grid.Column="1" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Content="Mini-player" Click="MinimizePlayer_Click" ToolTip.Tip="Keep watching while browsing" Margin="12,0,0,0" />
                   </Grid>
                   <Slider x:Name="SeekBar" Classes="playerSlider" AutomationProperties.Name="Playback position" Minimum="0" Maximum="1000" Value="0" />
                   <Grid ColumnDefinitions="Auto,*,Auto">
@@ -188,6 +189,16 @@
                   </Grid>
                 </StackPanel>
               </Border>
+              <Border x:Name="MiniControls" IsVisible="False" Background="#E8101018" VerticalAlignment="Bottom" Padding="10,8">
+                <StackPanel Spacing="6">
+                  <TextBlock x:Name="MiniTitle" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button x:Name="MiniPlayButton" Content="Pause" Click="Play_Click" Padding="10,5" />
+                    <Button Grid.Column="2" Content="Restore" Click="RestorePlayer_Click" Padding="10,5" Margin="8,0" />
+                    <Button Grid.Column="3" Content="×" Click="CloseMiniPlayer_Click" Padding="10,5" ToolTip.Tip="Stop playback and close mini-player" AutomationProperties.Name="Close mini-player" />
+                  </Grid>
+                </StackPanel>
+              </Border>
               <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,145" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="18">
                 <ScrollViewer x:Name="SettingsScroll" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel Spacing="12">
@@ -199,6 +210,11 @@
                       </ComboBox>
                       <TextBlock x:Name="AudioSettingsHeading" Text="Audio track" Foreground="#BFB5D1" />
                       <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
+                      <Button Content="Add audio file…" Click="LoadAudio_Click" HorizontalAlignment="Left" />
+                      <TextBlock x:Name="ExternalAudioLabel" Text="Use an audio file that matches this video's cut." FontSize="11" Foreground="#AAA0BA" TextWrapping="Wrap" />
+                      <TextBlock Text="Audio delay (seconds)" Foreground="#BFB5D1" />
+                      <NumericUpDown x:Name="AudioDelayInput" Minimum="-300" Maximum="300" Increment="0.05" FormatString="0.00" Value="0" ValueChanged="AudioDelayChanged" />
+                      <TextBlock Text="Positive = later · Negative = earlier" FontSize="11" Foreground="#9E95B0" />
                     </StackPanel>
                     <StackPanel x:Name="SubtitleSettingsSection" Spacing="12" IsVisible="False">
                       <Button Content="Search online…" Classes="primary" Click="OnlineSubtitles_Click" HorizontalAlignment="Stretch" />
@@ -249,7 +265,8 @@
             <TextBox x:Name="ManifestInput" Watermark="https://your-addon.example/manifest.json" />
             <Button x:Name="InstallButton" Grid.Column="1" Content="Install" Classes="primary" Click="Install_Click" Margin="12,0,0,0" />
           </Grid>
-          <StackPanel x:Name="AddonItems" Spacing="8" />
+          <TextBlock Text="Connection checks describe this device only. Community reports open on stremio-addons.net; they may cover a different hosted instance." TextWrapping="Wrap" Classes="muted" />
+          <StackPanel x:Name="AddonItems" Spacing="12" />
           <Border Background="#252036" CornerRadius="12" Padding="18">
             <TextBlock Text="Catalogs help you discover titles. Playback needs a compatible stream provider. A catalog connection alone does not supply playable videos." TextWrapping="Wrap" Foreground="#C8BFDC" />
           </Border>

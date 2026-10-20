@@ -69,9 +69,10 @@ public partial class MainWindow
             RevealPlayerControls();
             videoClickTimer.Stop();
             videoPressPoint = null;
-            if (Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
+            if (Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
                 !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
+            if (miniPlayer) { RestorePlayer_Click(null, new()); e.Handled = true; return; }
             if (e.ClickCount == 2)
             {
                 SetFullscreen(WindowState != WindowState.FullScreen);
@@ -85,7 +86,7 @@ public partial class MainWindow
             var start = videoPressPoint;
             videoPressPoint = null;
             if (start == null || e.InitialPressMouseButton != MouseButton.Left ||
-                Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
+                Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
                 VideoPointerMoved(e.GetPosition(PlayerOverlay), start.Value)) return;
             // Wait out the native double-click interval so fullscreen never also pauses playback.
             videoClickTimer.Interval = PlatformSettings?.GetDoubleTapTime(e.Pointer.Type) ?? TimeSpan.FromMilliseconds(500);
@@ -118,6 +119,10 @@ public partial class MainWindow
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
         pendingAudioSelection = null;
         audioRestoreUntil = null;
+        audioDelayMs = 0; AudioDelayInput.Value = 0;
+        player?.SetAudioDelay(0);
+        if (!preserveSubtitles) externalAudioPath = null;
+        ExternalAudioLabel.Text = externalAudioPath == null ? "Use an audio file that matches this video's cut." : "Loaded: " + Path.GetFileName(externalAudioPath);
         if (!preserveSubtitles)
         {
             textSubtitles = null; textSubtitleName = null; useTextSubtitles = false; lastSubtitleTrack = null;
@@ -166,7 +171,7 @@ public partial class MainWindow
     private void RevealPlayerControls()
     {
         lastPlayerInteraction = DateTime.UtcNow;
-        PlayerControls.IsVisible = true;
+        PlayerControls.IsVisible = !miniPlayer;
         PlayerOverlay.Cursor = Cursor.Default;
         PositionCaptions();
     }
@@ -179,18 +184,18 @@ public partial class MainWindow
     }
     private void UpdatePlayerOverlay()
     {
-        if (activePage != "Player") return;
+        if (activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
         var hide = WindowState == WindowState.FullScreen && player?.IsPlaying == true && !playbackEnded &&
             !PlayerSettingsPanel.IsVisible && !PlayerControls.IsPointerOver && !seekDragging && idle.TotalSeconds > 3;
-        if (PlayerControls.IsVisible == hide)
+        if (!miniPlayer && PlayerControls.IsVisible == hide)
         {
             PlayerControls.IsVisible = !hide;
             PlayerOverlay.Cursor = hide ? new Cursor(StandardCursorType.None) : Cursor.Default;
             PositionCaptions();
         }
-        TorrentPanel.IsVisible = pendingSource != null || torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible);
+        TorrentPanel.IsVisible = !miniPlayer && (pendingSource != null || torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible));
         if (useTextSubtitles && textSubtitles != null && player != null && !playbackEnded)
         {
             var text = textSubtitles.TextAt(Math.Max(0, player.Time), subtitleDelayMs);
@@ -200,7 +205,7 @@ public partial class MainWindow
         else CaptionPanel.IsVisible = false;
     }
     private void PositionCaptions() => CaptionPanel.Margin = new Thickness(32, 0, 32,
-        PlayerControls.IsVisible ? Math.Max(155, PlayerControls.Bounds.Height + 12) : 40);
+        miniPlayer ? 92 : PlayerControls.IsVisible ? Math.Max(155, PlayerControls.Bounds.Height + 12) : 40);
 
     private void SetFullscreen(bool fullscreen)
     {
@@ -282,6 +287,7 @@ public partial class MainWindow
     private string playIconState = "";
     private void UpdatePlayIcon(string state)
     {
+        MiniPlayButton.Content = state;
         if (playIconState == state) return;
         playIconState = state;
         PlayIcon.Data = Geometry.Parse(state switch
@@ -414,7 +420,7 @@ public partial class MainWindow
         var size = new[] { 20, 28, 36, 44 }[Math.Clamp(SubtitleSizePicker.SelectedIndex, 0, 3)];
         var color = new[] { "White", "Yellow", "Mint" }[Math.Clamp(SubtitleColorPicker.SelectedIndex, 0, 2)];
         preferences = preferences with { SubtitleSize = size, SubtitleColor = color, SubtitleBackground = SubtitleBackgroundCheck.IsChecked == true };
-        CaptionText.FontSize = size * Math.Clamp(PlayerOverlay.Bounds.Height / 720, .75, 2);
+        CaptionText.FontSize = miniPlayer ? 14 : size * Math.Clamp(PlayerOverlay.Bounds.Height / 720, .75, 2);
         CaptionText.Foreground = Brush.Parse(color switch { "Yellow" => "#FFE66D", "Mint" => "#A7F3D0", _ => "White" });
         CaptionPanel.Background = preferences.SubtitleBackground ? Brush.Parse("#B0000000") : Brushes.Transparent;
         PositionCaptions();

@@ -17,7 +17,7 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
 }
 public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null);
 public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
-public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures);
+public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures, IReadOnlyList<AddonCheck>? Diagnostics = null);
 
 public sealed class MediaLibrary(AddonClient client)
 {
@@ -114,17 +114,21 @@ public sealed class MediaLibrary(AddonClient client)
     {
         var results = await Task.WhenAll(installed.Select(async addon =>
         {
+            ProviderResult<StreamChoice> Result(IReadOnlyList<StreamChoice> items, string message, bool failed = false) =>
+                new(items, failed ? 1 : 0, [new(addon.ManifestUrl, message, failed, DateTime.UtcNow)]);
             try
             {
-                if (!Supports(await Manifest(addon, token), "stream", type, id)) return new ProviderResult<StreamChoice>([], 0);
+                if (!Supports(await Manifest(addon, token), "stream", type, id)) return Result([], "Does not offer streams for this title type or ID.");
                 var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "stream", type, id), token);
-                if (!response.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array) return new ProviderResult<StreamChoice>([], 0);
-                return new ProviderResult<StreamChoice>(streams.EnumerateArray().Select(x => ParseStream(addon.Name, x)).ToArray(), 0);
+                if (!response.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array)
+                    return Result([], "The provider returned an invalid stream response.", true);
+                var items = streams.EnumerateArray().Select(x => ParseStream(addon.Name, x)).ToArray();
+                return Result(items, items.Length == 0 ? "Responded, but returned no streams for the last title checked." : $"Returned {items.Length} stream(s); {items.Count(x => x.UnsupportedReason == null)} supported. Playback has not been verified.");
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch { return new ProviderResult<StreamChoice>([], 1); }
+            catch (Exception error) { return Result([], AddonHealth.Failure(error), true); }
         }));
-        return new(results.SelectMany(x => x.Items).ToArray(), results.Sum(x => x.Failures));
+        return new(results.SelectMany(x => x.Items).ToArray(), results.Sum(x => x.Failures), results.SelectMany(x => x.Diagnostics ?? []).ToArray());
     }
     public async Task<ProviderResult<SubtitleChoice>> Subtitles(string type, string id, IReadOnlyList<InstalledAddon> installed, CancellationToken token)
     {

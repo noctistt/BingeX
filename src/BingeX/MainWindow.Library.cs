@@ -259,10 +259,15 @@ public partial class MainWindow
         {
             var result = await library.Streams(context.Type, context.EpisodeId ?? context.Id, store.Addons(), token);
             token.ThrowIfCancellationRequested();
+            if (result.Diagnostics != null)
+            {
+                foreach (var check in result.Diagnostics) addonChecks[check.ManifestUrl] = check;
+                RefreshAddons();
+            }
             RenderSourceChoices(result.Items, context);
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
             DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
-            if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) could not be reached.";
+            if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) failed. See Add-ons for connection details.";
             DetailRetry.IsVisible = result.Failures > 0;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -368,17 +373,5 @@ public partial class MainWindow
         catch { Status("Could not install this add-on. Use its configured HTTPS manifest URL."); }
         finally { InstallButton.IsEnabled = true; }
     }
-    private void RefreshAddons()
-    {
-        AddonItems.Children.Clear();
-        foreach (var addon in store.Addons())
-        {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-            var browse = new Button { Content = "Browse " + addon.Name };
-            browse.Click += async (_, _) => { Page("Library"); SearchInput.Text = ""; await RefreshCatalogs(addon.Id); };
-            var remove = new Button { Content = "Remove" };
-            remove.Click += (_, _) => { store.RemoveAddon(addon.Id); library.Invalidate(); catalogs = []; RefreshAddons(); Status("Removed " + addon.Name); };
-            row.Children.Add(browse); row.Children.Add(remove); AddonItems.Children.Add(row);
-        }
-    }
+    private void RefreshAddons() => RenderInstalledAddons();
 }

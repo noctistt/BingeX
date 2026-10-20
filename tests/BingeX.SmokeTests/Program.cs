@@ -109,6 +109,7 @@ try
     Console.WriteLine("PASS: remote episode resume, search encoding, provider scope filtering, catalog capabilities, episode ordering, source compatibility, partial failures, cancellation.");
     SourceSelectionChecks.Run();
     LocalLibraryChecks.Run(Path.Combine(directory, "local-library"));
+    await AddonHealthChecks.Run();
     await SubtitleChecks.Run(args.Contains("--live-subtitles"));
     await TorrentChecks.Run(directory, args.Contains("--torrent") ? args.FirstOrDefault(File.Exists) : null);
     if (args.Contains("--live-addon"))
@@ -154,6 +155,23 @@ try
         Assert(player.Play(media), "Native playback must start.");
         for (var attempt = 0; attempt < 40 && (player.Length <= 0 || player.Time < 500); attempt++) await Task.Delay(250);
         Assert(player.IsPlaying && player.Length > 0 && player.Time > 0, "Native decoder must advance and report duration.");
+        var externalIndex = Array.IndexOf(args, "--external-audio");
+        if (externalIndex >= 0)
+        {
+            var external = Path.GetFullPath(args[externalIndex + 1]);
+            var previousTracks = player.AudioTrackDescription.Where(x => x.Id >= 0).Select(x => x.Id).ToHashSet();
+            var beforeAudio = player.Time;
+            Assert(player.AddSlave(MediaSlaveType.Audio, new Uri(external).AbsoluteUri, true), "External audio must load without reopening video.");
+            for (var attempt = 0; attempt < 60 && !player.AudioTrackDescription.Any(x => x.Id >= 0 && !previousTracks.Contains(x.Id)); attempt++) await Task.Delay(100);
+            var added = player.AudioTrackDescription.FirstOrDefault(x => x.Id >= 0 && !previousTracks.Contains(x.Id));
+            Assert(added.Name != null && player.SetAudioTrack(added.Id), "External audio must appear as a selectable track.");
+            await Task.Delay(500);
+            Assert(player.AudioTrack == added.Id && player.IsPlaying && player.Time >= beforeAudio, "Selecting external audio must preserve advancing video playback.");
+            Assert(player.SetAudioDelay(500000) && player.AudioDelay == 500000, "Audio delay must accept a positive offset.");
+            Assert(player.SetAudioDelay(-500000) && player.AudioDelay == -500000, "Audio delay must accept a negative offset.");
+            player.SetAudioDelay(0);
+            Console.WriteLine("PASS: external audio loading, track selection, uninterrupted video, and positive/negative sync adjustment.");
+        }
         if (args.Contains("--multitrack"))
         {
             var audioTracks = player.AudioTrackDescription.Where(x => x.Id >= 0).ToArray();
