@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.20. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.21. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -282,3 +282,6 @@ Audio type starts at All for each new title or episode search. Manual filters ap
 
 ### 0.13.20
 Stream results have combined provider, resolution and audio-language filters with Unknown options, match counts and Reset filters. Every search starts at All. Source cards label direct versus torrent playback while retaining descriptions.
+
+### 0.13.21
+Next-episode playback waits for the previous provider and matches known resolution and audio language. Reused stream identities and conflicting episode labels are rejected. Without a match, sources remain visible for manual selection rather than starting an unrelated alternative. Provider metadata cannot verify the actual video contents.

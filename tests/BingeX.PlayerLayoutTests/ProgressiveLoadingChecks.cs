@@ -124,6 +124,17 @@ internal static class ProgressiveLoadingChecks
             Call("CancelEpisodePreparation_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
             await preparing.WaitAsync(TimeSpan.FromSeconds(5)); handler.ReleaseStreams.TrySetResult();
             Require(!Control<Border>("EpisodePreparingPanel").IsVisible && Get("currentPath")==null && Control<TextBlock>("DetailMessage").Text!.Contains("cancelled"),"Cancel must prevent a late source from starting playback.");
+            var priorSource=Get("activeSource"); var priorSourceContext=Get("activeSourceContext");
+            Set("activeSource",new StreamChoice("Slow fixture","Previous episode","","https://slow.fixture/previous",null,Evidence:new(null,null,1080)));
+            Set("activeSourceContext",Get("currentContext"));
+            handler.ReleaseStreams=new(TaskCreationOptions.RunContinuationsAsynchronously); handler.HoldAllStreams=false;
+            var choosingNext=(Task)Call("StartNextEpisode")!;
+            deadline=DateTime.UtcNow.AddSeconds(5);
+            while(Control<StackPanel>("StreamItems").Children.Count==0 && DateTime.UtcNow<deadline)await Task.Delay(25);
+            Require(!choosingNext.IsCompleted && Get("currentPath")==null,"An early result from another provider cannot win next-episode playback while the preferred provider is pending.");
+            handler.ReleaseStreams.TrySetResult(); await choosingNext.WaitAsync(TimeSpan.FromSeconds(5));
+            Require(Get("currentPath")==null && Control<StackPanel>("StreamItems").Children.Count==2 && Control<TextBlock>("DetailMessage").Text!.Contains("Choose an alternative"),"When preferred quality is unavailable, next-episode alternatives stay visible for manual choice.");
+            Set("activeSource",priorSource); Set("activeSourceContext",priorSourceContext);
             Set("currentContext",priorContext); Set("playingEpisodeTitle",priorTitle);
 
         }

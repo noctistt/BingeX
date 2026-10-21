@@ -60,3 +60,25 @@ public sealed class SourceAttemptPlan(IReadOnlyList<StreamChoice> sources)
     public void Mark(StreamChoice source) => tried.Add(SourceSelection.Key(source));
     public StreamChoice? Next => tried.Count >= 3 ? null : sources.FirstOrDefault(x => x.UnsupportedReason == null && !tried.Contains(SourceSelection.Key(x)));
 }
+
+public static class NextEpisodeSourceSelection
+{
+    public static bool Matches(StreamChoice candidate,StreamChoice previous,EpisodeInfo next,string language)
+    {
+        if(candidate.UnsupportedReason!=null || candidate.Provider!=previous.Provider || SourceSelection.Key(candidate)==SourceSelection.Key(previous))return false;
+        if(previous.Evidence?.Resolution is {} resolution && candidate.Evidence?.Resolution!=resolution)return false;
+        var before=SourceAudioInfo.Parse(previous); var after=SourceAudioInfo.Parse(candidate);
+        if(language.Length==0 && before.Languages.Count==1)language=before.Languages[0];
+        if(language.Length>0 && !after.Languages.Contains(language))return false;
+        if(language.Length==0 && before.Kind!=SourceAudioKind.Unknown && after.Kind!=before.Kind)return false;
+        var text=candidate.Name+" "+candidate.Description;
+        var numbered=Regex.Matches(text,@"\bS(?<s>\d{1,3})[ ._-]*E(?<e>\d{1,4})\b",RegexOptions.IgnoreCase);
+        foreach(Match match in numbered)
+            if(!next.NumberingKnown || int.Parse(match.Groups["s"].Value)!=next.Season || int.Parse(match.Groups["e"].Value)!=next.Number)return false;
+        foreach(Match match in Regex.Matches(text,@"\bEpisode[ ._-]+(?<e>\d{1,4})\b",RegexOptions.IgnoreCase))
+            if(!next.NumberingKnown || int.Parse(match.Groups["e"].Value)!=next.Number)return false;
+        return true;
+    }
+    public static StreamChoice? Choose(IEnumerable<StreamChoice> sources,StreamChoice? previous,EpisodeInfo next,string language)=>
+        previous==null ? null : sources.FirstOrDefault(x=>Matches(x,previous,next,language));
+}

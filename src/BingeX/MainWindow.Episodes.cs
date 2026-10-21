@@ -6,6 +6,7 @@ public partial class MainWindow
 {
     private TitleInfo? playingEpisodeTitle;
     private bool nextEpisodeBusy;
+    private string nextEpisodePreferredProvider="";
     private bool episodePreparationCancelled;
     private DateTime? nextEpisodeAt;
     private TitleInfo? cachedEpisodeTitle;
@@ -82,6 +83,9 @@ public partial class MainWindow
         nextEpisodeBusy = true;
         episodePreparationCancelled=false;
         var generation = mediaGeneration;
+        var previous=activeSourceContext?.HistoryKey==currentContext?.HistoryKey ? activeSource : null;
+        var language=currentContext==null ? "" : store.ShowAudioPreference(currentContext).Language;
+        nextEpisodePreferredProvider=previous?.Provider ?? "";
         try
         {
             SaveProgress();
@@ -94,19 +98,31 @@ public partial class MainWindow
             SetSelectedEpisode(next);
             EpisodePreparingTitle.Text=selectedContext!.DisplayName;
             EpisodePreparingPanel.IsVisible=true;
+            StreamChoice? MatchingSource()=>NextEpisodeSourceSelection.Choose(PlaybackSources,previous,next,language);
+            void StartMatching(StreamChoice source,MediaContext context)
+            {
+                BeginSource(source,context);
+                // Retries for this transition stay with the same provider, quality and audio.
+                sourcePlan=new(PlaybackSources.Where(x=>previous!=null && NextEpisodeSourceSelection.Matches(x,previous,next,language)).ToArray());
+                sourcePlan.Mark(source);
+            }
             await FindStreamsProgressive(context =>
             {
                 if(episodePreparationCancelled || localClosing || !onlineEnabled || generation!=mediaGeneration || activePage!="Details" || context.Id!=title.Id || context.EpisodeId!=next.Id) return;
-                var first=PlaybackSources.FirstOrDefault(x=>x.UnsupportedReason==null);
-                if(first!=null) BeginSource(first,context);
+                var first=MatchingSource();
+                if(first!=null) StartMatching(first,context);
             });
             if (episodePreparationCancelled || localClosing || !onlineEnabled || generation != mediaGeneration || activePage != "Details" || selectedContext?.Id != title.Id || selectedContext.EpisodeId != next.Id) return;
             var source = availableSourceContext?.HistoryKey == selectedContext.HistoryKey
-                ? PlaybackSources.FirstOrDefault(x=>x.UnsupportedReason == null) : null;
-            if (source != null) BeginSource(source,selectedContext);
-            else Status("No playable source found for the next episode. Choose or retry a source on this page.");
+                ? MatchingSource() : null;
+            if (source != null) StartMatching(source,selectedContext);
+            else
+            {
+                DetailMessage.Text="No matching next-episode source was found from your previous provider with the same known resolution and audio. Choose an alternative below or retry streams.";
+                Status("Next episode is ready for source selection. No alternative was started automatically.");
+            }
         }
         catch { if (!localClosing) Status("Could not open the next episode. Choose an episode or retry its streams."); }
-        finally { EpisodePreparingPanel.IsVisible=false; nextEpisodeBusy = false; UpdateEpisodeActions(); }
+        finally { nextEpisodePreferredProvider=""; EpisodePreparingPanel.IsVisible=false; nextEpisodeBusy = false; UpdateEpisodeActions(); }
     }
 }

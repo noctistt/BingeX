@@ -23,6 +23,16 @@ internal static class SourceSelectionChecks
         Check(ranked.Count == 3 && ranked[0] == direct && ranked[1] == parsed, "Ranking should favor supported direct links and manageable seeded videos, and deduplicate identical torrent files.");
         health[SourceSelection.Key(direct)] = new(true, 0);
         Check(SourceSelection.Rank(ranked, health)[0] == parsed, "An observed failure must lower the same source in this session.");
+        var previous=new StreamChoice("Preferred","English Dubbed S01E01","","https://fixture/one",null,Evidence:new(null,null,1080));
+        var nextEpisode=new EpisodeInfo("two","Second episode",1,2,"");
+        var matching=previous with{Name="English Dubbed S01E02",Url="https://fixture/two"};
+        var alternatives=new[]{matching with{Provider="Other"},matching with{Evidence=new(null,null,720)},matching with{Name="Hindi Dubbed S01E02"},matching with{Name="English Dubbed S01E01"},matching with{Url=previous.Url},matching};
+        Check(NextEpisodeSourceSelection.Choose(alternatives,previous,nextEpisode,"english")==matching,"Next episode must wait for the same provider, resolution and language, rejecting wrong episodes and reused media.");
+        Check(NextEpisodeSourceSelection.Choose(alternatives[..^1],previous,nextEpisode,"english")==null,"No matching next episode must require manual selection instead of switching provider or language.");
+        Check(!NextEpisodeSourceSelection.Matches(matching with{Name="Unlabelled S01E02"},previous,nextEpisode,"english"),"Unknown audio must not silently replace a known preferred language.");
+        Check(!NextEpisodeSourceSelection.Matches(matching,previous,nextEpisode with{NumberingKnown=false},"english"),"Unverified numbering must not be treated as proof of an episode match.");
+        var torrentPrevious=previous with{Torrent=new(new string('a',40),0,[],[])};
+        Check(NextEpisodeSourceSelection.Matches(matching with{Torrent=torrentPrevious.Torrent! with{FileIndex=1}},torrentPrevious,nextEpisode,"english"),"Distinct episode files within one torrent pack remain eligible.");
         var plan = new SourceAttemptPlan(ranked);
         plan.Mark(direct); Check(plan.Next == parsed, "A failed source must not be selected again.");
         plan.Mark(parsed); Check(plan.Next == large, "Fallback must advance to another distinct supported source.");

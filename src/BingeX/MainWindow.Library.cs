@@ -282,7 +282,7 @@ public partial class MainWindow
             var ids = selectedTitle?.Id == context.Id && context.EpisodeId != null
                 ? EpisodeNavigation.Variants(selectedTitle,context.EpisodeId).Select(x=>x.Id).ToArray() : [];
             var all=new List<StreamChoice>(); var failures=0;
-            await foreach(var update in ProgressiveProviders.Load<StreamChoice>(StreamProviderScope.Select(ConnectedAddons(),context,preferences.SearchAllStreamProviders),
+            await foreach(var update in ProgressiveProviders.Load<StreamChoice>(StreamProviderScope.Select(ConnectedAddons(),context,preferences.SearchAllStreamProviders).OrderByDescending(x=>nextEpisodeBusy && x.Name==nextEpisodePreferredProvider).ToArray(),
                 (addon,ct)=>ids.Length>0 ? library.EpisodeStreams(context.Type,ids,[addon],ct) : library.Streams(context.Type,context.EpisodeId ?? context.Id,[addon],ct),token))
             {
                 token.ThrowIfCancellationRequested();
