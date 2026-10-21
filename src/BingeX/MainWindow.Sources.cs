@@ -44,7 +44,7 @@ public partial class MainWindow
         activeSource = choice; activeSourceContext = context;
         sourceStarted = false; sourceLastPercent = 0; sourceLastProgress = DateTime.UtcNow;
         if (choice.Torrent != null) StartTorrent(choice, context);
-        else Play(choice.Url, context.DisplayName, context, requestHeaders: choice.RequestHeaders, streamAudio: choice.AudioUrl);
+        else Play(choice.Url, context.DisplayName, context, requestHeaders: choice.RequestHeaders, streamAudio: choice.AudioUrl, streamAudioOptions: choice.AudioOptions);
     }
     private void SuggestedSource_Click(object? sender, RoutedEventArgs e)
     {

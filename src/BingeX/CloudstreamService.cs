@@ -179,6 +179,7 @@ public sealed class CloudstreamService : IAsyncDisposable
             {
                 name = Text(link, "name"), url = Text(link, "url"), description = "Cloudstream · " + identity.Provider,
                 audioUrl = link.TryGetProperty("audioTracks", out var audio) && audio.ValueKind == JsonValueKind.Array ? audio.EnumerateArray().Where(x => !x.TryGetProperty("headers", out var h) || h.ValueKind != JsonValueKind.Object || !h.EnumerateObject().Any()).Select(x => Text(x, "url")).FirstOrDefault() ?? "" : "",
+                audioTracks = link.TryGetProperty("audioTracks", out var tracks) ? tracks : Json(Array.Empty<object>()),
                 behaviorHints = new { proxyHeaders = new { request = Headers(link) } },
                 drm = link.TryGetProperty("drm", out _)
             }).ToArray() });

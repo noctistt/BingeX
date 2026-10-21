@@ -7,6 +7,7 @@ static void Assert(bool condition, string message) { if (!condition) throw new E
 var directory = Path.Combine(Path.GetTempPath(), "BingeX-test-" + Guid.NewGuid());
 try
 {
+    StreamAudioChecks.Run();
     // Keep the mutex-owning thread fixed while the client uses asynchronous I/O.
     using (var first = new SingleInstance(directory))
     using (var second = new SingleInstance(directory))

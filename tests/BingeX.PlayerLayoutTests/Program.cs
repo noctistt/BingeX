@@ -125,6 +125,7 @@ internal static class Program
         switch (phase)
         {
             case 0:
+                StreamAudioChecks.Run(window, Log);
                 discoverChecks = DiscoverChecks.Run(window, Log); phase = 30; break;
             case 30:
                 if (discoverChecks?.IsCompleted != true) return;

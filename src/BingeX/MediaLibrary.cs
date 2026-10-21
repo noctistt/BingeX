@@ -15,7 +15,7 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
     public string HistoryKey => $"stremio:{Type}:{EpisodeId ?? Id}";
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
-public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null, IReadOnlyDictionary<string, string>? RequestHeaders = null, string? AudioUrl = null);
+public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null, IReadOnlyDictionary<string, string>? RequestHeaders = null, string? AudioUrl = null, IReadOnlyList<StreamAudioOption>? AudioOptions = null);
 public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures, IReadOnlyList<AddonCheck>? Diagnostics = null);
 
@@ -176,8 +176,10 @@ public sealed class MediaLibrary(AddonClient client)
         var evidence = SourceSelection.Read(stream, name, description);
         if (torrent != null && evidence.Bytes > TorrentPlayback.CacheLimit) reason = "Above the 32 GB torrent cache limit";
         var audioUrl = cloudstream ? AddonClient.Text(stream, "audioUrl") : "";
+        var audioOptions = cloudstream && stream.TryGetProperty("audioTracks", out var audioTracks) ? StreamAudioOption.Parse(audioTracks) : [];
+        if (audioOptions.Count > 0) audioUrl = audioOptions[0].Url;
         if (audioUrl.Length > 0 && (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var audio) || audio.Scheme is not ("http" or "https"))) reason = "Unsupported external audio address";
-        return new(provider, name, description, url, reason, torrent, evidence, headers, audioUrl.Length == 0 ? null : audioUrl);
+        return new(provider, name, description, url, reason, torrent, evidence, headers, audioUrl.Length == 0 ? null : audioUrl, audioOptions);
     }
     public static TitleInfo ParseTitle(JsonElement meta, string addonId, string fallbackType)
     {

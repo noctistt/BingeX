@@ -9,6 +9,64 @@ public partial class MainWindow
 {
     private long audioDelayMs;
     private string? externalAudioPath;
+    private IReadOnlyList<StreamAudioOption> currentStreamAudioOptions = [];
+    private bool settingStreamAudio;
+    private string? SetupStreamAudio(IReadOnlyList<StreamAudioOption>? options, string? fallback)
+    {
+        currentStreamAudioOptions = options ?? [];
+        var saved = pendingAudioSelection;
+        var selected = currentStreamAudioOptions.FirstOrDefault(x => saved?.Id == -2 && x.Label == saved.Name)
+            ?? currentStreamAudioOptions.FirstOrDefault();
+        if (saved?.Id == -2) pendingAudioSelection = null;
+        settingStreamAudio = true;
+        try
+        {
+            StreamAudioSection.IsVisible = currentStreamAudioOptions.Count > 0;
+            StreamAudioPicker.ItemsSource = currentStreamAudioOptions;
+            StreamAudioPicker.SelectedItem = selected;
+        }
+        finally { settingStreamAudio = false; }
+        return selected?.Url ?? fallback;
+    }
+    private async void StreamAudioChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (settingStreamAudio || NativePlaybackBusy || player == null || StreamAudioPicker.SelectedItem is not StreamAudioOption option) return;
+        var generation = mediaGeneration;
+        StreamAudioPicker.IsEnabled = false;
+        PlayerNotice("Loading audio: " + option.Label + "…");
+        var success = false;
+        try
+        {
+            await QueuePlayerCommand(native => success = native.AddSlave(MediaSlaveType.Audio, option.Url, true));
+            if (generation != mediaGeneration) return;
+            if (success)
+            {
+                currentStreamAudio = option.Url;
+                externalAudioPath = null;
+                pendingAudioSelection = null; audioRestoreUntil = null; trackSignature = "";
+                if (currentHistoryKey != null) store.SaveAudioSelection(currentHistoryKey, new(-2, option.Label));
+                PlayerNotice("Audio: " + option.Label);
+            }
+            else
+            {
+                settingStreamAudio = true;
+                try { StreamAudioPicker.SelectedItem = currentStreamAudioOptions.FirstOrDefault(x => x.Url == currentStreamAudio); }
+                finally { settingStreamAudio = false; }
+                PlayerNotice("This audio language could not be loaded. Try another track.");
+            }
+        }
+        catch
+        {
+            if (generation == mediaGeneration)
+            {
+                settingStreamAudio = true;
+                try { StreamAudioPicker.SelectedItem = currentStreamAudioOptions.FirstOrDefault(x => x.Url == currentStreamAudio); }
+                finally { settingStreamAudio = false; }
+                PlayerNotice("This audio language could not be loaded. Try another track.");
+            }
+        }
+        finally { StreamAudioPicker.IsEnabled = true; }
+    }
     private async void LoadAudio_Click(object? sender, RoutedEventArgs e)
     {
         if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before adding audio."); return; }

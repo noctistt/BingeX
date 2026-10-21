@@ -153,7 +153,7 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null)
     {
         if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
@@ -186,6 +186,7 @@ public partial class MainWindow : Window
             resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
             ResetMediaControls(preserve);
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
+            streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
             thumbnailAttempted = false;
             currentPath = path; currentTitle = title;
             currentRequestHeaders = requestHeaders;
@@ -360,7 +361,7 @@ public partial class MainWindow : Window
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
-            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio);
+            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions);
         }
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();

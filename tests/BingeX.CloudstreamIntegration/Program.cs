@@ -23,6 +23,7 @@ var streams = await library.Streams(title.Type, title.Id, installed, Cancellatio
 var playable = streams.Items.Where(x => x.UnsupportedReason == null).ToArray();
 if (playable.Length == 0) throw new Exception("No playable streams through MediaLibrary.");
 Console.WriteLine($"PASS: generic title and stream mapping returned {playable.Length} supported streams.");
+Console.WriteLine($"Stream audio languages: {string.Join(", ", playable[0].AudioOptions?.Select(x => x.Label) ?? [])}");
 Core.Initialize();
 using var vlc = new LibVLC("--quiet", "--vout=dummy", "--aout=dummy", "--no-video-title-show");
 var played = false;
@@ -43,7 +44,22 @@ foreach (var choice in playable.Take(4))
     {
         await Task.Delay(250);
         if (player.Time > 3000 && media.Statistics.DecodedVideo > 0 && media.Statistics.DecodedAudio > 0)
-        { played = true; Console.WriteLine("PASS: decoded video AND audio beyond three seconds."); break; }
+        {
+            played = true; Console.WriteLine("PASS: decoded video AND audio beyond three seconds.");
+            if (choice.AudioOptions is { Count: > 1 } options)
+            {
+                var alternative = options.FirstOrDefault(x => x.Language == "hi") ?? options[1];
+                var before = player.Time;
+                var oldTrack = player.AudioTrack;
+                var decoded = media.Statistics.DecodedAudio;
+                if (!player.AddSlave(MediaSlaveType.Audio, alternative.Url, true)) throw new Exception("Could not switch stream audio.");
+                var switchedUntil = DateTime.UtcNow.AddSeconds(20);
+                while (DateTime.UtcNow < switchedUntil && (player.Time <= before + 1500 || media.Statistics.DecodedAudio <= decoded || player.AudioTrack == oldTrack)) await Task.Delay(250);
+                if (player.Time <= before + 1500 || media.Statistics.DecodedAudio <= decoded || player.AudioTrack == oldTrack) throw new Exception("Audio switch did not select another track and continue decoding.");
+                Console.WriteLine("PASS: changed to " + alternative.Label + " while video continued.");
+            }
+            break;
+        }
     }
     player.Stop();
     Console.WriteLine($"Attempt finished; combined decoding={played}.");

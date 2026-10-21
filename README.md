@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -198,3 +198,8 @@ A centered, non-blocking waiting indicator appears in the full player and mini-p
 Open Add-ons → Cloudstream · Experimental, download the optional bridge, then enter an HTTPS repo.json URL or GitHub repository page and choose Read repository. Install a trusted extension, then use Browse providers or select it under Home → Discover. Extensions are loaded dynamically; none are hardcoded or bundled. Stremio add-ons remain a separate installation flow.
 
 The first bridge download includes a checksum-pinned external SkyStream engine and Temurin Java, stored under the BingeX profile. No system Java installation is needed. Bridge components and extensions are SHA-256 checked. Sources, license links and implementation limits are documented in [docs/cloudstream-bridge.md](docs/cloudstream-bridge.md). Browser verification, extension settings, DRM, arbitrary request headers and automatic updates are not supported yet. Some providers may offer search even if their home feed is unavailable. Install only extensions you trust: they run code with your user permissions.
+
+
+### Stream audio languages (0.13.1)
+
+Cloudstream streams with separate audio tracks now retain their language alternatives. Open Player settings → Audio → Stream audio language. The original audio is preferred when marked by the provider, repeated encodings of the same language are collapsed, and a selected language is remembered for that video. Languages load on demand through the existing player; no provider is hardcoded. Tracks needing custom headers remain unsupported.
