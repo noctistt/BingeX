@@ -47,6 +47,7 @@ internal static class DiscoverChecks
         await Task.Delay(400);
         var card = Control<WrapPanel>("PosterGrid").Children.OfType<Button>().First();
         Require(((StackPanel)card.Content!).Children.OfType<TextBlock>().First().Text == "Catalog Two result", "A cancelled provider response must not overwrite the current tab.");
+        await EpisodeLayoutChecks.Run(window, log);
         log("PASS: Discover provider/type grouping, catalog filtering, scoped search, search-only categories and rapid-switch cancellation");
         if (Environment.GetEnvironmentVariable("BINGEX_DISCOVER_VISUAL_HOLD") == "1")
         {

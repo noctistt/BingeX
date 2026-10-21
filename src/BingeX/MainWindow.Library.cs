@@ -178,7 +178,7 @@ public partial class MainWindow
         selectedContext = ContextFor(title);
         StreamItems.Children.Clear(); StreamHeading.IsVisible = false; DetailRetry.IsVisible = false;
         RenderTitle(title, token);
-        EpisodeItems.Children.Clear(); EpisodeSection.IsVisible = false;
+        EpisodeItems.Children.Clear(); SetEpisodeLayout(false);
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Loading title details…"; DetailMessage.Text = "";
         MovieSourcesButton.IsEnabled = false;
         try
@@ -189,9 +189,9 @@ public partial class MainWindow
             selectedContext = ContextFor(full);
             RenderTitle(full, token);
             DetailBusy.IsVisible = false;
-            if (full.Type == "series")
+            if (full.Type == "series" || full.Episodes.Count > 0)
             {
-                EpisodeSection.IsVisible = true;
+                SetEpisodeLayout(true);
                 SeasonPicker.ItemsSource = full.Episodes.Select(x => x.Season).Distinct().Select(x => new SeasonOption(x)).ToArray();
                 var season = full.Episodes.FirstOrDefault(x => x.Id == resumeEpisodeId)?.Season ?? full.Episodes.FirstOrDefault()?.Season;
                 SeasonPicker.SelectedItem = (SeasonPicker.ItemsSource as SeasonOption[])?.FirstOrDefault(x => x.Number == season);
@@ -214,7 +214,14 @@ public partial class MainWindow
         DetailDescription.Text = title.Description.Length > 0 ? title.Description : "No synopsis provided by this catalog.";
         DetailPoster.Source = null;
         _ = artwork.Fill(DetailPoster, title.Poster, token);
-        MovieSourcesButton.IsVisible = title.Type != "series";
+        MovieSourcesButton.IsVisible = title.Type != "series" && title.Episodes.Count == 0;
+    }
+    private void SetEpisodeLayout(bool visible)
+    {
+        EpisodeSection.IsVisible = visible;
+        TitleContentGrid.ColumnDefinitions[0].Width = visible ? new GridLength(2, GridUnitType.Star) : new GridLength(0);
+        EpisodeScroller.Offset = default;
+        StreamScroller.Offset = default;
     }
     private record SeasonOption(int Number) { public override string ToString() => Number == 0 ? "Specials" : "Season " + Number; }
     private void SeasonChanged(object? sender, SelectionChangedEventArgs e)
@@ -222,6 +229,8 @@ public partial class MainWindow
         streamWork.Cancel();
         StreamItems.Children.Clear(); StreamHeading.IsVisible = false; DetailRetry.IsVisible = false;
         EpisodeItems.Children.Clear();
+        EpisodeScroller.Offset = default;
+        StreamScroller.Offset = default;
         if (selectedTitle == null || SeasonPicker.SelectedItem is not SeasonOption season) return;
         selectedContext = ContextFor(selectedTitle);
         DetailBusy.IsVisible = false;
@@ -229,9 +238,9 @@ public partial class MainWindow
         foreach (var episode in selectedTitle.Episodes.Where(x => x.Season == season.Number))
         {
             var text = new StackPanel { Spacing = 5 };
-            text.Children.Add(new TextBlock { Text = $"E{episode.Number:00}  {episode.Name}", FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap, MaxLines = 2 });
-            if (episode.Overview.Length > 0) text.Children.Add(new TextBlock { Text = episode.Overview, FontSize = 12, Foreground = Brush.Parse("#ABA6BA"), TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.WordEllipsis });
-            var button = new Button { Content = text, Width = 270, MinHeight = 82, Margin = new Thickness(0, 0, 12, 12), HorizontalContentAlignment = HorizontalAlignment.Left };
+            text.Children.Add(new TextBlock { Text = $"E{episode.Number:00}  {episode.Name}", FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+            if (episode.Overview.Length > 0) text.Children.Add(new TextBlock { Text = episode.Overview, FontSize = 12, Foreground = Brush.Parse("#ABA6BA"), TextWrapping = TextWrapping.Wrap });
+            var button = new Button { Tag = episode.Id, Content = text, Width = 240, MinHeight = 82, Margin = new Thickness(0, 0, 12, 12), HorizontalContentAlignment = HorizontalAlignment.Left };
             button.Click += async (_, _) => await SelectEpisode(episode);
             EpisodeItems.Children.Add(button);
         }
@@ -239,6 +248,7 @@ public partial class MainWindow
     private async Task SelectEpisode(EpisodeInfo episode)
     {
         if (selectedTitle == null) return;
+        foreach (var button in EpisodeItems.Children.OfType<Button>()) button.Classes.Set("primary", button.Tag as string == episode.Id);
         selectedContext = ContextFor(selectedTitle) with { EpisodeId = episode.Id, EpisodeName = $"S{episode.Season:00} E{episode.Number:00} · {episode.Name}" };
         await FindStreams();
     }
@@ -250,6 +260,7 @@ public partial class MainWindow
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
         SuggestedSource.IsVisible = false;
+        StreamScroller.Offset = default;
         StreamItems.Children.Clear(); StreamHeading.IsVisible = true;
         StreamHeading.Text = context.EpisodeName ?? "Available streams";
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Checking your stream providers…"; DetailMessage.Text = ""; DetailRetry.IsVisible = false;
@@ -284,8 +295,8 @@ public partial class MainWindow
             var column = new StackPanel { Spacing = 5 };
             column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             var summary = SourceSelection.Summary(stream);
-            if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
-            if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, MaxLines = 4, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE"), TextTrimming = TextTrimming.WordEllipsis });
+            if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
+            if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE") });
             column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
             var button = new Button { Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
             button.Click += (_, _) => BeginSource(stream, context);
