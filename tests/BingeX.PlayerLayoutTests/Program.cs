@@ -21,6 +21,7 @@ internal static class Program
     private static long previousTime;
     private static Task? blockedNative;
     private static Task? discoverChecks;
+    private static Task? extensionSubtitleChecks;
     private static int savedAudio = -1;
     private static IReadOnlyDictionary<string, string>? FixtureHeaders => Environment.GetEnvironmentVariable("BINGEX_LAYOUT_HEADER_FIXTURE") == "1"
         ? new Dictionary<string,string> { ["Origin"] = "https://provider.example", ["Cookie"] = "session=fixture" } : null;
@@ -175,6 +176,10 @@ internal static class Program
             case 1:
                 if (!Playing() || Control<Border>("PlayerLoading").IsVisible) return;
                 BufferingChecks.Run(window, Log);
+                extensionSubtitleChecks = ExtensionSubtitleChecks.Run(window,Log); phase = 40; break;
+            case 40:
+                if (extensionSubtitleChecks?.IsCompleted != true) return;
+                extensionSubtitleChecks.GetAwaiter().GetResult();
                 Geometry(false); previousTime = Player.Time; deadline = DateTime.UtcNow.AddSeconds(4); phase = 2; break;
             case 2:
                 if (DateTime.UtcNow < deadline) return;

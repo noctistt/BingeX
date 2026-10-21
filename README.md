@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -208,3 +208,10 @@ Cloudstream streams with separate audio tracks now retain their language alterna
 ### Provider playback headers (0.13.2)
 
 Cloudstream video sources can now carry additional valid HTTP headers through a private loopback relay. HLS master and media playlists, segment URLs, encryption-key URIs, relative paths and redirects are handled; byte ranges and HEAD remain available. Cookies and Authorization are restricted to the original upstream origin. The relay is cancelled before stopping or changing the player. It runs locally and stores no stream URLs or header values in logs. DRM, browser verification and DASH manifest rewriting remain outside this feature.
+
+
+### Extension subtitles and shared title IDs (0.13.3)
+
+Subtitles returned with a Cloudstream stream appear in the normal CC track picker as Extension entries. Selecting one downloads and parses the caption with its supplied headers; video and episode changes clear the list. SRT/VTT and the existing subtitle controls are used. Providers that return no subtitle files cannot supply these entries.
+
+Cloudstream metadata IMDb IDs and explicit season/episode numbers now let Stremio stream and subtitle add-ons query the same title while the original extension remains available. If no shared ID is supplied, Match title for other add-ons offers editable catalog search and explicit title selection. Confirmed matches persist locally. Unknown episode numbering is never guessed, and unrelated Cloudstream extensions are not automatically searched for alternative site-specific IDs.

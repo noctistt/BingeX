@@ -16,6 +16,7 @@ public partial class MainWindow
     private bool onlineSubtitleView;
     private bool subtitleQueryInitialized;
     private IReadOnlyList<SubtitleChoice> onlineSubtitleChoices = [];
+    private IReadOnlyList<SubtitleChoice> currentStreamSubtitles = [];
     private record SubtitleLanguage(string Code, string Name) { public override string ToString() => Name; }
 
     private void CancelOnlineSubtitles()
@@ -220,7 +221,7 @@ public partial class MainWindow
         var generation = mediaGeneration;
         try
         {
-            var document = await subtitleDownloads.Download(choice.Url, token);
+            var document = await subtitleDownloads.Download(choice.Url, token, choice.Headers);
             if (!SubtitleRequestCurrent(token, generation) || player == null) return;
             textSubtitles = document;
             textSubtitleName = OnlineSubtitles.LanguageName(choice.Language) + " · " + choice.Provider + " #" + choice.Id;

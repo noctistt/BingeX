@@ -11,7 +11,7 @@ https://github.com/akashdh11/skystream/tree/f5523ae07d729b579be30976df8783a0b98c
 
 No upstream engine binaries or code are copied into BingeX. The optional download fetches pinned engine JARs and a pinned Temurin 21 runtime, verifies SHA-256 for each, and records the upstream GPL-3.0 source/license links. Original patch source under `tools/cloudstream-patch` preserves the generic separate audio-track contract. Only the small original patch JAR and download lockfiles are embedded in BingeX.
 
-Installed extensions live separately from Stremio's database entries. Virtual provider manifests and scoped title/episode IDs connect them to the existing MediaLibrary without a localhost HTTP listener. Helper errors, cancellations and unsupported browser/UI events stop the helper; the next request starts a fresh one. External audio attaches through LibVLC's audio-slave support. Video request headers are forwarded through a private loopback relay, including HLS playlist/segment/key rewriting and byte ranges; cookie and authorization credentials are scoped to the initial origin. Invalid headers and DRM remain unsupported. Subtitle links returned during stream resolution are exposed to the existing subtitle panel when they need no custom headers.
+Installed extensions live separately from Stremio's database entries. Virtual provider manifests and scoped title/episode IDs connect them to the existing MediaLibrary without a localhost HTTP listener. Helper errors, cancellations and unsupported browser/UI events stop the helper; the next request starts a fresh one. External audio attaches through LibVLC's audio-slave support. Video request headers are forwarded through a private loopback relay, including HLS playlist/segment/key rewriting and byte ranges; cookie and authorization credentials are scoped to the initial origin. Invalid headers and DRM remain unsupported. Subtitle links returned during stream resolution appear in the normal CC picker, preserving valid request headers and the bounded in-memory SRT/VTT download path.
 
 ## Reproduce
 
@@ -55,3 +55,10 @@ The visible repository UI was checked with a fresh isolated profile and listed a
 ## Header relay verification (0.13.2)
 
 HTTP fixture tests require Origin and Cookie on nested HLS manifests, keys and segments; verify ranges, HEAD, unknown-route rejection, header-injection rejection and cross-origin redirects without credential forwarding. Native coverage uses the real PlayerLayoutTests window against a separate threaded header-protected HLS fixture (`BINGEX_LAYOUT_HEADER_FIXTURE=1`), including repeated source changes, mini-player, seeking, replay, fallback and shutdown. An exploratory dummy-video-output test crashed in native cleanup; it is not used as the native regression path. The real-window flow is the relevant production check. No claim is made that a particular third-party provider is currently reachable or that its browser challenges are supported.
+
+
+## Shared IDs and captions (0.13.3)
+
+The adapter preserves explicit IMDb IDs and verified season/episode numbers. MediaLibrary routes extension requests with their original IDs and Stremio requests with shared IMDb IDs; unmatched extension IDs are not sent to unrelated Stremio add-ons. When no shared ID exists, an editable catalog search requires explicit selection before linking. Confirmed mappings persist in title-links.json. Unknown episode numbering remains unmapped. Other Cloudstream extensions still require their own site-specific IDs and are not automatically searched.
+
+Fixture tests verify source merging, subtitle add-on episode IDs, mapping persistence and unknown-ID isolation. Real-window regression verifies extension captions appear in CC and selection loads/activates a header-protected subtitle. The bridge does not synthesize captions when an extension returns none.

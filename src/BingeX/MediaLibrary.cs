@@ -7,7 +7,7 @@ public record CatalogInfo(InstalledAddon Addon, string Id, string Type, string N
 {
     public override string ToString() => $"{Name} · {Type} · {Addon.Name}";
 }
-public record EpisodeInfo(string Id, string Name, int Season, int Number, string Overview);
+public record EpisodeInfo(string Id, string Name, int Season, int Number, string Overview, bool NumberingKnown = true);
 public record TitleInfo(string Id, string Type, string Name, string Poster, string Background, string Description,
     string Release, string Rating, string Genres, string AddonId, IReadOnlyList<EpisodeInfo> Episodes, int? DurationSeconds = null);
 public record MediaContext(string Id, string Type, string Name, string Poster, string AddonId, string? EpisodeId = null, string? EpisodeName = null, int? DurationSeconds = null)
@@ -15,11 +15,11 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
     public string HistoryKey => $"stremio:{Type}:{EpisodeId ?? Id}";
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
-public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null, IReadOnlyDictionary<string, string>? RequestHeaders = null, string? AudioUrl = null, IReadOnlyList<StreamAudioOption>? AudioOptions = null);
-public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
+public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null, IReadOnlyDictionary<string, string>? RequestHeaders = null, string? AudioUrl = null, IReadOnlyList<StreamAudioOption>? AudioOptions = null, IReadOnlyList<SubtitleChoice>? Subtitles = null);
+public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url, IReadOnlyDictionary<string, string>? Headers = null);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures, IReadOnlyList<AddonCheck>? Diagnostics = null);
 
-public sealed class MediaLibrary(AddonClient client)
+public sealed partial class MediaLibrary(AddonClient client, string? sharedIdFile = null)
 {
     private readonly ConcurrentDictionary<string, JsonElement> manifests = new();
     private readonly SemaphoreSlim requests = new(5);
@@ -103,7 +103,10 @@ public sealed class MediaLibrary(AddonClient client)
                 if (!Supports(await Manifest(addon, token), "meta", preview.Type, preview.Id)) continue;
                 var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "meta", preview.Type, preview.Id), token);
                 if (response.TryGetProperty("meta", out var meta) && meta.ValueKind == JsonValueKind.Object)
+                {
+                    RegisterSharedIds(meta, AddonClient.Text(meta,"type",preview.Type));
                     return ParseTitle(meta, addon.Id, preview.Type) with { Poster = AddonClient.Text(meta, "poster", preview.Poster) };
+                }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch { /* Try the next compatible metadata provider. */ }
@@ -118,8 +121,9 @@ public sealed class MediaLibrary(AddonClient client)
                 new(items, failed ? 1 : 0, [new(addon.ManifestUrl, message, failed, DateTime.UtcNow)]);
             try
             {
-                if (!Supports(await Manifest(addon, token), "stream", type, id)) return Result([], "Does not offer streams for this title type or ID.");
-                var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "stream", type, id), token);
+                var queryId = ProviderId(addon, type, id);
+                if (queryId == null || !Supports(await Manifest(addon, token), "stream", type, queryId)) return Result([], "Does not offer streams for this title type or shared ID.");
+                var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "stream", type, queryId), token);
                 if (!response.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array)
                     return Result([], "The provider returned an invalid stream response.", true);
                 var items = streams.EnumerateArray().Select(x => ParseStream(addon.Name, x, addon.ManifestUrl.StartsWith("cloudstream://"))).ToArray();
@@ -136,11 +140,12 @@ public sealed class MediaLibrary(AddonClient client)
         {
             try
             {
-                if (!Supports(await Manifest(addon, token), "subtitles", type, id)) return new ProviderResult<SubtitleChoice>([], 0);
-                var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "subtitles", type, id), token);
+                var queryId = ProviderId(addon, type, id);
+                if (queryId == null || !Supports(await Manifest(addon, token), "subtitles", type, queryId)) return new ProviderResult<SubtitleChoice>([], 0);
+                var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "subtitles", type, queryId), token);
                 if (!response.TryGetProperty("subtitles", out var items) || items.ValueKind != JsonValueKind.Array) return new ProviderResult<SubtitleChoice>([], 0);
                 var choices = items.EnumerateArray().Take(400).Select(x => new SubtitleChoice(addon.Name,
-                    AddonClient.Text(x, "id"), AddonClient.Text(x, "lang"), AddonClient.Text(x, "label"), AddonClient.Text(x, "url")))
+                    AddonClient.Text(x, "id"), AddonClient.Text(x, "lang"), AddonClient.Text(x, "label"), AddonClient.Text(x, "url"), cloudHeaders(x)))
                     .Where(x => x.Id.Length > 0 && x.Language.Length > 0 && OnlineSubtitles.IsDownloadUrl(x.Url)).ToArray();
                 return new ProviderResult<SubtitleChoice>(choices, 0);
             }
@@ -149,6 +154,8 @@ public sealed class MediaLibrary(AddonClient client)
         }));
         return new(results.SelectMany(x => x.Items).DistinctBy(x => (x.Language, x.Url)).Take(800).ToArray(), results.Sum(x => x.Failures));
     }
+    private static IReadOnlyDictionary<string,string>? cloudHeaders(JsonElement item) => item.TryGetProperty("headers", out var headers) && headers.ValueKind == JsonValueKind.Object
+        ? headers.EnumerateObject().Where(x => x.Value.ValueKind == JsonValueKind.String).ToDictionary(x => x.Name, x => x.Value.GetString()!, StringComparer.OrdinalIgnoreCase) : null;
     public static StreamChoice ParseStream(string provider, JsonElement stream, bool cloudstream = false)
     {
         var url = AddonClient.Text(stream, "url");
@@ -179,7 +186,9 @@ public sealed class MediaLibrary(AddonClient client)
         var audioOptions = cloudstream && stream.TryGetProperty("audioTracks", out var audioTracks) ? StreamAudioOption.Parse(audioTracks) : [];
         if (audioOptions.Count > 0) audioUrl = audioOptions[0].Url;
         if (audioUrl.Length > 0 && (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var audio) || audio.Scheme is not ("http" or "https"))) reason = "Unsupported external audio address";
-        return new(provider, name, description, url, reason, torrent, evidence, headers, audioUrl.Length == 0 ? null : audioUrl, audioOptions);
+        var subtitles = cloudstream && stream.TryGetProperty("subtitles", out var subs) && subs.ValueKind == JsonValueKind.Array
+            ? subs.EnumerateArray().Select(x => new SubtitleChoice(provider, AddonClient.Text(x, "id"), AddonClient.Text(x, "lang"), AddonClient.Text(x, "label"), AddonClient.Text(x, "url"), cloudHeaders(x))).Where(x => OnlineSubtitles.IsDownloadUrl(x.Url)).ToArray() : [];
+        return new(provider, name, description, url, reason, torrent, evidence, headers, audioUrl.Length == 0 ? null : audioUrl, audioOptions, subtitles);
     }
     public static TitleInfo ParseTitle(JsonElement meta, string addonId, string fallbackType)
     {
@@ -189,7 +198,7 @@ public sealed class MediaLibrary(AddonClient client)
             {
                 var id = AddonClient.Text(video, "id");
                 if (id.Length == 0) continue;
-                episodes.Add(new(id, AddonClient.Text(video, "title", AddonClient.Text(video, "name", id)), Number(video, "season"), Number(video, "episode"), AddonClient.Text(video, "overview")));
+                episodes.Add(new(id, AddonClient.Text(video, "title", AddonClient.Text(video, "name", id)), Number(video, "season"), Number(video, "episode"), AddonClient.Text(video, "overview"), !video.TryGetProperty("bingexNumberingKnown", out var known) || known.ValueKind == JsonValueKind.True));
             }
         var genres = meta.TryGetProperty("genres", out var genre) && genre.ValueKind == JsonValueKind.Array ? string.Join("  ·  ", genre.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString())) : "";
         var rating = meta.TryGetProperty("imdbRating", out var r) ? r.ToString() : "";

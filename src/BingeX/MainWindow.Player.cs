@@ -318,6 +318,7 @@ public partial class MainWindow
         var subtitles = new List<TrackOption> { new(-1, "Off") };
         subtitles.AddRange(playbackSnapshot.Subtitles);
         if (textSubtitles != null) subtitles.Add(new(TextSubtitleId, "External · " + textSubtitleName));
+        subtitles.AddRange(currentStreamSubtitles.Take(400).Select((choice,index) => new TrackOption(-1000-index, "Extension · " + (choice.Label.Length > 0 ? choice.Label : OnlineSubtitles.LanguageName(choice.Language)))));
         var signature = string.Join('|', audio.Select(x => $"a{x.Id}:{x.Name}")) + string.Join('|', subtitles.Select(x => $"s{x.Id}:{x.Name}"));
         updatingTracks = true;
         try
@@ -363,9 +364,15 @@ public partial class MainWindow
         // Confirm on the next refresh rather than assuming a native track change is immediate.
         _ = QueuePlayerCommand(native => native.SetAudioTrack(id.Value));
     }
-    private void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
+    private async void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (NativePlaybackBusy || updatingTracks || player == null || SubtitleTrackPicker.SelectedItem is not TrackOption track) return;
+        if (track.Id <= -1000 && track.Id > -1400)
+        {
+            var index = -1000-track.Id;
+            if (index < currentStreamSubtitles.Count) await LoadOnlineSubtitle(currentStreamSubtitles[index]);
+            return;
+        }
         if (track.Id != -1) lastSubtitleTrack = track.Id;
         useTextSubtitles = track.Id == TextSubtitleId;
         if (useTextSubtitles)

@@ -21,15 +21,25 @@ public sealed class OnlineSubtitles : IDisposable
         && uri.Scheme == "https" && string.IsNullOrEmpty(uri.UserInfo);
 
     // Parse in memory: subtitle results never become executable files or native-player URLs.
-    public async Task<SubtitleDocument> Download(string url, CancellationToken token)
+    public async Task<SubtitleDocument> Download(string url, CancellationToken token, IReadOnlyDictionary<string,string>? headers = null)
     {
+        if (headers != null && !HeaderStreamRelay.ValidHeaders(headers)) throw new InvalidOperationException("Invalid subtitle headers.");
+        var origin = new Uri(url);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(TimeSpan.FromSeconds(25));
         token = deadline.Token;
         for (var hop = 0; hop < 6; hop++)
         {
             if (!IsDownloadUrl(url)) throw new InvalidOperationException("This subtitle needs an HTTPS download link.");
-            using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            using var request = new HttpRequestMessage(HttpMethod.Get,url);
+            if (headers != null)
+                foreach(var header in headers)
+                {
+                    if (header.Key.Equals("Host",StringComparison.OrdinalIgnoreCase) || header.Key.Equals("Content-Length",StringComparison.OrdinalIgnoreCase) || header.Key.Equals("Connection",StringComparison.OrdinalIgnoreCase)) continue;
+                    if ((header.Key.Equals("Cookie",StringComparison.OrdinalIgnoreCase) || header.Key.Equals("Authorization",StringComparison.OrdinalIgnoreCase)) && new Uri(url).GetLeftPart(UriPartial.Authority) != origin.GetLeftPart(UriPartial.Authority)) continue;
+                    request.Headers.TryAddWithoutValidation(header.Key,header.Value);
+                }
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             if ((int)response.StatusCode is 301 or 302 or 303 or 307 or 308)
             {
                 var location = response.Headers.Location ?? throw new HttpRequestException("Missing redirect location.");

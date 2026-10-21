@@ -262,6 +262,7 @@ public partial class MainWindow
                 RefreshAddons();
             }
             RenderSourceChoices(result.Items, context);
+            if (context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
             DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
             if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) failed. See Add-ons for connection details.";

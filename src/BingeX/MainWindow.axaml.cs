@@ -45,7 +45,7 @@ public partial class MainWindow : Window
         diagnostics = new(store.DataDirectory);
         InitializeComponent();
         VideoSurface.SizeChanged += (_, _) => SynchronizePlayerOverlay();
-        library = new MediaLibrary(addons);
+        library = new MediaLibrary(addons, Path.Combine(store.DataDirectory,"title-links.json"));
         SetupCloudstream();
         SetupPlayerControls();
         RefreshHistory();
@@ -154,7 +154,7 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null)
     {
         if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
@@ -186,6 +186,7 @@ public partial class MainWindow : Window
             if (context != null) store.SaveContext(context);
             resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
             ResetMediaControls(preserve);
+            currentStreamSubtitles = streamSubtitles ?? [];
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
             streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
             thumbnailAttempted = false;
@@ -367,7 +368,7 @@ public partial class MainWindow : Window
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
-            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions);
+            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions, streamSubtitles: currentStreamSubtitles);
         }
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();

@@ -121,6 +121,8 @@ public sealed class CloudstreamService : IAsyncDisposable
     private static string Kind(JsonElement value) => Text(value, "type") is "TvSeries" or "Anime" ? "series" : "movie";
     private object Title(JsonElement item, string provider, string key)
     {
+        var imdb = item.TryGetProperty("syncIds", out var sync) ? Text(sync, "imdb") : "";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(imdb, @"^tt\d{5,12}$")) imdb = "";
         var episodes = new List<object>();
         if (item.TryGetProperty("episodes", out var rows) && rows.ValueKind == JsonValueKind.Array)
         {
@@ -129,10 +131,12 @@ public sealed class CloudstreamService : IAsyncDisposable
             {
                 index++;
                 int Number(string field, int fallback) => episode.TryGetProperty(field, out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var number) ? number : fallback;
-                episodes.Add(new { id = $"cs:{key}:" + Encode(new(provider, Text(episode, "data"), true)), title = Text(episode, "name") is { Length: > 0 } name ? name : $"Episode {index}", season = Number("season", 1), episode = Number("episode", index), overview = Text(episode, "description") });
+                var known = Number("season", -1) >= 0 && Number("episode", -1) > 0;
+                episodes.Add(new { id = $"cs:{key}:" + Encode(new(provider, Text(episode, "data"), true)), title = Text(episode, "name") is { Length: > 0 } name ? name : $"Episode {index}", season = Number("season", 1), episode = Number("episode", index), overview = Text(episode, "description"), bingexNumberingKnown = known,
+                    bingexStremioId = imdb.Length > 0 && known ? $"{imdb}:{Number("season", 1)}:{Number("episode", index)}" : "" });
             }
         }
-        return new { id = $"cs:{key}:" + Encode(new(provider, Text(item, "url"))), type = Kind(item), name = Text(item, "name"), poster = Text(item, "posterUrl"), background = Text(item, "backgroundPosterUrl"), description = Text(item, "plot"), videos = episodes, releaseInfo = item.TryGetProperty("year", out var year) ? year.ToString() : "" };
+        return new { id = $"cs:{key}:" + Encode(new(provider, Text(item, "url"))), type = Kind(item), name = Text(item, "name"), poster = Text(item, "posterUrl"), background = Text(item, "backgroundPosterUrl"), description = Text(item, "plot"), videos = episodes, releaseInfo = item.TryGetProperty("year", out var year) ? year.ToString() : "", bingexStremioId = imdb };
     }
     public async Task<JsonElement> Request(string url, CancellationToken token)
     {
@@ -174,12 +178,13 @@ public sealed class CloudstreamService : IAsyncDisposable
             var payload = identity.Data ? identity.Value : Text(details, "dataUrl");
             if (payload.Length == 0) return Json(new { streams = Array.Empty<object>() });
             var links = await Call("loadLinks", new { provider = identity.Provider, plugin, data = payload });
-            subtitleResults[extension.Key + id] = Json(new { subtitles = links.GetProperty("subtitles").EnumerateArray().Where(x => !x.TryGetProperty("headers", out var h) || h.ValueKind != JsonValueKind.Object || !h.EnumerateObject().Any()).Select(x => new { id = Key(Text(x, "url")), lang = Text(x, "lang"), url = Text(x, "url") }).ToArray() });
+            subtitleResults[extension.Key + id] = Json(new { subtitles = links.GetProperty("subtitles").EnumerateArray().Select(x => new { id = Key(Text(x, "url")), lang = Text(x, "lang"), label = Text(x,"lang"), url = Text(x, "url"), headers = Headers(x) }).ToArray() });
             return Json(new { streams = links.GetProperty("links").EnumerateArray().Select(link => new
             {
                 name = Text(link, "name"), url = Text(link, "url"), description = "Cloudstream · " + identity.Provider,
                 audioUrl = link.TryGetProperty("audioTracks", out var audio) && audio.ValueKind == JsonValueKind.Array ? audio.EnumerateArray().Where(x => !x.TryGetProperty("headers", out var h) || h.ValueKind != JsonValueKind.Object || !h.EnumerateObject().Any()).Select(x => Text(x, "url")).FirstOrDefault() ?? "" : "",
                 audioTracks = link.TryGetProperty("audioTracks", out var tracks) ? tracks : Json(Array.Empty<object>()),
+                subtitles = subtitleResults[extension.Key + id].GetProperty("subtitles"),
                 behaviorHints = new { proxyHeaders = new { request = Headers(link) } },
                 drm = link.TryGetProperty("drm", out _)
             }).ToArray() });

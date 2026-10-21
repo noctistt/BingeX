@@ -9,6 +9,8 @@ try
 {
     StreamAudioChecks.Run();
     await HeaderRelayChecks.Run();
+    Directory.CreateDirectory(directory);
+    await SharedProviderChecks.Run(directory);
     // Keep the mutex-owning thread fixed while the client uses asynchronous I/O.
     using (var first = new SingleInstance(directory))
     using (var second = new SingleInstance(directory))
