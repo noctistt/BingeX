@@ -20,6 +20,7 @@ internal static class Program
     private static DateTime deadline, heartbeat = DateTime.UtcNow;
     private static long previousTime;
     private static Task? blockedNative;
+    private static Task? discoverChecks;
     private static int savedAudio = -1;
     private static int emptySource;
     private static readonly string[] EmptySources = ["Library", "My Library", "Details", "Add-ons"];
@@ -124,6 +125,11 @@ internal static class Program
         switch (phase)
         {
             case 0:
+                discoverChecks = DiscoverChecks.Run(window, Log); phase = 30; break;
+            case 30:
+                if (discoverChecks?.IsCompleted != true) return;
+                discoverChecks.GetAwaiter().GetResult(); phase = 31; break;
+            case 31:
                 Control<Border>("WelcomeHero").Background = Avalonia.Media.Brushes.Magenta;
                 for(var i=0;i<40;i++)Control<WrapPanel>("PosterGrid").Children.Add(new Border{ Width=150, Height=160, Margin=new Thickness(8), Background=i%2==0?Avalonia.Media.Brushes.Red:Avalonia.Media.Brushes.Lime });
                 Call("Page","Library");deadline=DateTime.UtcNow.AddSeconds(2);phase=20;break;
@@ -164,7 +170,8 @@ internal static class Program
                 if(blockedNative?.IsCompleted!=true)return;
                 Log("PASS: immediate navigation and responsive dispatcher during injected native delay");phase=1;break;
             case 1:
-                if (!Playing()) return;
+                if (!Playing() || Control<Border>("PlayerLoading").IsVisible) return;
+                BufferingChecks.Run(window, Log);
                 Geometry(false); previousTime = Player.Time; deadline = DateTime.UtcNow.AddSeconds(4); phase = 2; break;
             case 2:
                 if (DateTime.UtcNow < deadline) return;

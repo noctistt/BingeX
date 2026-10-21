@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.11.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.12.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -185,3 +185,9 @@ Slow startup stages and UI-dispatch delays (250 ms or more) are recorded locally
 The Windows video host now has a black native background brush. Avalonia's default child window had no brush, so visiting Player before loading any video retained the previous page's pixels underneath the transparent controls, even though that page was logically hidden. This exact empty-player case was reproduced locally and visually verified after the fix. Native host bounds are also updated immediately after page layout, instead of waiting for a queued resize.
 
 The native UI regression visits the empty Player from Home, My Library, Details and Add-ons before playing any media, with normal/maximized resizing. It checks previous-page visibility, native background brush and native dimensions, then runs the existing playback and mini-player checks.
+
+## Discover by add-on and playback waiting (0.12.0)
+
+Discover now has named add-on tabs and a second row of categories supplied by the selected add-on, such as Movies, Series or Anime. The catalog picker and search are scoped to that provider/category. Search-only categories show a search prompt rather than requesting an unsupported browsing endpoint. Switching tabs cancels old requests so a slow provider cannot replace the current results. Stream-only add-ons do not supply Discover catalogs; their streams remain available on title pages.
+
+A centered, non-blocking waiting indicator appears in the full player and mini-player when VLC reports buffering. It also acknowledges an unchanged playback clock after two seconds while the player reports Playing. That clock-based fallback is a heuristic, not a network-speed measurement; it cannot detect every video-only stall if the playback clock continues. The indicator clears on progress, intentional pause, new media or seeking and never pauses/resumes the decoder itself. Initial startup retains the opening screen.

@@ -60,11 +60,7 @@ public partial class MainWindow
             var result = await library.Catalogs(installed, token);
             token.ThrowIfCancellationRequested();
             catalogs = result.Items;
-            changingCatalog = true;
-            var browsable = catalogs.Where(x => x.Browsable).ToArray();
-            CatalogPicker.ItemsSource = browsable;
-            CatalogPicker.SelectedItem = browsable.FirstOrDefault(x => preferredAddonId != null ? x.Addon.Id == preferredAddonId : x.Addon.Id == previous?.Addon.Id && x.Id == previous.Id && x.Type == previous.Type) ?? browsable.FirstOrDefault();
-            changingCatalog = false;
+            RenderDiscoverNavigation(preferredAddonId, previous);
             if (CatalogPicker.SelectedItem is CatalogInfo catalog)
             {
                 await ShowCatalog(catalog, token);
@@ -111,15 +107,15 @@ public partial class MainWindow
     private async Task SearchCatalogs()
     {
         var query = SearchInput.Text?.Trim() ?? "";
-        if (query.Length == 0) { if (CatalogPicker.SelectedItem is CatalogInfo selected) await ShowCatalog(selected, BeginBrowse()); return; }
+        if (query.Length == 0) { if (catalogs.Count > 0) await LoadDiscoverSelection(); return; }
         var token = BeginBrowse();
         BrowseLoading("Searching your catalogs…");
         try
         {
-            if (catalogs.Count == 0) catalogs = (await library.Catalogs(store.Addons(), token)).Items;
+            if (catalogs.Count == 0) { catalogs = (await library.Catalogs(store.Addons(), token)).Items; RenderDiscoverNavigation(); }
             token.ThrowIfCancellationRequested();
-            if (!catalogs.Any(x => x.Searchable)) { BrowseNotice("None of your connected catalogs support search. Connect a searchable catalog such as Cinemeta."); return; }
-            var result = await library.Search(catalogs, query, token);
+            if (!DiscoverCatalogs.Any(x => x.Searchable)) { BrowseNotice("This add-on does not support search in the selected category. Choose another add-on or category."); return; }
+            var result = await library.Search(DiscoverCatalogs, query, token);
             token.ThrowIfCancellationRequested();
             RenderPosters(result.Items, token);
             BrowseNotice(result.Items.Count == 0 ? result.Failures > 0 ? "Search providers were unavailable. Please try again." : $"No matches for “{query}”. Try a different title." : $"{result.Items.Count} matches for “{query}”" + (result.Failures > 0 ? $" · {result.Failures} catalog(s) unavailable" : ""), result.Failures > 0);
@@ -131,6 +127,7 @@ public partial class MainWindow
     {
         SearchInput.Text = "";
         if (CatalogPicker.SelectedItem is CatalogInfo catalog) await ShowCatalog(catalog, BeginBrowse());
+        else if (catalogs.Count > 0) await LoadDiscoverSelection();
     }
     private async void RetryBrowse_Click(object? sender, RoutedEventArgs e)
     {

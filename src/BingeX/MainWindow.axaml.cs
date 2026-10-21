@@ -308,7 +308,7 @@ public partial class MainWindow : Window
             updatingSeek = false;
         }
         TimeLabel.Text = Clock(snapshot.Time) + " / " + (snapshot.Length > 0 ? Clock(snapshot.Length) : "--:--");
-        if (snapshot.IsPlaying && activePage == "Player") Status("Playing · " + currentTitle);
+        if (snapshot.IsPlaying && activePage == "Player" && !PlaybackWaiting.IsVisible) Status("Playing · " + currentTitle);
         if (currentContext == null && !thumbnailAttempted && snapshot.IsPlaying && snapshot.Time > 1000 && File.Exists(currentPath))
         {
             thumbnailAttempted = true;
@@ -326,6 +326,7 @@ public partial class MainWindow : Window
     {
         if (NativePlaybackBusy || player == null || !playbackSnapshot.IsSeekable || playbackSnapshot.Length <= 0) return;
         resumeAt = 0;
+        ResetPlaybackWaiting();
         var target = (long)(SeekBar.Value / 1000 * playbackSnapshot.Length);
         _ = QueuePlayerCommand(native => native.Time = target);
         RevealPlayerControls();
@@ -358,6 +359,7 @@ public partial class MainWindow : Window
     {
         if (NativePlaybackBusy || player == null || !playbackSnapshot.IsSeekable) return;
         resumeAt = 0;
+        ResetPlaybackWaiting();
         var target = PlaybackPolicy.SeekTarget(playbackSnapshot.Time, delta, playbackSnapshot.Length);
         _ = QueuePlayerCommand(native => native.Time = target);
         RevealPlayerControls();

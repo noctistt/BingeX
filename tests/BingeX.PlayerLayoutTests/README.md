@@ -14,3 +14,5 @@ Renders 100 source cards, injects a two-second native wait and requires immediat
 For visual inspection, set `BINGEX_LAYOUT_NATIVE_DELAY_MS=10000` to extend the injected wait (bounded to ten seconds). The application itself has no artificial startup delay.
 
 Before playback, visits the empty Player from all four browsing pages and checks that the native HWND has a black background brush and matching dimensions. The earlier visibility-only checks missed retained pixels inside an unpainted native window. A bright Home-page fixture supports visual confirmation. Set `BINGEX_LAYOUT_EMPTY_HOLD_MS=25000` to hold that screen for inspection.
+
+Discover checks use in-memory HTTP fixtures for provider/category grouping, search-only categories, scoped search, clear-search behavior and cancellation on rapid tab switches. Buffering checks inject Buffering/Paused snapshots into the real UI while the smoke tests separately exercise clock-stall detection and recovery. Set `BINGEX_DISCOVER_VISUAL_HOLD=1` to inspect the catalog navigation fixture.

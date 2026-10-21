@@ -112,6 +112,7 @@ public partial class MainWindow
 
     private void ResetMediaControls(bool preserveSubtitles)
     {
+        ResetPlaybackWaiting();
         videoClickTimer.Stop();
         videoPressPoint = null;
         mediaGeneration++;
@@ -186,6 +187,7 @@ public partial class MainWindow
     }
     private void UpdatePlayerOverlay()
     {
+        UpdatePlaybackWaiting();
         if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
