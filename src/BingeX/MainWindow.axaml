@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+        xmlns:local="clr-namespace:BingeX"
         x:Class="BingeX.MainWindow" Icon="/Assets/BingeX.ico" Title="BingeX" Width="1240" Height="820"
         MinWidth="960" MinHeight="680" Background="#101018">
   <Grid x:Name="RootLayout" ColumnDefinitions="205,*" RowDefinitions="*,Auto">
@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.11.3" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.11.4" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -129,7 +129,7 @@
       </ScrollViewer>
       <Grid x:Name="PlayerPage" Grid.Row="1" IsVisible="False" Background="Black">
         <Border x:Name="VideoFrame" Background="Black" CornerRadius="12" ClipToBounds="True">
-          <vlc:VideoView x:Name="VideoSurface" IsVisible="False">
+          <local:VideoSurfaceView x:Name="VideoSurface" IsVisible="False">
             <Grid x:Name="PlayerOverlay" Background="Transparent" Focusable="True">
               <Border x:Name="PlayerLoading" IsVisible="False" Background="Black" IsHitTestVisible="False">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
@@ -260,7 +260,7 @@
                 </ScrollViewer>
               </Border>
             </Grid>
-          </vlc:VideoView>
+          </local:VideoSurfaceView>
         </Border>
       </Grid>
       <ScrollViewer x:Name="AddonsPage" Grid.Row="1" IsVisible="False">

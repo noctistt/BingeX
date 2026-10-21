@@ -21,6 +21,8 @@ internal static class Program
     private static long previousTime;
     private static Task? blockedNative;
     private static int savedAudio = -1;
+    private static int emptySource;
+    private static readonly string[] EmptySources = ["Library", "My Library", "Details", "Add-ons"];
     private static object? Field(string name) => typeof(MainWindow).GetField(name, Private)!.GetValue(window);
     private static object? Call(string name, params object?[] args) { var clock=Stopwatch.StartNew(); try{return typeof(MainWindow).GetMethod(name, Private)!.Invoke(window, args);} finally{Log($"TIMING: {name} {clock.Elapsed.TotalMilliseconds:0}ms");} }
     private static MediaPlayer Player => (MediaPlayer)Field("player")!;
@@ -100,6 +102,20 @@ internal static class Program
         Log($"PASS: mini={mini}, video={surface.Bounds}, controls={overlay.Bounds}, native={native.Right}x{native.Bottom}, scale={window.RenderScaling}");
     }
 
+    private static void CheckEmptyPlayer()
+    {
+        Require(Field("currentPath") == null, "Empty-page check unexpectedly loaded media");
+        Require(!Control<ScrollViewer>("LibraryPage").IsVisible && !Control<ScrollViewer>("DetailsPage").IsVisible &&
+            !Control<ScrollViewer>("LocalLibraryPage").IsVisible && !Control<ScrollViewer>("AddonsPage").IsVisible,
+            "A previous page is still visible behind Player");
+        Require(GetClassLongPtr(Player.Hwnd, -10) == GetStockObject(4),
+            "Empty native video window has no black background and can retain previous-page pixels");
+        var surface = Control<LibVLCSharp.Avalonia.VideoView>("VideoSurface");
+        Require(GetClientRect(Player.Hwnd, out var native) && Math.Abs(native.Right - surface.Bounds.Width * window!.RenderScaling) < 3 &&
+            Math.Abs(native.Bottom - surface.Bounds.Height * window.RenderScaling) < 3, "Empty native video has stale dimensions");
+        Log("PASS: empty Player clears native background after " + EmptySources[emptySource]);
+    }
+
     private static void Step()
     {
         var gap=(DateTime.UtcNow-heartbeat).TotalMilliseconds;if(phase>0&&gap>250)Log($"UI GAP: {gap:0}ms phase={phase}");if(phase==8)Require(gap<500,"Startup native wait blocked the UI dispatcher");heartbeat = DateTime.UtcNow;
@@ -108,9 +124,32 @@ internal static class Program
         switch (phase)
         {
             case 0:
+                Control<Border>("WelcomeHero").Background = Avalonia.Media.Brushes.Magenta;
+                for(var i=0;i<40;i++)Control<WrapPanel>("PosterGrid").Children.Add(new Border{ Width=150, Height=160, Margin=new Thickness(8), Background=i%2==0?Avalonia.Media.Brushes.Red:Avalonia.Media.Brushes.Lime });
+                Call("Page","Library");deadline=DateTime.UtcNow.AddSeconds(2);phase=20;break;
+            case 20:
+                if (DateTime.UtcNow < deadline) return;
+                Call("Page", "Player");
+                var hold = int.TryParse(Environment.GetEnvironmentVariable("BINGEX_LAYOUT_EMPTY_HOLD_MS"), out var configuredHold) ? Math.Clamp(configuredHold, 200, 30000) : 300;
+                deadline = DateTime.UtcNow.AddMilliseconds(hold); phase = 21; break;
+            case 21:
+                if (DateTime.UtcNow < deadline) return;
+                CheckEmptyPlayer();
+                emptySource = 1;
+                Call("Page", EmptySources[emptySource]); deadline = DateTime.UtcNow.AddMilliseconds(300); phase = 22; break;
+            case 22:
+                if (DateTime.UtcNow < deadline) return;
+                window.WindowState = emptySource % 2 == 0 ? WindowState.Normal : WindowState.Maximized;
+                Call("Page", "Player"); deadline = DateTime.UtcNow.AddMilliseconds(300); phase = 23; break;
+            case 23:
+                if (DateTime.UtcNow < deadline) return;
+                CheckEmptyPlayer();
+                if (++emptySource < EmptySources.Length)
+                { Call("Page", EmptySources[emptySource]); deadline = DateTime.UtcNow.AddMilliseconds(300); phase = 22; break; }
                 window.Title = "BingeX layout regression";
                 window.Closed += (_, _) => done = true;
-                Call("RenderSourceChoices", Enumerable.Range(0,100).Select(i=>new StreamChoice("Fixture", "1080p source "+i,"Series episode · HEVC · Multi-audio\n1080p · 2.5 GiB · Layout fixture",media,null)).ToArray(),new MediaContext("layout-fixture","movie","Layout fixture","","fixture"));Call("Page", "Details");deadline=DateTime.UtcNow.AddSeconds(2);phase=7;break;
+                Call("RenderSourceChoices", Enumerable.Range(0,100).Select(i=>new StreamChoice("Fixture", "1080p source "+i,"Series episode · HEVC · Multi-audio\n1080p · 2.5 GiB · Layout fixture",media,null)).ToArray(),new MediaContext("layout-fixture","movie","Layout fixture","","fixture"));
+                Call("Page", "Details"); deadline=DateTime.UtcNow.AddSeconds(2); phase=7; break;
             case 7:
                 if(DateTime.UtcNow<deadline)return;
                 var queue=(NativePlaybackQueue)Field("nativePlayback")!;
@@ -184,6 +223,11 @@ internal static class Program
                 Log("PASS: failed source offers fallback and resumes a working stream");phase=99;window.Close();break;
         }
     }
+
+    [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW")]
+    private static extern IntPtr GetClassLongPtr(IntPtr windowHandle, int index);
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr GetStockObject(int index);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect { public int Left, Top, Right, Bottom; }

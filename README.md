@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.11.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.11.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -179,3 +179,9 @@ Selecting a stream commits the Player page and an opaque opening state before wa
 The native UI regression now renders 100 source cards and injects a two-second native-operation delay. The previous 0.11.2 build fails immediate navigation under this delay; the updated build keeps the Player page visible and the dispatcher responsive. Checks also cover normal/maximized mini transitions, pause/resume, seek-to-end, replay, saved alternate audio when available, and a failed HTTP source falling back to a local fixture. These controlled checks do not certify a third-party stream's startup time.
 
 Slow startup stages and UI-dispatch delays (250 ms or more) are recorded locally in `playback-performance.log` inside the BingeX data directory. Logging runs in the background, rotates at 64 KiB with one previous file, and records fixed stage names and durations only, without media names, URLs or credentials. These best-effort timings help distinguish native decoder waits from actual interface stalls.
+
+## Native video background fix (0.11.4)
+
+The Windows video host now has a black native background brush. Avalonia's default child window had no brush, so visiting Player before loading any video retained the previous page's pixels underneath the transparent controls, even though that page was logically hidden. This exact empty-player case was reproduced locally and visually verified after the fix. Native host bounds are also updated immediately after page layout, instead of waiting for a queued resize.
+
+The native UI regression visits the empty Player from Home, My Library, Details and Add-ons before playing any media, with normal/maximized resizing. It checks previous-page visibility, native background brush and native dimensions, then runs the existing playback and mini-player checks.

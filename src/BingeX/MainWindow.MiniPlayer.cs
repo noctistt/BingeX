@@ -35,6 +35,7 @@ public partial class MainWindow
         PlayerPage.IsVisible = visible;
         VideoSurface.IsVisible = visible;
         UpdateLayout();
+        VideoSurface.TryUpdateNativeControlPosition();
         SynchronizePlayerOverlay();
         ApplySubtitleAppearance();
         UpdatePlayerOverlay();
