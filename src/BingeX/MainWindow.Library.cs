@@ -235,7 +235,7 @@ public partial class MainWindow
         selectedContext = ContextFor(selectedTitle);
         DetailBusy.IsVisible = false;
         DetailMessage.Text = "Choose an episode to find streams.";
-        foreach (var episode in selectedTitle.Episodes.Where(x => x.Season == season.Number))
+        foreach (var episode in EpisodeNavigation.Entries(selectedTitle).Where(x => x.Season == season.Number))
         {
             var text = new StackPanel { Spacing = 5 };
             text.Children.Add(new TextBlock { Text = $"E{episode.Number:00}  {episode.Name}", FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
@@ -248,7 +248,8 @@ public partial class MainWindow
     private async Task SelectEpisode(EpisodeInfo episode)
     {
         if (selectedTitle == null) return;
-        foreach (var button in EpisodeItems.Children.OfType<Button>()) button.Classes.Set("primary", button.Tag as string == episode.Id);
+        var ids = EpisodeNavigation.Variants(selectedTitle,episode.Id).Select(x=>x.Id).ToHashSet();
+        foreach (var button in EpisodeItems.Children.OfType<Button>()) button.Classes.Set("primary", button.Tag is string id && ids.Contains(id));
         selectedContext = ContextFor(selectedTitle) with { EpisodeId = episode.Id, EpisodeName = $"S{episode.Season:00} E{episode.Number:00} · {episode.Name}" };
         await FindStreams();
     }
@@ -257,6 +258,7 @@ public partial class MainWindow
     {
         if (selectedContext == null) return;
         var context = selectedContext;
+        availableSources = []; availableSourceContext = null;
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
         SuggestedSource.IsVisible = false;
@@ -266,7 +268,11 @@ public partial class MainWindow
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Checking your stream providers…"; DetailMessage.Text = ""; DetailRetry.IsVisible = false;
         try
         {
-            var result = await library.Streams(context.Type, context.EpisodeId ?? context.Id, ConnectedAddons(), token);
+            var ids = selectedTitle?.Id == context.Id && context.EpisodeId != null
+                ? EpisodeNavigation.Variants(selectedTitle,context.EpisodeId).Select(x=>x.Id).ToArray() : [];
+            var result = ids.Length > 0
+                ? await library.EpisodeStreams(context.Type,ids,ConnectedAddons(),token)
+                : await library.Streams(context.Type, context.EpisodeId ?? context.Id, ConnectedAddons(), token);
             token.ThrowIfCancellationRequested();
             if (result.Diagnostics != null)
             {

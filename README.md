@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.9. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.10. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -239,3 +239,7 @@ Title pages use independent scrolling panes: episode cards on the left, stream d
 ### Next episode (0.13.9)
 
 Player controls show Next episode when the current title has a following entry. Playback settings include opt-in, persisted Autoplay next episode with an eight-second cancelable countdown after completion. Next episode queries the installed providers and prefers a playable source from the current provider; when none is available, the next episode and stream retry controls remain visible. Verified numbering determines episode/season order; unnumbered channels retain provider order. Browsing a different title does not change the playing title's episode list.
+
+### Duplicate episodes (0.13.10)
+
+Episode cards and Next episode use one shared list grouped by reliable season/episode numbers. Alternate provider IDs are retained for stream lookup and existing history; both copies of E01 now advance to E02. Shared-ID queries are deduplicated per provider while distinct extension payloads remain available as source choices. For unverified numbering, grouping requires the same displayed season/episode, title and nonempty synopsis; matching titles alone are not merged. Starting a stream lookup clears the previous result pool so failed or cancelled lookups cannot reuse old sources.

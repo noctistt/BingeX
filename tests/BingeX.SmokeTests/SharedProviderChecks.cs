@@ -8,11 +8,12 @@ internal static class SharedProviderChecks
     {
         var handler = new Handler();
         using var client = new AddonClient(handler);
-        client.CloudstreamRequest = (url,_) => Task.FromResult(JsonSerializer.SerializeToElement(url.EndsWith("manifest.json")
+        var extensionStreamRequests = new List<string>();
+        client.CloudstreamRequest = (url,_) => { if(url.Contains("/stream/")) extensionStreamRequests.Add(url); return Task.FromResult(JsonSerializer.SerializeToElement(url.EndsWith("manifest.json")
             ? (object)new { resources = new[] { "meta","stream","subtitles" }, idPrefixes = new[] { "cs:" } }
             : url.Contains("/meta/") ? new { meta = new { id = "cs:test:show", type = "series", name = "Fixture", bingexStremioId = "tt1234567", videos = new[] { new { id = "cs:test:episode", season = 2, episode = 3, bingexNumberingKnown = true, bingexStremioId = "tt1234567:2:3" } } } }
             : url.Contains("/stream/") ? new { streams = new[] { new { name = "Extension", url = "https://media.example/video", subtitles = new[] { new { id = "s1", lang = "en", label = "English", url = "https://subs.example/file", headers = new Dictionary<string,string>{{"Origin","https://provider.example"},{"Cookie","fixture=1"}} } } } } }
-            : new { subtitles = Array.Empty<object>() }));
+            : new { subtitles = Array.Empty<object>() })); };
         var file = Path.Combine(directory,"shared-links.json");
         var library = new MediaLibrary(client,file);
         InstalledAddon[] providers = [new("cloud","Extension","cloudstream://local/test/manifest.json"),new("other","Other add-on","https://addon.example/manifest.json")];
@@ -25,10 +26,15 @@ internal static class SharedProviderChecks
         if (streams.Items[0].Subtitles?.Single().Headers?.GetValueOrDefault("Cookie") != "fixture=1") throw new Exception("Extension subtitle/header data was lost.");
         await library.Subtitles("series","cs:test:episode",providers,default);
         if (!handler.SubtitleIds.Contains("tt1234567:2:3")) throw new Exception("Subtitle add-ons did not receive the shared episode ID.");
-        var manual = full with { Id = "cs:manual:show", Episodes = [new("cs:manual:episode","Episode",1,2,""),new("cs:manual:unknown","Unknown",1,3,"",false)] };
+        var manual = full with { Id = "cs:manual:show", Episodes = [new("cs:manual:episode","Episode",1,2,""),new("cs:manual:alternate","Alternate",1,2,""),new("cs:manual:unknown","Unknown",1,3,"",false)] };
         library.LinkTitle(manual,full with { Id = "tt7654321" });
         var reopened = new MediaLibrary(client,file);
         if (!reopened.HasSharedId("series","cs:manual:episode") || reopened.HasSharedId("series","cs:manual:unknown")) throw new Exception("Confirmed matches must persist without guessing unknown episode numbers.");
+        var streamCount = handler.StreamIds.Count;
+        var extensionCount = extensionStreamRequests.Count;
+        await reopened.EpisodeStreams("series",["cs:manual:episode","cs:manual:alternate"],providers,default);
+        if (handler.StreamIds.Count != streamCount+1 || handler.StreamIds.Last()!="tt7654321:1:2" || extensionStreamRequests.Count!=extensionCount+2)
+            throw new Exception("Grouped episode variants must preserve both extension requests but send one canonical query to shared-ID providers.");
         using var downloader = new OnlineSubtitles(handler);
         var document = await downloader.Download("https://subs.example/file",default,new Dictionary<string,string>{{"Origin","https://provider.example"},{"Cookie","fixture=1"}});
         if (document.Cues.Count != 1 || !handler.SawSubtitleHeaders) throw new Exception("Header-protected extension subtitle did not load.");

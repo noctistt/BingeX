@@ -12,7 +12,7 @@ internal static class EpisodeLayoutChecks
         T Control<T>(string name) where T : Control => window.FindControl<T>(name)!;
         void Require(bool condition,string message) { if(!condition) throw new Exception(message); }
         var episodes = Enumerable.Range(1,500).Select(i=>new EpisodeInfo("entry-"+i,"Video "+i,1,i,"Full episode overview with useful information that must remain readable in the episode card.")).ToArray();
-        var title = new TitleInfo("channel-fixture","movie","Channel listed as a movie","","","Full title synopsis remains available.","2026","","","fixture",episodes);
+        var title = new TitleInfo("channel-fixture","movie","Channel listed as a movie","","","Full title synopsis remains available.","2026","","","fixture",episodes.SelectMany(x=>new[]{x,x with{Id=x.Id+"-alternate"}}).ToArray());
         typeof(MainWindow).GetField("selectedTitle",flags)!.SetValue(window,title);
         Call("RenderTitle",title,CancellationToken.None);
         Call("SetEpisodeLayout",true);

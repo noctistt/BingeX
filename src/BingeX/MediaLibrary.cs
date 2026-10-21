@@ -113,6 +113,15 @@ public sealed partial class MediaLibrary(AddonClient client, string? sharedIdFil
         }
         return preview;
     }
+    public async Task<ProviderResult<StreamChoice>> EpisodeStreams(string type, IReadOnlyList<string> ids, IReadOnlyList<InstalledAddon> installed, CancellationToken token)
+    {
+        // Different extension entries can map to the same shared Stremio ID.
+        // Query that provider once, while retaining distinct extension payloads.
+        var requests = installed.SelectMany(addon => ids.Select(id => (Id:id, Query:ProviderId(addon,type,id)))
+            .Where(x=>x.Query!=null).DistinctBy(x=>x.Query).Select(x=>(Addon:addon,x.Id))).ToArray();
+        var results = await Task.WhenAll(requests.Select(x=>Streams(type,x.Id,[x.Addon],token)));
+        return new(results.SelectMany(x=>x.Items).ToArray(),results.Sum(x=>x.Failures),results.SelectMany(x=>x.Diagnostics ?? []).ToArray());
+    }
     public async Task<ProviderResult<StreamChoice>> Streams(string type, string id, IReadOnlyList<InstalledAddon> installed, CancellationToken token)
     {
         var results = await Task.WhenAll(installed.Select(async addon =>
