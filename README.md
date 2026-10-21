@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.10. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.11. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -243,3 +243,9 @@ Player controls show Next episode when the current title has a following entry. 
 ### Duplicate episodes (0.13.10)
 
 Episode cards and Next episode use one shared list grouped by reliable season/episode numbers. Alternate provider IDs are retained for stream lookup and existing history; both copies of E01 now advance to E02. Shared-ID queries are deduplicated per provider while distinct extension payloads remain available as source choices. For unverified numbering, grouping requires the same displayed season/episode, title and nonempty synopsis; matching titles alone are not merged. Starting a stream lookup clears the previous result pool so failed or cancelled lookups cannot reuse old sources.
+
+### Progressive loading and subtitle preferences (0.13.11)
+
+Catalog providers and stream providers report results individually. Early catalog posters and playable sources are shown while slow providers remain pending; source rows append without shifting existing choices. Next-episode playback can begin from an early supported result. Catalog pages are cached in memory for five minutes; Refresh invalidates the cache. Stream URLs are freshly resolved. The Cloudstream helper still serializes its native extension requests, on a separate queue so waiting extensions do not occupy Stremio HTTP slots.
+
+Selecting an extension or online subtitle saves its language per title. Following episodes download their own matching caption without opening settings. Embedded subtitle labels/languages and Off are also remembered. Missing preferred captions leave CC available for manual selection; local subtitle files are not reused as captions for a different episode. No subtitle URL is stored in preferences.

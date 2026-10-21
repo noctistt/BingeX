@@ -26,6 +26,19 @@ internal static class ExtensionSubtitleChecks
             while(DateTime.UtcNow < deadline && !(bool)Get("useTextSubtitles")!) await Task.Delay(25);
             if (!(bool)Get("useTextSubtitles")! || ((SubtitleDocument?)Get("textSubtitles"))?.Cues.Count != 1 || !handler.HeaderSeen)
                 throw new Exception("Extension subtitle selection did not load and activate the header-protected caption.");
+            var previousContext=(MediaContext)Get("currentContext")!;
+            var rememberedStore=(LibraryStore)Get("store")!;
+            if(rememberedStore.SubtitlePreference(previousContext)?.Language!="english") throw new Exception("Manual extension caption selection did not save language preference.");
+            Set("currentContext",previousContext with{EpisodeId="next-episode-fixture"});
+            Set("currentStreamSubtitles",new SubtitleChoice[]{new("Extension","next-caption","eng","English next episode","https://fixture.example/subtitle-next",new Dictionary<string,string>{{"Origin","https://provider.example"}})});
+            Set("useTextSubtitles",false); Set("textSubtitles",null); Set("restoredSubtitleGeneration",-1L);
+            window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible=false;
+            Call("RestoreSubtitlePreference");
+            deadline=DateTime.UtcNow.AddSeconds(5);
+            while(DateTime.UtcNow<deadline && !(bool)Get("useTextSubtitles")!) await Task.Delay(25);
+            if(!(bool)Get("useTextSubtitles")! || handler.Requests<2 || handler.LastPath!="/subtitle-next" || window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible) throw new Exception("Next episode must download matching captions automatically without opening settings.");
+            Set("currentContext",previousContext);
+            log("PASS: subtitle preference automatically selects and downloads the next episode caption without opening settings");
             log("PASS: extension captions appear in CC picker and selecting one loads header-protected text subtitles");
         }
         finally
@@ -39,8 +52,11 @@ internal static class ExtensionSubtitleChecks
     private sealed class SubtitleHandler : HttpMessageHandler
     {
         public bool HeaderSeen;
+        public int Requests;
+        public string LastPath="";
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token)
         {
+            Requests++; LastPath=request.RequestUri!.AbsolutePath;
             HeaderSeen = request.Headers.TryGetValues("Origin",out var values) && values.Single() == "https://provider.example";
             return Task.FromResult(new HttpResponseMessage(HeaderSeen ? HttpStatusCode.OK : HttpStatusCode.Forbidden) { Content = new StringContent("1\n00:00:00,000 --> 00:00:04,000\nExtension caption\n") });
         }

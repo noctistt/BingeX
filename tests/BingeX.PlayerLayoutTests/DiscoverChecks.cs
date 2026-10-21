@@ -10,6 +10,7 @@ internal static class DiscoverChecks
     public static async Task Run(MainWindow window, Action<string> log)
     {
         await OnlineModeChecks.Run(window, log);
+        await ProgressiveLoadingChecks.Run(window, log);
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
         object? Call(string method, params object?[] args) => typeof(MainWindow).GetMethod(method, flags)!.Invoke(window, args);
         T Control<T>(string name) where T : Control => window.FindControl<T>(name)!;

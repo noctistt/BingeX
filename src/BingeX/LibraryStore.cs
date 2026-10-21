@@ -105,6 +105,23 @@ public sealed partial class LibraryStore : IDisposable
         command.ExecuteNonQuery();
     }
 
+    public SubtitlePreference? SubtitlePreference(MediaContext context)
+    {
+        using var command=connection.CreateCommand();
+        command.CommandText="SELECT value FROM preferences WHERE key=$key";
+        command.Parameters.AddWithValue("$key","subtitles:"+context.Type+":"+context.Id);
+        try { return JsonSerializer.Deserialize<SubtitlePreference>(command.ExecuteScalar() as string ?? "null"); }
+        catch(JsonException) { return null; }
+    }
+    public void SaveSubtitlePreference(MediaContext context,SubtitlePreference preference)
+    {
+        using var command=connection.CreateCommand();
+        command.CommandText="INSERT OR REPLACE INTO preferences VALUES($key,$value)";
+        command.Parameters.AddWithValue("$key","subtitles:"+context.Type+":"+context.Id);
+        command.Parameters.AddWithValue("$value",JsonSerializer.Serialize(preference));
+        command.ExecuteNonQuery();
+    }
+
     public bool OnlineModeEnabled()
     {
         using var command = connection.CreateCommand();

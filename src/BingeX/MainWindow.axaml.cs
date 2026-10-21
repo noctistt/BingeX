@@ -92,6 +92,7 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            catalogWork.Cancel();
             browseWork.Cancel();
             detailWork.Cancel();
             streamWork.Cancel();
@@ -127,7 +128,7 @@ public partial class MainWindow : Window
         if (page != "Player" && torrentStarting) StopTorrentPlayback();
         if (page != "Player") CancelOnlineSubtitles();
         if (page != "Player" && WindowState == WindowState.FullScreen) SetFullscreen(false);
-        if (page != "Library") { browseWork.Cancel(); posterWork.Cancel(); }
+        if (page != "Library") { catalogWork.Cancel(); browseWork.Cancel(); posterWork.Cancel(); }
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }
         activePage = page;
         NavigateBackButton.IsVisible = page is "Player" or "Details";

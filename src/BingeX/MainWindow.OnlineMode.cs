@@ -31,6 +31,7 @@ public partial class MainWindow
         if (!enabled)
         {
             CancelEpisodeAutoplay();
+            catalogWork.Cancel();
             browseWork.Cancel(); posterWork.Cancel(); detailWork.Cancel(); streamWork.Cancel();
             CancelOnlineSubtitles();
             onlineSubtitleView = false;

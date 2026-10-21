@@ -318,6 +318,7 @@ public partial class MainWindow
         if (NativePlaybackBusy || player == null || currentPath == null || playbackSnapshot.State is VLCState.Opening or VLCState.Buffering or VLCState.Stopped) return;
         var audio = playbackSnapshot.Audio;
         RestoreSavedAudioTrack(audio);
+        RestoreSubtitlePreference();
         if (useTextSubtitles && playbackSnapshot.Spu >= 0) _ = QueuePlayerCommand(native => native.SetSpu(-1));
         var subtitles = new List<TrackOption> { new(-1, "Off") };
         subtitles.AddRange(playbackSnapshot.Subtitles);
@@ -371,6 +372,8 @@ public partial class MainWindow
     private async void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (NativePlaybackBusy || updatingTracks || player == null || SubtitleTrackPicker.SelectedItem is not TrackOption track) return;
+        CancelOnlineSubtitles();
+        restoredSubtitleGeneration=mediaGeneration;
         if (track.Id <= -1000 && track.Id > -1400)
         {
             var index = -1000-track.Id;
@@ -386,7 +389,11 @@ public partial class MainWindow
         }
         else if (!player.SetSpu(track.Id)) PlayerNotice("This subtitle track could not be selected.");
         else PlayerNotice("Subtitles: " + track.Name);
-        if (!useTextSubtitles) player.SetSpuDelay(subtitleDelayMs * 1000);
+        if (!useTextSubtitles)
+        {
+            player.SetSpuDelay(subtitleDelayMs * 1000);
+            RememberSubtitlePreference(track.Id==-1 ? new("off") : new("embedded",SubtitlePreference.EmbeddedLanguage(track.Name),track.Name));
+        }
         UpdatePlayerOverlay();
     }
     private async Task LoadSubtitle(string path)

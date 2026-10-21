@@ -81,7 +81,13 @@ public partial class MainWindow
             SetEpisodeLayout(true);
             SeasonPicker.ItemsSource = title.Episodes.Select(x=>x.Season).Distinct().Select(x=>new SeasonOption(x)).ToArray();
             SeasonPicker.SelectedItem = ((SeasonOption[])SeasonPicker.ItemsSource).First(x=>x.Number==next.Season);
-            await SelectEpisode(next);
+            SetSelectedEpisode(next);
+            await FindStreamsProgressive(context =>
+            {
+                if(localClosing || !onlineEnabled || generation!=mediaGeneration || activePage!="Details" || context.Id!=title.Id || context.EpisodeId!=next.Id) return;
+                var first=availableSources.Where(x=>x.UnsupportedReason==null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault();
+                if(first!=null) BeginSource(first,context);
+            });
             if (localClosing || !onlineEnabled || generation != mediaGeneration || activePage != "Details" || selectedContext?.Id != title.Id || selectedContext.EpisodeId != next.Id) return;
             var source = availableSourceContext?.HistoryKey == selectedContext.HistoryKey
                 ? availableSources.Where(x=>x.UnsupportedReason == null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault() : null;

@@ -14,6 +14,7 @@ public partial class MainWindow
     private readonly MediaLibrary library;
     private readonly ArtworkLoader artwork = new();
     private CancellationTokenSource browseWork = new();
+    private CancellationTokenSource catalogWork = new();
     private CancellationTokenSource detailWork = new();
     private CancellationTokenSource streamWork = new();
     private CancellationTokenSource posterWork = new();
@@ -51,27 +52,33 @@ public partial class MainWindow
     private async Task RefreshCatalogs(string? preferredAddonId = null)
     {
         if (!onlineEnabled) return;
-        var token = BeginBrowse();
+        catalogWork.Cancel(); catalogWork.Dispose(); catalogWork=new();
+        var token=catalogWork.Token;
+        var browseToken=BeginBrowse();
         BrowseLoading("Connecting to your catalogs…");
+        var collected=new List<CatalogInfo>(); var failures=0;
+        Task? initialCatalog=null;
         try
         {
-            var previous = CatalogPicker.SelectedItem as CatalogInfo;
-            var installed = ConnectedAddons();
-            WelcomeHero.IsVisible = installed.Count == 0;
-            var result = await library.Catalogs(installed, token);
-            token.ThrowIfCancellationRequested();
-            catalogs = result.Items;
-            RenderDiscoverNavigation(preferredAddonId, previous);
-            if (CatalogPicker.SelectedItem is CatalogInfo catalog)
+            var installed=ConnectedAddons();
+            WelcomeHero.IsVisible=installed.Count==0;
+            CatalogProviderStatus.Text="Connecting to providers…";
+            await foreach(var update in ProgressiveProviders.Load<CatalogInfo>(installed,(addon,ct)=>library.Catalogs([addon],ct),token))
             {
-                await ShowCatalog(catalog, token);
-                if (result.Failures > 0 && !token.IsCancellationRequested) BrowseMessage.Text += $"  {result.Failures} add-on(s) could not be reached.";
+                token.ThrowIfCancellationRequested();
+                collected.AddRange(update.Result.Items); failures+=update.Result.Failures;
+                catalogs=collected.ToArray();
+                RenderDiscoverNavigation(initialCatalog==null ? preferredAddonId : null,CatalogPicker.SelectedItem as CatalogInfo);
+                CatalogProviderStatus.Text=$"{update.Completed}/{update.Total} providers responded"+(update.Pending.Count>0 ? " · Waiting for: "+string.Join(", ",update.Pending) : failures>0 ? $" · {failures} unavailable" : "");
+                if(initialCatalog==null && CatalogPicker.SelectedItem is CatalogInfo catalog)
+                    initialCatalog=ShowCatalog(catalog,browseToken);
             }
-            else BrowseNotice(result.Failures > 0 ? "Your providers could not be reached. Check your connection and try again." : catalogs.Any(x => x.Searchable) ? "These catalogs are search-only. Enter a title above." : "No browsing catalogs connected. Add a catalog provider to get started.", result.Failures > 0);
+            if(initialCatalog!=null) await initialCatalog;
+            else if(!browseToken.IsCancellationRequested) BrowseNotice(failures>0 ? "Some providers could not be reached. Try again." : catalogs.Any(x=>x.Searchable) ? "Enter a title to search these catalogs." : "Connect a catalog provider to browse here.",failures>0);
+            if(installed.Count==0) CatalogProviderStatus.Text="No catalog providers connected.";
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch { if (!token.IsCancellationRequested) BrowseNotice("Catalogs couldn’t be loaded. Try again or check your add-ons.", true); }
-        finally { changingCatalog = false; }
+        catch(OperationCanceledException) { }
+        catch { if(!token.IsCancellationRequested) BrowseNotice("Catalogs couldn’t be loaded. Try again.",true); }
     }
     private async Task ShowCatalog(CatalogInfo catalog, CancellationToken token)
     {
@@ -245,16 +252,17 @@ public partial class MainWindow
             EpisodeItems.Children.Add(button);
         }
     }
-    private async Task SelectEpisode(EpisodeInfo episode)
+    private void SetSelectedEpisode(EpisodeInfo episode)
     {
         if (selectedTitle == null) return;
         var ids = EpisodeNavigation.Variants(selectedTitle,episode.Id).Select(x=>x.Id).ToHashSet();
         foreach (var button in EpisodeItems.Children.OfType<Button>()) button.Classes.Set("primary", button.Tag is string id && ids.Contains(id));
         selectedContext = ContextFor(selectedTitle) with { EpisodeId = episode.Id, EpisodeName = $"S{episode.Season:00} E{episode.Number:00} · {episode.Name}" };
-        await FindStreams();
     }
+    private async Task SelectEpisode(EpisodeInfo episode) { SetSelectedEpisode(episode); await FindStreams(); }
     private async void FindStreams_Click(object? sender, RoutedEventArgs e) => await FindStreams();
-    private async Task FindStreams()
+    private Task FindStreams() => FindStreamsProgressive(null);
+    private async Task FindStreamsProgressive(Action<MediaContext>? ready)
     {
         if (selectedContext == null) return;
         var context = selectedContext;
@@ -262,6 +270,7 @@ public partial class MainWindow
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
         SuggestedSource.IsVisible = false;
+        DetailBusy.IsVisible = false;
         StreamScroller.Offset = default;
         StreamItems.Children.Clear(); StreamHeading.IsVisible = true;
         StreamHeading.Text = context.EpisodeName ?? "Available streams";
@@ -270,16 +279,21 @@ public partial class MainWindow
         {
             var ids = selectedTitle?.Id == context.Id && context.EpisodeId != null
                 ? EpisodeNavigation.Variants(selectedTitle,context.EpisodeId).Select(x=>x.Id).ToArray() : [];
-            var result = ids.Length > 0
-                ? await library.EpisodeStreams(context.Type,ids,ConnectedAddons(),token)
-                : await library.Streams(context.Type, context.EpisodeId ?? context.Id, ConnectedAddons(), token);
-            token.ThrowIfCancellationRequested();
-            if (result.Diagnostics != null)
+            var all=new List<StreamChoice>(); var failures=0;
+            await foreach(var update in ProgressiveProviders.Load<StreamChoice>(ConnectedAddons(),
+                (addon,ct)=>ids.Length>0 ? library.EpisodeStreams(context.Type,ids,[addon],ct) : library.Streams(context.Type,context.EpisodeId ?? context.Id,[addon],ct),token))
             {
-                foreach (var check in result.Diagnostics) addonChecks[check.ManifestUrl] = check;
-                RefreshAddons();
+                token.ThrowIfCancellationRequested();
+                all.AddRange(update.Result.Items); failures+=update.Result.Failures;
+                foreach(var check in update.Result.Diagnostics ?? []) addonChecks[check.ManifestUrl]=check;
+                RenderSourceChoicesCore(all,context,true);
+                DetailLoadingText.Text=$"{update.Completed}/{update.Total} providers responded"+(update.Pending.Count>0 ? " · Waiting for: "+string.Join(", ",update.Pending) : "");
+                DetailMessage.Text=$"{availableSources.Count(x=>x.UnsupportedReason==null)} playable source(s) so far. You can play now.";
+                if(availableSources.Any(x=>x.UnsupportedReason==null)) ready?.Invoke(context);
+                token.ThrowIfCancellationRequested();
             }
-            RenderSourceChoices(result.Items, context);
+            RefreshAddons();
+            var result=new ProviderResult<StreamChoice>(all,failures);
             if (context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
             DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
@@ -288,23 +302,26 @@ public partial class MainWindow
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch { if (!token.IsCancellationRequested) { DetailMessage.Text = "Stream lookup failed. Please try again."; DetailRetry.IsVisible = true; } }
-        finally { if (!token.IsCancellationRequested) DetailBusy.IsVisible = false; }
+        finally { if (streamWork.Token == token) DetailBusy.IsVisible = false; }
     }
-    private void RenderSourceChoices(IReadOnlyList<StreamChoice> options, MediaContext context)
+    private void RenderSourceChoices(IReadOnlyList<StreamChoice> options, MediaContext context) => RenderSourceChoicesCore(options,context,false);
+    private void RenderSourceChoicesCore(IReadOnlyList<StreamChoice> options, MediaContext context, bool append)
     {
-        StreamItems.Children.Clear();
+        if (!append) StreamItems.Children.Clear();
         availableSources = SourceSelection.Rank(options, sourcePerformance);
         availableSourceContext = context;
         SuggestedSource.IsVisible = availableSources.Any(x => x.UnsupportedReason == null);
+        var existing = StreamItems.Children.OfType<Button>().Select(x=>x.Tag).OfType<string>().ToHashSet(StringComparer.Ordinal);
         foreach (var stream in availableSources)
         {
+            if (!existing.Add(SourceSelection.Key(stream))) continue;
             var column = new StackPanel { Spacing = 5 };
             column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             var summary = SourceSelection.Summary(stream);
             if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
             if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE") });
             column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
-            var button = new Button { Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
+            var button = new Button { Tag = SourceSelection.Key(stream), Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
             button.Click += (_, _) => BeginSource(stream, context);
             StreamItems.Children.Add(button);
         }

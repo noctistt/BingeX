@@ -23,13 +23,16 @@ public sealed partial class MediaLibrary(AddonClient client, string? sharedIdFil
 {
     private readonly ConcurrentDictionary<string, JsonElement> manifests = new();
     private readonly SemaphoreSlim requests = new(5);
+    private readonly SemaphoreSlim extensionRequests = new(1);
 
-    public void Invalidate() => manifests.Clear();
+    private readonly ConcurrentDictionary<string,(DateTime At, IReadOnlyList<TitleInfo> Titles)> catalogCache=new();
+    public void Invalidate() { manifests.Clear(); catalogCache.Clear(); }
     private async Task<JsonElement> Request(string url, CancellationToken token)
     {
-        await requests.WaitAsync(token);
+        var queue=url.StartsWith("cloudstream://",StringComparison.OrdinalIgnoreCase) ? extensionRequests : requests;
+        await queue.WaitAsync(token);
         try { return await client.Get(url, token); }
-        finally { requests.Release(); }
+        finally { queue.Release(); }
     }
     private async Task<JsonElement> Manifest(InstalledAddon addon, CancellationToken token)
     {
@@ -80,9 +83,14 @@ public sealed partial class MediaLibrary(AddonClient client, string? sharedIdFil
     public async Task<IReadOnlyList<TitleInfo>> Catalog(CatalogInfo catalog, string? search, CancellationToken token)
     {
         var extra = search == null ? null : new Dictionary<string, string> { ["search"] = search };
-        var response = await Request(AddonClient.Endpoint(catalog.Addon.ManifestUrl, "catalog", catalog.Type, catalog.Id, extra), token);
+        var url=AddonClient.Endpoint(catalog.Addon.ManifestUrl,"catalog",catalog.Type,catalog.Id,extra);
+        if(search==null && catalogCache.TryGetValue(url,out var cached) && DateTime.UtcNow-cached.At<TimeSpan.FromMinutes(5)) return cached.Titles;
+        var response = await Request(url, token);
         if (!response.TryGetProperty("metas", out var metas) || metas.ValueKind != JsonValueKind.Array) return [];
-        return metas.EnumerateArray().Where(x => AddonClient.Text(x, "id").Length > 0).Take(100).Select(x => ParseTitle(x, catalog.Addon.Id, catalog.Type)).ToArray();
+        var titles=metas.EnumerateArray().Where(x => AddonClient.Text(x, "id").Length > 0).Take(100).Select(x => ParseTitle(x, catalog.Addon.Id, catalog.Type)).ToArray();
+        token.ThrowIfCancellationRequested();
+        if(search==null) { if(catalogCache.Count>=100) catalogCache.Clear(); catalogCache[url]=(DateTime.UtcNow,titles); }
+        return titles;
     }
     public async Task<ProviderResult<TitleInfo>> Search(IReadOnlyList<CatalogInfo> catalogs, string query, CancellationToken token)
     {

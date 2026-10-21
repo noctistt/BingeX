@@ -16,6 +16,7 @@ try
         try { CloudstreamRepositoryUrl.Normalize(invalid); } catch (InvalidOperationException) { repositoryRejected = true; }
         Assert(repositoryRejected, "Invalid or credential-bearing repository links are rejected.");
     }
+    await ProgressiveProviderChecks.Run();
     EpisodeNavigationChecks.Run();
     SubtitleClockChecks.Run();
     StreamAudioChecks.Run();

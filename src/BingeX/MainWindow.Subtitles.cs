@@ -216,7 +216,12 @@ public partial class MainWindow
             OnlineSubtitleResults.Children.Add(new Border { Background = Brush.Parse("#30273D"), Padding = new Thickness(10), CornerRadius = new CornerRadius(8), Child = row });
         }
     }
-    private async Task LoadOnlineSubtitle(SubtitleChoice choice)
+    private Task LoadOnlineSubtitle(SubtitleChoice choice)
+    {
+        restoredSubtitleGeneration=mediaGeneration;
+        return ApplyOnlineSubtitle(choice,false);
+    }
+    private async Task ApplyOnlineSubtitle(SubtitleChoice choice,bool automatic)
     {
         var token = BeginOnlineSubtitles("Loading subtitle…");
         var generation = mediaGeneration;
@@ -231,9 +236,13 @@ public partial class MainWindow
             if (!NativePlaybackBusy) player.SetSpu(-1);
             trackSignature = "";
             RefreshTracks();
-            ShowPlayerSettings(true);
-            PlayerNotice("Subtitles loaded: " + textSubtitleName);
-            PlayerOverlay.Focus();
+            if(!automatic)
+            {
+                RememberSubtitlePreference(new("online",SubtitlePreference.LanguageKey(choice.Language),choice.Label,choice.Provider));
+                ShowPlayerSettings(true);
+                PlayerNotice("Subtitles loaded: " + textSubtitleName);
+                PlayerOverlay.Focus();
+            }
         }
         catch (OperationCanceledException) { if (OwnsSubtitleRequest(token, generation)) OnlineSubtitleMessage.Text = "The subtitle request timed out. Try again."; }
         catch (Exception error)
