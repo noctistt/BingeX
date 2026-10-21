@@ -20,8 +20,9 @@ public sealed class SubtitlePlaybackClock
         if (changed)
         {
             // Small backwards corrections during continuous playback must not
-            // cross the same cue boundary twice. Real seeks reset explicitly.
-            anchor = initialized && playing && isPlaying && position >= reported && previous - position <= 750 * speed
+            // cross the same cue boundary twice, even after a stalled clock
+            // advances by only a few milliseconds. Real seeks reset explicitly.
+            anchor = initialized && playing && isPlaying && position >= reported - 1500
                 ? Math.Max(position, previous) : position;
             anchoredAt = capturedAt;
             reported = position;
@@ -33,6 +34,6 @@ public sealed class SubtitlePlaybackClock
         if (!initialized) return 0;
         // Bound prediction so a stalled source cannot run captions indefinitely.
         var advance = playing ? Math.Clamp((now - anchoredAt).TotalMilliseconds, 0, 750) * rate : 0;
-        return (long)Math.Max(0, anchor + advance);
+        return (long)Math.Max(0, Math.Max(anchor, Math.Min(anchor + advance, reported + 750 * rate)));
     }
 }

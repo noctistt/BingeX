@@ -12,7 +12,26 @@ public sealed partial class SubtitleDocument
 
     private SubtitleDocument(IEnumerable<SubtitleCue> cues)
     {
-        Cues = cues.OrderBy(x => x.Start).ThenBy(x => x.End).ToArray();
+        // Segment boundaries can repeat the same cue with a short gap. Merge
+        // only equal text that overlaps or is separated by at most 100 ms.
+        // Keep real repetitions after a pause and different overlapping dialogue.
+        var merged = new List<SubtitleCue>();
+        foreach (var group in cues.GroupBy(x => x.Text, StringComparer.Ordinal))
+        {
+            SubtitleCue? previous = null;
+            foreach (var cue in group.OrderBy(x => x.Start).ThenBy(x => x.End))
+            {
+                if (previous != null && cue.Start <= previous.End + 100)
+                    previous = previous with { End = Math.Max(previous.End, cue.End) };
+                else
+                {
+                    if (previous != null) merged.Add(previous);
+                    previous = cue;
+                }
+            }
+            if (previous != null) merged.Add(previous);
+        }
+        Cues = merged.OrderBy(x => x.Start).ThenBy(x => x.End).ToArray();
         maximumEnd = new long[Cues.Count];
         for (var i = 0; i < Cues.Count; i++) maximumEnd[i] = Math.Max(i == 0 ? 0 : maximumEnd[i - 1], Cues[i].End);
     }

@@ -24,6 +24,20 @@ internal static class SubtitleClockChecks
         clock.Reset(); clock.Observe(500,At(3500),true,.5);
         Require(clock.Position(At(3700))==600, "Backward seek resets monotonic tracking and supports half speed.");
         Require(clock.Position(At(9000))==875, "A stalled native clock has bounded extrapolation.");
+        clock.Reset(); clock.Observe(1000,At(0),true,1);
+        var last = clock.Position(At(700));
+        foreach (var sample in new[] { (Time: 1000, Position: 990), (Time: 2000, Position: 1010), (Time: 3000, Position: 1020), (Time: 4000, Position: 1030) })
+        {
+            clock.Observe(sample.Position,At(sample.Time),true,1);
+            var next = clock.Position(At(sample.Time+100));
+            Require(next >= last, "Small native corrections and slow advancement must never redisplay an ended cue.");
+            Require(next <= 1830, "Slow samples must not compound interpolation ahead of the video.");
+            last = next;
+        }
+        var repeats = SubtitleDocument.Parse("1\n00:00:01,000 --> 00:00:02,000\nSame line\n\n2\n00:00:02,080 --> 00:00:03,000\nSame line\n\n3\n00:00:04,000 --> 00:00:05,000\nSame line\n\n4\n00:00:01,500 --> 00:00:02,500\nOther speaker\n\n");
+        Require(repeats.Cues.Count==3 && repeats.TextAt(2040,0)=="Same line\nOther speaker", "Repeated segment captions join across tiny gaps without losing different overlapping dialogue.");
+        Require(repeats.TextAt(3500,0)=="" && repeats.TextAt(4500,0)=="Same line", "Real pauses and later repeated dialogue stay intact.");
+        Console.WriteLine("PASS: corrected/stalled subtitle timestamps and repeated segment cues without losing real pauses.");
         Console.WriteLine("PASS: subtitle clock repeated timestamps, cue-boundary stability, pause, buffering, seek, rate and bounded prediction.");
     }
 }
