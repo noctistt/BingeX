@@ -105,6 +105,20 @@ public sealed partial class LibraryStore : IDisposable
         command.ExecuteNonQuery();
     }
 
+    public bool OnlineModeEnabled()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT value FROM preferences WHERE key='online-mode'";
+        return command.ExecuteScalar() as string == "true";
+    }
+    public void SaveOnlineMode(bool enabled)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR REPLACE INTO preferences VALUES('online-mode',$value)";
+        command.Parameters.AddWithValue("$value", enabled ? "true" : "false");
+        command.ExecuteNonQuery();
+    }
+
     public PlayerPreferences Preferences()
     {
         using var command = connection.CreateCommand();

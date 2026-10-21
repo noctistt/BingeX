@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.5. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -219,3 +219,7 @@ Cloudstream metadata IMDb IDs and explicit season/episode numbers now let Stremi
 ### Compact browsing (0.13.4)
 
 Continue Watching shows recent unfinished videos newest first in one horizontal row. Use the arrows or scrollbar to see older entries. Cloudstream extensions appear in alphabetical card grids, separated into Installed and Available. Paste HTTPS, GitHub repository pages, or cloudstreamrepo:// repository links directly into Read repository.
+
+### Online mode (0.13.5)
+
+The Online mode switch beside Open media is off by default and saved immediately for the next launch. Off hides Discover, Add-ons, online subtitle search, and online Continue Watching entries. Local files, folders, embedded tracks and subtitle files remain available. Switching off cancels catalog browsing but keeps installed providers, history, title matches and settings; existing playback continues. This is a feature visibility preference, not a network firewall.

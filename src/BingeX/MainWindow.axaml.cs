@@ -52,6 +52,8 @@ public partial class MainWindow : Window
         RefreshAddons();
         SetupLocalLibrary();
         SetupSources();
+        SetupOnlineMode();
+        RefreshHistory();
         Opened += (_, _) =>
         {
             _ = ScanMediaFolders();
@@ -114,6 +116,7 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        if (!onlineEnabled && page is "Details" or "Add-ons") page = "Library";
         using var timing = diagnostics.Measure("page-layout");
         if (page == "Player" && activePage != "Player") playerReturnPage = activePage;
         if (page != "Player" && pendingSource != null) ResetSourceAttempts();
@@ -138,7 +141,7 @@ public partial class MainWindow : Window
         if (page == "Player") RevealPlayerControls();
         if (page == "My Library") RefreshLocalLibrary();
         PageTitle.Text = page == "Library" ? "Home" : page == "Details" ? "Discover" : page;
-        if (page == "Library") { RefreshHistory(); ResumePosterArtwork(); }
+        if (page == "Library") { RefreshHistory(); if (onlineEnabled) ResumePosterArtwork(); }
     }
     private async void Library_Click(object? sender, RoutedEventArgs e)
     {

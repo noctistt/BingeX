@@ -50,6 +50,7 @@ public partial class MainWindow
     }
     private async Task RefreshCatalogs(string? preferredAddonId = null)
     {
+        if (!onlineEnabled) return;
         var token = BeginBrowse();
         BrowseLoading("Connecting to your catalogs…");
         try
@@ -87,7 +88,7 @@ public partial class MainWindow
     }
     private async void CatalogChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (changingCatalog || CatalogPicker.SelectedItem is not CatalogInfo catalog) return;
+        if (!onlineEnabled || changingCatalog || CatalogPicker.SelectedItem is not CatalogInfo catalog) return;
         SearchInput.Text = "";
         await ShowCatalog(catalog, BeginBrowse());
     }
@@ -309,9 +310,10 @@ public partial class MainWindow
     {
         HistoryItems.Children.Clear();
         Avalonia.Threading.Dispatcher.UIThread.Post(UpdateHistoryArrows, Avalonia.Threading.DispatcherPriority.Loaded);
-        var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration)).ToArray();
+        var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration) &&
+            (onlineEnabled || IsLocalHistory(x, store.Context(x.Path)))).ToArray();
         EmptyHistory.IsVisible = history.Length == 0;
-        HistorySection.IsVisible = history.Length > 0 || ConnectedAddons().Count == 0;
+        HistorySection.IsVisible = !onlineEnabled || history.Length > 0 || ConnectedAddons().Count == 0;
         foreach (var media in history)
         {
             var context = store.Context(media.Path);

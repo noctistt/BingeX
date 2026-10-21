@@ -41,6 +41,8 @@ try
         var context = new MediaContext("tt123", "series", "A Show", "https://example.com/poster.jpg", "test.provider", "tt123:2:3", "Episode 3");
         store.SaveContext(context);
         store.Save(new(context.HistoryKey, context.DisplayName, 15000, 90000));
+        Assert(!store.OnlineModeEnabled(), "Fresh profiles default to local features.");
+        store.SaveOnlineMode(true);
         store.SavePreferences(new(42, 36, "Yellow", false));
         store.SaveAudioSelection("C:\\media\\O'Brien.mkv", new(2, "Hindi"));
         store.SaveAudioSelection(context.HistoryKey, new(7, "Japanese"));
@@ -51,6 +53,9 @@ try
         Assert(store.History().Any(x => x.Title == "O'Brien"), "Titles containing quotes must round-trip.");
         var context = store.Context("stremio:series:tt123:2:3");
         Assert(context?.EpisodeId == "tt123:2:3" && context.AddonId == "test.provider", "Remote resume must use stable episode identity without storing a playback URL.");
+        Assert(store.OnlineModeEnabled(), "Online mode persists independently of player settings.");
+        store.SaveOnlineMode(false);
+        using (var localMode = new LibraryStore(directory)) Assert(!localMode.OnlineModeEnabled() && localMode.Addons().Count > 0 && localMode.History().Count > 0, "Disabling persists without deleting add-ons or history.");
         Assert(store.Preferences() == new PlayerPreferences(42, 36, "Yellow", false), "Player volume and subtitle appearance must survive reopening.");
         Assert(store.AudioSelection("C:\\media\\O'Brien.mkv") == new AudioTrackSelection(2, "Hindi"), "The last selected local audio track must survive closing/reopening the library.");
         Assert(store.AudioSelection("stremio:series:tt123:2:3") == new AudioTrackSelection(7, "Japanese"), "Remote audio choices must use stable episode IDs.");

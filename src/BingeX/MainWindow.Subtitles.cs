@@ -51,6 +51,7 @@ public partial class MainWindow
     private bool SubtitleRequestCurrent(CancellationToken token, long generation) => OwnsSubtitleRequest(token, generation) && !token.IsCancellationRequested;
     private void OnlineSubtitles_Click(object? sender, RoutedEventArgs e)
     {
+        if (!onlineEnabled) return;
         if (currentPath == null) { PlayerNotice("Open a video before finding subtitles."); return; }
         onlineSubtitleView = true;
         subtitleSettingsOpen = true;
