@@ -30,7 +30,7 @@ public partial class MainWindow
             if (await Task.WhenAny(rendered.Task, Task.Delay(TimeSpan.FromSeconds(3))) != rendered.Task) return false;
             await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
         }
-        return !localClosing && request == playbackRequest && activePage == "Player" &&
+        return !localClosing && request == playbackRequest && (activePage == "Player" || miniPlayer) &&
             VideoSurface.IsEffectivelyVisible && VideoSurface.IsArrangeValid &&
             VideoSurface.Bounds.Width > 0 && VideoSurface.Bounds.Height > 0;
     }

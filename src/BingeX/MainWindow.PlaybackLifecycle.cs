@@ -13,7 +13,11 @@ public partial class MainWindow
         videoClickTimer.Stop(); videoPressPoint = null;
         mediaGeneration++;
         var native = player;
-        return native == null ? Task.CompletedTask : nativePlayback.Enqueue(native.Stop);
+        return native == null ? Task.CompletedTask : nativePlayback.Enqueue(() =>
+        {
+            using var timing = diagnostics.Measure("native-stop");
+            native.Stop();
+        });
     }
     private async Task FinishWindowCloseAsync()
     {

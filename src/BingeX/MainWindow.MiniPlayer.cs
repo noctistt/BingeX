@@ -50,6 +50,8 @@ public partial class MainWindow
         await stopped;
         if (localClosing || request != playbackRequest) return;
         currentPath = null; currentContext = null;
+        playbackSnapshot = PlaybackSnapshot.Empty;
+        PlayerLoading.IsVisible = false;
         PlayerEmpty.IsVisible = true;
         CaptionPanel.IsVisible = false;
         UpdatePlayerLayout();

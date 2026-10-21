@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -18,8 +19,10 @@ internal static class Program
     private static bool done;
     private static DateTime deadline, heartbeat = DateTime.UtcNow;
     private static long previousTime;
+    private static Task? blockedNative;
+    private static int savedAudio = -1;
     private static object? Field(string name) => typeof(MainWindow).GetField(name, Private)!.GetValue(window);
-    private static object? Call(string name, params object?[] args) => typeof(MainWindow).GetMethod(name, Private)!.Invoke(window, args);
+    private static object? Call(string name, params object?[] args) { var clock=Stopwatch.StartNew(); try{return typeof(MainWindow).GetMethod(name, Private)!.Invoke(window, args);} finally{Log($"TIMING: {name} {clock.Elapsed.TotalMilliseconds:0}ms");} }
     private static MediaPlayer Player => (MediaPlayer)Field("player")!;
     private static bool Busy => (bool)typeof(MainWindow).GetProperty("NativePlaybackBusy", Private)!.GetValue(window)!;
     private static void Log(string message) { lock (typeof(Program)) File.AppendAllText(log, message + Environment.NewLine); }
@@ -99,7 +102,7 @@ internal static class Program
 
     private static void Step()
     {
-        heartbeat = DateTime.UtcNow;
+        var gap=(DateTime.UtcNow-heartbeat).TotalMilliseconds;if(phase>0&&gap>250)Log($"UI GAP: {gap:0}ms phase={phase}");if(phase==8)Require(gap<500,"Startup native wait blocked the UI dispatcher");heartbeat = DateTime.UtcNow;
         window ??= (Application.Current!.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
         if (window == null || Field("player") == null) return;
         switch (phase)
@@ -107,13 +110,29 @@ internal static class Program
             case 0:
                 window.Title = "BingeX layout regression";
                 window.Closed += (_, _) => done = true;
-                Call("Page", "Details"); Start(); phase = 1; break;
+                Call("RenderSourceChoices", Enumerable.Range(0,100).Select(i=>new StreamChoice("Fixture", "1080p source "+i,"Series episode · HEVC · Multi-audio\n1080p · 2.5 GiB · Layout fixture",media,null)).ToArray(),new MediaContext("layout-fixture","movie","Layout fixture","","fixture"));Call("Page", "Details");deadline=DateTime.UtcNow.AddSeconds(2);phase=7;break;
+            case 7:
+                if(DateTime.UtcNow<deadline)return;
+                var queue=(NativePlaybackQueue)Field("nativePlayback")!;
+                var delay = int.TryParse(Environment.GetEnvironmentVariable("BINGEX_LAYOUT_NATIVE_DELAY_MS"), out var configured) ? Math.Clamp(configured, 1000, 10000) : 2000;
+                blockedNative=queue.Enqueue(()=>Thread.Sleep(delay));
+                Start();
+                Require((string)Field("activePage")! == "Player" && !Control<ScrollViewer>("DetailsPage").IsVisible,"Source page remained visible while waiting for native stop");
+                Require(Control<Border>("PlayerLoading").IsVisible,"No clean opening state while native decoder is busy");
+                phase=8;break;
+            case 8:
+                Require((string)Field("activePage")! == "Player","Navigation changed during native startup");
+                if(blockedNative?.IsCompleted!=true)return;
+                Log("PASS: immediate navigation and responsive dispatcher during injected native delay");phase=1;break;
             case 1:
                 if (!Playing()) return;
                 Geometry(false); previousTime = Player.Time; deadline = DateTime.UtcNow.AddSeconds(4); phase = 2; break;
             case 2:
                 if (DateTime.UtcNow < deadline) return;
                 Require(!Busy && Player.IsPlaying && Player.Time > previousTime + 2000, "Playback stopped after startup");
+                Require(!Control<Border>("PlayerLoading").IsVisible, "Opening cover remained over playing video");
+                var audio = Player.AudioTrackDescription.Where(x => x.Id >= 0).ToArray();
+                if (audio.Length > 1) { savedAudio = audio[1].Id; Control<ComboBox>("AudioTrackPicker").SelectedIndex = 1; }
                 Call("Page", "Details"); deadline = DateTime.UtcNow.AddMilliseconds(400); phase = 3; break;
             case 3:
                 if (DateTime.UtcNow < deadline) return;
@@ -122,6 +141,8 @@ internal static class Program
                 Start(); phase = 4; break;
             case 4:
                 if (!Playing()) return;
+                if (savedAudio >= 0 && Player.AudioTrack != savedAudio) return;
+                if (savedAudio >= 0) Log("PASS: saved alternate audio track restored after source change");
                 Geometry(false);
                 if (++cycle < 4) { Call("Page", "Details"); deadline = DateTime.UtcNow.AddMilliseconds(400); phase = 3; }
                 else { Call("Page", "Details"); deadline = DateTime.UtcNow.AddMilliseconds(400); phase = 5; }
@@ -132,7 +153,35 @@ internal static class Program
             case 6:
                 if (DateTime.UtcNow < deadline) return;
                 Geometry(false); Require(Player.IsPlaying, "Restoring paused playback");
-                phase = 99; window.Close(); break;
+                Call("Play_Click",null,new Avalonia.Interactivity.RoutedEventArgs());deadline=DateTime.UtcNow.AddSeconds(8);phase=9;break;
+            case 9:
+                Require(DateTime.UtcNow<deadline,"Pause did not complete");
+                if(Busy||Player.State!=VLCState.Paused)return;
+                Call("Play_Click",null,new Avalonia.Interactivity.RoutedEventArgs());deadline=DateTime.UtcNow.AddSeconds(8);phase=10;break;
+            case 10:
+                Require(DateTime.UtcNow<deadline,"Resume did not complete");
+                if(Busy||!Player.IsPlaying)return;
+                Log("PASS: pause/resume with background polling");
+                Control<Slider>("SeekBar").Value=999;Call("Seek");deadline=DateTime.UtcNow.AddSeconds(12);phase=11;break;
+            case 11:
+                Require(DateTime.UtcNow<deadline,"End-of-media UI did not update");
+                if(!(bool)Field("playbackEnded")!)return;
+                Log("PASS: end-of-media update from background snapshot");
+                Call("Play_Click",null,new Avalonia.Interactivity.RoutedEventArgs());deadline=DateTime.UtcNow.AddSeconds(15);phase=12;break;
+            case 12:
+                if(!Playing())return;
+                Log("PASS: replay after end of media");
+                if (media.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    var unavailable = new Uri(new Uri(media), "unavailable-fixture.mp4").AbsoluteUri;
+                    Call("BeginSource", new StreamChoice("Fixture", "Unavailable fixture", "", unavailable, null), new MediaContext("layout-fixture", "movie", "Layout fixture", "", "fixture"), true);
+                    deadline=DateTime.UtcNow.AddSeconds(25);phase=13;
+                }
+                else { phase=99;window.Close(); }
+                break;
+            case 13:
+                if (!Playing() || (string?)Field("currentPath") != media) return;
+                Log("PASS: failed source offers fallback and resumes a working stream");phase=99;window.Close();break;
         }
     }
 

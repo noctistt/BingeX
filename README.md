@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.11.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.11.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -171,3 +171,11 @@ Mini/full dimensions are applied before showing the native overlay; controls rec
 Windows interface rendering uses Avalonia software rendering with a redirection surface as a compatibility measure for stale owner-window drawing around the native VLC child and transparent controls. This affects the interface, with a possible CPU cost while drawing it; VLC hardware decoding and video output remain independently configured. This is a candidate mitigation for the reported misplaced black video box, stale details page and detached controls. The exact third-party-stream failure has not been reproduced locally.
 
 The interactive Windows regression in `tests/BingeX.PlayerLayoutTests` checks native Win32 video dimensions against the controls, DPI scaling, page visibility and full/mini controls across startup, source changes, resizing and restoration. Run it with an isolated data directory and a local playable fixture.
+
+## Responsive stream transitions (0.11.3)
+
+Selecting a stream commits the Player page and an opaque opening state before waiting for the previous decoder to stop. Playback-state, timing and track discovery queries run on the serialized native worker; interface timers, navigation, subtitle drawing and history saves read a cached snapshot. Automatic resume seeking and saved-audio restoration also run on that worker. Poll results and queued commands from an obsolete media generation are discarded. Buffering retains the last known seek capability, and navigation during opening is preserved.
+
+The native UI regression now renders 100 source cards and injects a two-second native-operation delay. The previous 0.11.2 build fails immediate navigation under this delay; the updated build keeps the Player page visible and the dispatcher responsive. Checks also cover normal/maximized mini transitions, pause/resume, seek-to-end, replay, saved alternate audio when available, and a failed HTTP source falling back to a local fixture. These controlled checks do not certify a third-party stream's startup time.
+
+Slow startup stages and UI-dispatch delays (250 ms or more) are recorded locally in `playback-performance.log` inside the BingeX data directory. Logging runs in the background, rotates at 64 KiB with one previous file, and records fixed stage names and durations only, without media names, URLs or credentials. These best-effort timings help distinguish native decoder waits from actual interface stalls.

@@ -117,6 +117,8 @@ public partial class MainWindow
         mediaGeneration++;
         ResetOnlineSubtitles();
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
+        playbackSnapshot = PlaybackSnapshot.Empty with { State = VLCState.Opening };
+        playbackFailureHandled = false;
         pendingAudioSelection = null;
         audioRestoreUntil = null;
         audioDelayMs = 0; AudioDelayInput.Value = 0;
@@ -142,7 +144,7 @@ public partial class MainWindow
         var generation = mediaGeneration;
         Dispatcher.UIThread.Post(() =>
         {
-            if (NativePlaybackBusy || generation != mediaGeneration || player == null || player.State is VLCState.Playing or VLCState.Opening) return;
+            if (NativePlaybackBusy || generation != mediaGeneration || player == null || playbackSnapshot.State is VLCState.Playing or VLCState.Opening) return;
             if (lastDuration <= 0 && activeSource != null && !sourceStarted)
             {
                 if (TryScheduleNextSource("This source ended before video playback could start.")) return;
@@ -187,7 +189,7 @@ public partial class MainWindow
         if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
-        var hide = WindowState == WindowState.FullScreen && player?.IsPlaying == true && !playbackEnded &&
+        var hide = WindowState == WindowState.FullScreen && playbackSnapshot.IsPlaying && !playbackEnded &&
             !PlayerSettingsPanel.IsVisible && !PlayerControls.IsPointerOver && !seekDragging && idle.TotalSeconds > 3;
         if (!miniPlayer && PlayerControls.IsVisible == hide)
         {
@@ -198,7 +200,7 @@ public partial class MainWindow
         TorrentPanel.IsVisible = !miniPlayer && (pendingSource != null || torrentStarting || torrentSession != null && (!hide || TorrentProgress.IsVisible));
         if (useTextSubtitles && textSubtitles != null && player != null && !playbackEnded)
         {
-            var text = textSubtitles.TextAt(Math.Max(0, player.Time), subtitleDelayMs);
+            var text = textSubtitles.TextAt(Math.Max(0, CaptionPosition), subtitleDelayMs);
             CaptionText.Text = text;
             CaptionPanel.IsVisible = text.Length > 0;
         }
@@ -263,7 +265,7 @@ public partial class MainWindow
         if (NativePlaybackBusy || player == null || currentPath == null) { PlayerNotice("Open a video before enabling subtitles."); return; }
         RefreshTracks();
         var tracks = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.ToArray() ?? [];
-        var current = useTextSubtitles ? TextSubtitleId : player.Spu;
+        var current = useTextSubtitles ? TextSubtitleId : playbackSnapshot.Spu;
         TrackOption? next;
         if (current != -1)
         {
@@ -307,12 +309,12 @@ public partial class MainWindow
     }
     private void RefreshTracks()
     {
-        if (NativePlaybackBusy || player == null || currentPath == null || player.State is VLCState.Opening or VLCState.Buffering or VLCState.Stopped) return;
-        var audio = player.AudioTrackDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)).ToArray();
+        if (NativePlaybackBusy || player == null || currentPath == null || playbackSnapshot.State is VLCState.Opening or VLCState.Buffering or VLCState.Stopped) return;
+        var audio = playbackSnapshot.Audio;
         RestoreSavedAudioTrack(audio);
-        if (useTextSubtitles && player.Spu >= 0) player.SetSpu(-1);
+        if (useTextSubtitles && playbackSnapshot.Spu >= 0) _ = QueuePlayerCommand(native => native.SetSpu(-1));
         var subtitles = new List<TrackOption> { new(-1, "Off") };
-        subtitles.AddRange(player.SpuDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)));
+        subtitles.AddRange(playbackSnapshot.Subtitles);
         if (textSubtitles != null) subtitles.Add(new(TextSubtitleId, "External · " + textSubtitleName));
         var signature = string.Join('|', audio.Select(x => $"a{x.Id}:{x.Name}")) + string.Join('|', subtitles.Select(x => $"s{x.Id}:{x.Name}"));
         updatingTracks = true;
@@ -325,8 +327,8 @@ public partial class MainWindow
                 SubtitleTrackPicker.ItemsSource = subtitles;
                 AudioTrackPicker.IsEnabled = audio.Length > 0;
             }
-            AudioTrackPicker.SelectedItem = (AudioTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == player.AudioTrack);
-            SubtitleTrackPicker.SelectedItem = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == (useTextSubtitles ? TextSubtitleId : player.Spu));
+            AudioTrackPicker.SelectedItem = (AudioTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == playbackSnapshot.AudioTrack);
+            SubtitleTrackPicker.SelectedItem = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == (useTextSubtitles ? TextSubtitleId : playbackSnapshot.Spu));
         }
         finally { updatingTracks = false; }
     }
@@ -355,9 +357,9 @@ public partial class MainWindow
         }
         var id = pendingAudioSelection.Resolve(audio.Select(x => (x.Id, x.Name)));
         if (id == null) return;
-        if (player.AudioTrack == id) { pendingAudioSelection = null; return; }
+        if (playbackSnapshot.AudioTrack == id) { pendingAudioSelection = null; return; }
         // Confirm on the next refresh rather than assuming a native track change is immediate.
-        player.SetAudioTrack(id.Value);
+        _ = QueuePlayerCommand(native => native.SetAudioTrack(id.Value));
     }
     private void SubtitleTrackChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -431,7 +433,7 @@ public partial class MainWindow
         var volume = (int)VolumeBar.Value;
         preferences = preferences with { Volume = volume };
         if (volume > 0) lastNonzeroVolume = volume;
-        if (!NativePlaybackBusy && player != null) player.Volume = volume;
+        if (!NativePlaybackBusy && player != null) _ = QueuePlayerCommand(native => native.Volume = volume);
         UpdateVolumeIcon(volume);
     }
     private void Mute_Click(object? sender, RoutedEventArgs e)

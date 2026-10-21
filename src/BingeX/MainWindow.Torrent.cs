@@ -34,6 +34,8 @@ public partial class MainWindow
         StopTorrentPlayback();
         var stop = StopNativePlayerAsync();
         currentPath = null;
+        playbackSnapshot = PlaybackSnapshot.Empty;
+        PlayerLoading.IsVisible = false;
         thumbnailWork.Cancel();
         lastTorrentChoice = choice; lastTorrentContext = context;
         torrentRequest.Dispose(); torrentRequest = new();
@@ -108,6 +110,8 @@ public partial class MainWindow
         StopTorrentPlayback();
         currentPath = null;
         Status("Torrent stopped. Downloaded data is kept for next time.");
+        playbackSnapshot = PlaybackSnapshot.Empty;
+        PlayerLoading.IsVisible = false;
         PlayerNotice("Torrent stopped. Choose another source to continue.");
         RefreshHistory();
     }

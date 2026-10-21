@@ -30,7 +30,7 @@ public partial class MainWindow
                 return;
             }
             if (activePage != "Player" || activeSource == null || playbackEnded) return;
-            if (player?.Time > 1000 && !torrentStarting) sourceStarted = true;
+            if (playbackSnapshot.Time > 1000 && !torrentStarting) sourceStarted = true;
             if (!sourceStarted && DateTime.UtcNow - sourceLastProgress > TimeSpan.FromSeconds(35))
                 TryScheduleNextSource("This source has not delivered playable data.");
         };
@@ -70,6 +70,7 @@ public partial class MainWindow
         StopTorrentPlayback();
         _ = StopNativePlayerAsync();
         Page("Player");
+        PlayerLoading.IsVisible = false;
         pendingSource = next;
         switchAt = DateTime.UtcNow.AddSeconds(8);
         TorrentPanel.IsVisible = true; TorrentProgress.IsVisible = false;
