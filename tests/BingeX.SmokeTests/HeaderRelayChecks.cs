@@ -56,7 +56,16 @@ internal static class HeaderRelayChecks
         {
             await using var relay = new HeaderStreamRelay();
             using var client = new HttpClient();
-            var url = relay.Register($"http://127.0.0.1:{port}/master.m3u8", new Dictionary<string,string> { ["Origin"] = "https://provider.example", ["Cookie"] = "session=fixture" });
+            var choice=MediaLibrary.ParseStream("Stremio fixture",System.Text.Json.JsonSerializer.SerializeToElement(new {
+                url=$"http://127.0.0.1:{port}/master.m3u8",behaviorHints=new{proxyHeaders=new{request=new Dictionary<string,string>{{"Origin","https://provider.example"},{"Cookie","session=fixture"}}}}
+            }));
+            if(choice.UnsupportedReason!=null || choice.RequestHeaders?.Count!=2)throw new Exception("Stremio request headers must be preserved as playable.");
+            foreach(var invalid in new[]{"{\"Referer\":42}","{\"Referer\":\"bad\\r\\nInjected: yes\"}","{\"Origin\":\"one\",\"origin\":\"two\"}"})
+            {
+                using var json=System.Text.Json.JsonDocument.Parse("{\"url\":\"https://fixture/video\",\"behaviorHints\":{\"proxyHeaders\":{\"request\":"+invalid+"}}}");
+                if(MediaLibrary.ParseStream("Fixture",json.RootElement).UnsupportedReason==null)throw new Exception("Invalid Stremio headers accepted.");
+            }
+            var url = relay.Register(choice.Url,choice.RequestHeaders!);
             var master = await client.GetStringAsync(url);
             var child = master.Split('\n').First(x => x.StartsWith("http"));
             if (child.Contains($":{port}/")) throw new Exception("Nested playlist was not rewritten.");

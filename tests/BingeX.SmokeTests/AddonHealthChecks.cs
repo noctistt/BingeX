@@ -42,7 +42,7 @@ internal static class AddonHealthChecks
             (HttpStatusCode.OK, "{\"streams\":[]}", 0, "no streams"),
             (HttpStatusCode.TooManyRequests, "", 1, "Request limit"),
             (HttpStatusCode.OK, "{}", 1, "invalid stream response"),
-            (HttpStatusCode.OK, "{\"streams\":[{\"url\":\"https://video.example/test.mp4\",\"behaviorHints\":{\"proxyHeaders\":{}}}]}", 0, "0 supported")
+            (HttpStatusCode.OK, "{\"streams\":[{\"url\":\"https://video.example/test.mp4\",\"behaviorHints\":{\"proxyHeaders\":{}}}]}", 0, "1 supported")
         })
         {
             using var client = new AddonClient(new Handler(code, body, streamCheck: true));

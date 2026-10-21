@@ -184,15 +184,26 @@ public sealed partial class MediaLibrary(AddonClient client, string? sharedIdFil
             catch (FormatException error) { reason = error.Message; }
         }
         else if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")) reason = "External or unsupported playback source";
-        else if (!cloudstream && stream.TryGetProperty("behaviorHints", out var hints) && hints.ValueKind == JsonValueKind.Object && hints.TryGetProperty("proxyHeaders", out _)) reason = "Requires custom request headers";
         Dictionary<string, string>? headers = null;
-        if (cloudstream)
+        if (cloudstream && stream.TryGetProperty("drm", out var drm) && drm.ValueKind == JsonValueKind.True) reason = "DRM streams are not supported by this bridge";
+        if (stream.TryGetProperty("behaviorHints", out var behavior) && behavior.ValueKind == JsonValueKind.Object && behavior.TryGetProperty("proxyHeaders", out var proxy))
         {
-            if (stream.TryGetProperty("drm", out var drm) && drm.ValueKind == JsonValueKind.True) reason = "DRM streams are not supported by this bridge";
-            if (stream.TryGetProperty("behaviorHints", out var behavior) && behavior.TryGetProperty("proxyHeaders", out var proxy) && proxy.TryGetProperty("request", out var request))
+            if (proxy.ValueKind != JsonValueKind.Object) reason = "This provider returned invalid request headers";
+            else
             {
-                headers = request.EnumerateObject().ToDictionary(x => x.Name, x => x.Value.GetString() ?? "", StringComparer.OrdinalIgnoreCase);
-                if (!HeaderStreamRelay.ValidHeaders(headers)) reason = "This extension returned invalid request headers";
+                if (proxy.TryGetProperty("request", out var request))
+                {
+                    if (request.ValueKind != JsonValueKind.Object || request.EnumerateObject().Any(x=>x.Value.ValueKind != JsonValueKind.String)) reason = "This provider returned invalid request headers";
+                    else
+                    {
+                        headers = new(StringComparer.OrdinalIgnoreCase);
+                        foreach(var header in request.EnumerateObject())
+                            if(!headers.TryAdd(header.Name,header.Value.GetString()!)) reason = "This provider returned duplicate request headers";
+                        if (!HeaderStreamRelay.ValidHeaders(headers)) reason = "This provider returned invalid request headers";
+                    }
+                }
+                if(proxy.TryGetProperty("response",out var response) && (response.ValueKind != JsonValueKind.Object || response.EnumerateObject().Any()))
+                    reason = "Custom response headers are not supported yet";
             }
         }
         var name = AddonClient.Text(stream, "name", "Direct stream");

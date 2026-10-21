@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.13.16</Version>
+    <Version>0.13.17</Version>
     <Product>BingeX</Product>
     <Description>BingeX media player</Description>
     <ApplicationIcon>Assets/BingeX.ico</ApplicationIcon>
