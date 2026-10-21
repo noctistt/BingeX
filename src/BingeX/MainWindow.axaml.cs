@@ -54,6 +54,7 @@ public partial class MainWindow : Window
         SetupSources();
         SetupOnlineMode();
         SetupEpisodeNavigation();
+        SetupStreamScope();
         RefreshHistory();
         Opened += (_, _) =>
         {

@@ -214,6 +214,7 @@ public partial class MainWindow
     private static MediaContext ContextFor(TitleInfo title) => new(title.Id, title.Type, title.Name, title.Poster, title.AddonId, DurationSeconds: title.DurationSeconds);
     private void RenderTitle(TitleInfo title, CancellationToken token)
     {
+        StreamScopeSection.IsVisible=title.Id.StartsWith("cs:");
         DetailTitle.Text = title.Name;
         DetailKind.Text = title.Type.ToUpperInvariant();
         DetailFacts.Text = string.Join("   ·   ", new[] { title.Release, title.Rating.Length > 0 ? "★ " + title.Rating : "" }.Where(x => x.Length > 0));
@@ -280,7 +281,7 @@ public partial class MainWindow
             var ids = selectedTitle?.Id == context.Id && context.EpisodeId != null
                 ? EpisodeNavigation.Variants(selectedTitle,context.EpisodeId).Select(x=>x.Id).ToArray() : [];
             var all=new List<StreamChoice>(); var failures=0;
-            await foreach(var update in ProgressiveProviders.Load<StreamChoice>(ConnectedAddons(),
+            await foreach(var update in ProgressiveProviders.Load<StreamChoice>(StreamProviderScope.Select(ConnectedAddons(),context,preferences.SearchAllStreamProviders),
                 (addon,ct)=>ids.Length>0 ? library.EpisodeStreams(context.Type,ids,[addon],ct) : library.Streams(context.Type,context.EpisodeId ?? context.Id,[addon],ct),token))
             {
                 token.ThrowIfCancellationRequested();
@@ -294,7 +295,7 @@ public partial class MainWindow
             }
             RefreshAddons();
             var result=new ProviderResult<StreamChoice>(all,failures);
-            if (context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
+            if (preferences.SearchAllStreamProviders && context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
             var playable = result.Items.Count(x => x.UnsupportedReason == null);
             DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
             if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) failed. See Add-ons for connection details.";

@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.13. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.14. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -257,3 +257,7 @@ Player controls have consistent button sizes, a compact next-episode icon, track
 ### Subtitle picker and title action visibility (0.13.13)
 
 Online caption text is fetched and parsed in memory, including preferred captions restored for following episodes; it is not saved as a subtitle file. The selected track label now says Online rather than Downloaded. CC opens a compact subtitle-track picker with a link to full subtitle settings. The settings icon keeps the full audio/playback and subtitle tabs. Find streams sits in the stream pane rather than inside the height-limited synopsis, so long descriptions cannot clip the action.
+
+### Extension stream scope (0.13.14)
+
+Extension title pages include Search all providers, off by default and saved across restarts. Off resolves streams only through the originating extension, retaining its duplicate-episode source variants. On also queries compatible installed Stremio providers through the existing title-ID mapping. Unrelated Cloudstream extensions are not queried with another site's IDs. Normal catalog titles continue to query Stremio providers. Source scope does not remove providers or disable online subtitle searches.
