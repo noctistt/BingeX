@@ -291,9 +291,24 @@ public partial class MainWindow
             StreamItems.Children.Add(button);
         }
     }
+    private void HistoryPrevious_Click(object? sender, RoutedEventArgs e) => ScrollHistory(-1);
+    private void HistoryNext_Click(object? sender, RoutedEventArgs e) => ScrollHistory(1);
+    private void ScrollHistory(int direction)
+    {
+        var step = Math.Max(264, Math.Floor(HistoryScroller.Viewport.Width / 264) * 264);
+        HistoryScroller.Offset = new Vector(Math.Clamp(HistoryScroller.Offset.X + direction * step, 0,
+            Math.Max(0, HistoryScroller.Extent.Width - HistoryScroller.Viewport.Width)), 0);
+    }
+    private void HistoryScrolled(object? sender, ScrollChangedEventArgs e) => UpdateHistoryArrows();
+    private void UpdateHistoryArrows()
+    {
+        HistoryPrevious.IsEnabled = HistoryScroller.Offset.X > 1;
+        HistoryNext.IsEnabled = HistoryScroller.Offset.X + HistoryScroller.Viewport.Width < HistoryScroller.Extent.Width - 1;
+    }
     private void RefreshHistory()
     {
         HistoryItems.Children.Clear();
+        Avalonia.Threading.Dispatcher.UIThread.Post(UpdateHistoryArrows, Avalonia.Threading.DispatcherPriority.Loaded);
         var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration)).ToArray();
         EmptyHistory.IsVisible = history.Length == 0;
         HistorySection.IsVisible = history.Length > 0 || ConnectedAddons().Count == 0;

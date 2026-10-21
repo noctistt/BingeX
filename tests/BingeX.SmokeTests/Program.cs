@@ -7,6 +7,15 @@ static void Assert(bool condition, string message) { if (!condition) throw new E
 var directory = Path.Combine(Path.GetTempPath(), "BingeX-test-" + Guid.NewGuid());
 try
 {
+    var repoUrl = "https://raw.githubusercontent.com/self-similarity/MegaRepo/builds/repo.json";
+    Assert(CloudstreamRepositoryUrl.Normalize("  CLOUDSTREAMREPO://" + repoUrl[8..] + "  ") == repoUrl, "Cloudstream share links normalize without manual edits.");
+    Assert(CloudstreamRepositoryUrl.Normalize(repoUrl + "?ref=a%2Fb") == repoUrl + "?ref=a%2Fb", "HTTPS paths and queries survive normalization.");
+    foreach (var invalid in new[] { "http://example.com/repo.json", "cloudstreamrepo://user:secret@example.com/repo.json", "cloudstreamrepo://", "file:///repo.json" })
+    {
+        var repositoryRejected = false;
+        try { CloudstreamRepositoryUrl.Normalize(invalid); } catch (InvalidOperationException) { repositoryRejected = true; }
+        Assert(repositoryRejected, "Invalid or credential-bearing repository links are rejected.");
+    }
     StreamAudioChecks.Run();
     await HeaderRelayChecks.Run();
     Directory.CreateDirectory(directory);

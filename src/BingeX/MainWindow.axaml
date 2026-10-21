@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.3" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.4" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -40,9 +40,15 @@
             </StackPanel>
           </Border>
           <StackPanel x:Name="HistorySection" Spacing="16">
-            <TextBlock Text="Continue watching" FontSize="21" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <TextBlock Text="Continue watching" FontSize="21" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <Button x:Name="HistoryPrevious" Grid.Column="1" Content="←" Click="HistoryPrevious_Click" AutomationProperties.Name="Previous recently watched videos" Margin="0,0,8,0" />
+              <Button x:Name="HistoryNext" Grid.Column="2" Content="→" Click="HistoryNext_Click" AutomationProperties.Name="More recently watched videos" />
+            </Grid>
             <TextBlock x:Name="EmptyHistory" Text="Your recently played files will appear here." Classes="muted" />
-            <WrapPanel x:Name="HistoryItems" />
+            <ScrollViewer x:Name="HistoryScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" ScrollChanged="HistoryScrolled">
+              <StackPanel x:Name="HistoryItems" Orientation="Horizontal" />
+            </ScrollViewer>
           </StackPanel>
           <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
             <StackPanel Spacing="5">
@@ -293,11 +299,16 @@
               <TextBlock Text="Optional bridge: SkyStream cs3_engine (GPL-3.0) and Temurin Java. Downloaded separately; source and license links are in the bridge folder." TextWrapping="Wrap" Classes="muted" />
               <Button x:Name="CloudstreamDownload" Content="Download Cloudstream bridge" Click="CloudstreamDownload_Click" />
               <Grid ColumnDefinitions="*,Auto">
-                <TextBox x:Name="CloudstreamRepositoryInput" Watermark="HTTPS repo.json URL or GitHub repository page" />
+                <TextBox x:Name="CloudstreamRepositoryInput" Watermark="Repository link (HTTPS, cloudstreamrepo:// or GitHub)" />
                 <Button x:Name="CloudstreamRepositoryButton" Grid.Column="1" Content="Read repository" Click="CloudstreamRepository_Click" Margin="12,0,0,0" />
               </Grid>
               <TextBlock x:Name="CloudstreamStatus" Text="No extensions are bundled. Add a repository to get started." TextWrapping="Wrap" />
-              <StackPanel x:Name="CloudstreamItems" Spacing="8" />
+              <TextBlock x:Name="CloudstreamInstalledHeading" FontWeight="SemiBold" />
+              <TextBlock x:Name="CloudstreamInstalledEmpty" Text="No extensions installed yet." Classes="muted" />
+              <WrapPanel x:Name="CloudstreamInstalledItems" />
+              <TextBlock x:Name="CloudstreamAvailableHeading" FontWeight="SemiBold" />
+              <TextBlock x:Name="CloudstreamAvailableEmpty" Text="Read a repository to find extensions." Classes="muted" />
+              <WrapPanel x:Name="CloudstreamAvailableItems" />
             </StackPanel>
           </Border>
           <Border Background="#252036" CornerRadius="12" Padding="18">

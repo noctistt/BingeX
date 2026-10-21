@@ -36,6 +36,7 @@ public sealed class CloudstreamService : IAsyncDisposable
     public async Task<IReadOnlyList<CloudstreamExtension>> Repository(string url, CancellationToken token)
     {
         // Accept the familiar GitHub repository page as well as its actual repo.json URL.
+        url = CloudstreamRepositoryUrl.Normalize(url);
         var uri = Https(url);
         var parts = uri.AbsolutePath.Trim('/').Split('/');
         if (uri.Host == "github.com" && parts.Length == 2)

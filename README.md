@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -215,3 +215,7 @@ Cloudstream video sources can now carry additional valid HTTP headers through a 
 Subtitles returned with a Cloudstream stream appear in the normal CC track picker as Extension entries. Selecting one downloads and parses the caption with its supplied headers; video and episode changes clear the list. SRT/VTT and the existing subtitle controls are used. Providers that return no subtitle files cannot supply these entries.
 
 Cloudstream metadata IMDb IDs and explicit season/episode numbers now let Stremio stream and subtitle add-ons query the same title while the original extension remains available. If no shared ID is supplied, Match title for other add-ons offers editable catalog search and explicit title selection. Confirmed matches persist locally. Unknown episode numbering is never guessed, and unrelated Cloudstream extensions are not automatically searched for alternative site-specific IDs.
+
+### Compact browsing (0.13.4)
+
+Continue Watching shows recent unfinished videos newest first in one horizontal row. Use the arrows or scrollbar to see older entries. Cloudstream extensions appear in alphabetical card grids, separated into Installed and Available. Paste HTTPS, GitHub repository pages, or cloudstreamrepo:// repository links directly into Read repository.

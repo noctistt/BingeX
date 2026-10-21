@@ -23,12 +23,20 @@ public partial class MainWindow
         CloudstreamDownload.IsVisible = !CloudstreamRuntime.Ready(store.DataDirectory);
         CloudstreamDownload.IsEnabled = !cloudstreamBusy;
         CloudstreamRepositoryButton.IsEnabled = !cloudstreamBusy;
-        CloudstreamItems.Children.Clear();
-        foreach (var extension in cloudstream.Installed.Concat(repositoryExtensions).DistinctBy(x => x.Key))
+        CloudstreamInstalledItems.Children.Clear();
+        CloudstreamAvailableItems.Children.Clear();
+        var installedKeys = cloudstream.Installed.Select(x => x.Key).ToHashSet();
+        var availableCount = repositoryExtensions.DistinctBy(x => x.Key).Count(x => !installedKeys.Contains(x.Key));
+        CloudstreamInstalledHeading.Text = $"Installed · {installedKeys.Count}";
+        CloudstreamAvailableHeading.Text = $"Available · {availableCount}";
+        CloudstreamInstalledEmpty.IsVisible = installedKeys.Count == 0;
+        CloudstreamAvailableEmpty.IsVisible = availableCount == 0;
+        CloudstreamAvailableEmpty.Text = repositoryExtensions.Count == 0 ? "Read a repository to find extensions." : "All extensions in this repository are installed.";
+        foreach (var extension in cloudstream.Installed.Concat(repositoryExtensions).DistinctBy(x => x.Key).OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase))
         {
             var installed = cloudstream.Installed.Any(x => x.Key == extension.Key);
-            var row = new StackPanel { Spacing = 6, Margin = new Avalonia.Thickness(0, 6) };
-            row.Children.Add(new TextBlock { Text = $"{extension.Name} · v{extension.Version}" });
+            var row = new StackPanel { Spacing = 10 };
+            row.Children.Add(new TextBlock { Text = $"{extension.Name} · v{extension.Version}", TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontWeight = Avalonia.Media.FontWeight.SemiBold });
             var button = new Button { Content = installed ? "Remove" : "Install extension", IsEnabled = !cloudstreamBusy && (installed || CloudstreamRuntime.Ready(store.DataDirectory)) };
             button.Click += async (_, _) =>
             {
@@ -46,7 +54,11 @@ public partial class MainWindow
                 catch { CloudstreamStatus.Text = "The extension could not be loaded. Check its repository, connection and compatibility."; }
                 finally { cloudstreamBusy = false; RenderCloudstream(); }
             };
-            row.Children.Add(button); CloudstreamItems.Children.Add(row);
+            row.Children.Add(button);
+            var card = new Border { Width = 240, MinHeight = 150, Padding = new Avalonia.Thickness(14),
+                Margin = new Avalonia.Thickness(0, 0, 12, 12), CornerRadius = new Avalonia.CornerRadius(10),
+                Background = Avalonia.Media.Brush.Parse("#2B263A"), Child = row };
+            (installed ? CloudstreamInstalledItems : CloudstreamAvailableItems).Children.Add(card);
             if (installed)
             {
                 var browse = new Button { Content = "Browse providers", IsEnabled = !cloudstreamBusy };
@@ -65,7 +77,7 @@ public partial class MainWindow
             await File.WriteAllTextAsync(Path.Combine(store.DataDirectory, "cloudstream", "repository.txt"), url, cloudstreamLifetime.Token);
             CloudstreamStatus.Text = $"{repositoryExtensions.Count} extensions available. Install only extensions you trust; they execute code on your computer.";
         }
-        catch { CloudstreamStatus.Text = "Could not read repository. Use its HTTPS repo.json link or GitHub repository page. A SHA-256 checksum is required for each extension."; }
+        catch { CloudstreamStatus.Text = "Could not read repository. Use its HTTPS or cloudstreamrepo:// repo.json link, or GitHub repository page. A SHA-256 checksum is required for each extension."; }
         finally { cloudstreamBusy = false; RenderCloudstream(); }
     }
     private async void CloudstreamDownload_Click(object? sender, RoutedEventArgs e)
