@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private string currentTitle = "";
     private IReadOnlyDictionary<string, string>? currentRequestHeaders;
     private string? currentStreamAudio;
+    private HeaderStreamRelay? headerStreamRelay;
     private long resumeAt;
     private int saveTicks;
     private bool updatingSeek;
@@ -214,6 +215,11 @@ public partial class MainWindow : Window
                 if (native.Hwnd == IntPtr.Zero) throw new InvalidOperationException("The video surface is not ready.");
             }
             var playbackEngine = engine;
+            if (input == null && playbackUrl == null && requestHeaders is { Count: > 0 })
+            {
+                headerStreamRelay ??= new HeaderStreamRelay();
+                playbackUrl = headerStreamRelay.Register(path, requestHeaders);
+            }
             var speed = new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)];
             var extraAudio = externalAudioPath;
             var volume = preferences.Volume;

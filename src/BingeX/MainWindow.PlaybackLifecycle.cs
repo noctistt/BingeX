@@ -13,9 +13,13 @@ public partial class MainWindow
         videoClickTimer.Stop(); videoPressPoint = null;
         mediaGeneration++;
         var native = player;
+        var relay = headerStreamRelay;
+        headerStreamRelay = null;
         return native == null ? Task.CompletedTask : nativePlayback.Enqueue(() =>
         {
             using var timing = diagnostics.Measure("native-stop");
+            // Release upstream reads before VLC waits for its HTTP input to stop.
+            relay?.DisposeAsync().AsTask().GetAwaiter().GetResult();
             native.Stop();
         });
     }
@@ -31,6 +35,7 @@ public partial class MainWindow
         StopTorrentPlayback();
         await StopNativePlayerAsync();
         await torrentCleanup;
+        if (headerStreamRelay != null) await headerStreamRelay.DisposeAsync();
         await cloudstream.DisposeAsync();
     }
 }

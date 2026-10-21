@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -203,3 +203,8 @@ The first bridge download includes a checksum-pinned external SkyStream engine a
 ### Stream audio languages (0.13.1)
 
 Cloudstream streams with separate audio tracks now retain their language alternatives. Open Player settings → Audio → Stream audio language. The original audio is preferred when marked by the provider, repeated encodings of the same language are collapsed, and a selected language is remembered for that video. Languages load on demand through the existing player; no provider is hardcoded. Tracks needing custom headers remain unsupported.
+
+
+### Provider playback headers (0.13.2)
+
+Cloudstream video sources can now carry additional valid HTTP headers through a private loopback relay. HLS master and media playlists, segment URLs, encryption-key URIs, relative paths and redirects are handled; byte ranges and HEAD remain available. Cookies and Authorization are restricted to the original upstream origin. The relay is cancelled before stopping or changing the player. It runs locally and stores no stream URLs or header values in logs. DRM, browser verification and DASH manifest rewriting remain outside this feature.

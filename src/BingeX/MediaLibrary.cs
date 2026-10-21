@@ -168,7 +168,7 @@ public sealed class MediaLibrary(AddonClient client)
             if (stream.TryGetProperty("behaviorHints", out var behavior) && behavior.TryGetProperty("proxyHeaders", out var proxy) && proxy.TryGetProperty("request", out var request))
             {
                 headers = request.EnumerateObject().ToDictionary(x => x.Name, x => x.Value.GetString() ?? "", StringComparer.OrdinalIgnoreCase);
-                if (headers.Any(x => (!x.Key.Equals("Referer", StringComparison.OrdinalIgnoreCase) && !x.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) || x.Value.Contains('\r') || x.Value.Contains('\n'))) reason = "This extension needs unsupported request headers";
+                if (!HeaderStreamRelay.ValidHeaders(headers)) reason = "This extension returned invalid request headers";
             }
         }
         var name = AddonClient.Text(stream, "name", "Direct stream");

@@ -16,3 +16,6 @@ For visual inspection, set `BINGEX_LAYOUT_NATIVE_DELAY_MS=10000` to extend the i
 Before playback, visits the empty Player from all four browsing pages and checks that the native HWND has a black background brush and matching dimensions. The earlier visibility-only checks missed retained pixels inside an unpainted native window. A bright Home-page fixture supports visual confirmation. Set `BINGEX_LAYOUT_EMPTY_HOLD_MS=25000` to hold that screen for inspection.
 
 Discover checks use in-memory HTTP fixtures for provider/category grouping, search-only categories, scoped search, clear-search behavior and cancellation on rapid tab switches. Buffering checks inject Buffering/Paused snapshots into the real UI while the smoke tests separately exercise clock-stall detection and recovery. Set `BINGEX_DISCOVER_VISUAL_HOLD=1` to inspect the catalog navigation fixture.
+
+
+Set `BINGEX_LAYOUT_HEADER_FIXTURE=1` only with an isolated fixture requiring `Origin: https://provider.example` and `Cookie: session=fixture`. Source choices then enter the real app's header-relay path, including fallback choices. The fixture server and app must run in the same reachable network context. This is the native header/HLS regression; an exploratory dummy-video-output test was unstable during cleanup and is not used for native coverage.

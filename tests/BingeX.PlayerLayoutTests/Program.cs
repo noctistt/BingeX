@@ -22,6 +22,8 @@ internal static class Program
     private static Task? blockedNative;
     private static Task? discoverChecks;
     private static int savedAudio = -1;
+    private static IReadOnlyDictionary<string, string>? FixtureHeaders => Environment.GetEnvironmentVariable("BINGEX_LAYOUT_HEADER_FIXTURE") == "1"
+        ? new Dictionary<string,string> { ["Origin"] = "https://provider.example", ["Cookie"] = "session=fixture" } : null;
     private static int emptySource;
     private static readonly string[] EmptySources = ["Library", "My Library", "Details", "Add-ons"];
     private static object? Field(string name) => typeof(MainWindow).GetField(name, Private)!.GetValue(window);
@@ -75,7 +77,7 @@ internal static class Program
 
     private static void Start()
     {
-        Call("BeginSource", new StreamChoice("Fixture", "Layout fixture", "", media, null),
+        Call("BeginSource", new StreamChoice("Fixture", "Layout fixture", "", media, null, RequestHeaders: FixtureHeaders),
             new MediaContext("layout-fixture", "movie", "Layout fixture", "", "fixture"), true);
         deadline = DateTime.UtcNow.AddSeconds(25);
     }
@@ -155,7 +157,7 @@ internal static class Program
                 { Call("Page", EmptySources[emptySource]); deadline = DateTime.UtcNow.AddMilliseconds(300); phase = 22; break; }
                 window.Title = "BingeX layout regression";
                 window.Closed += (_, _) => done = true;
-                Call("RenderSourceChoices", Enumerable.Range(0,100).Select(i=>new StreamChoice("Fixture", "1080p source "+i,"Series episode · HEVC · Multi-audio\n1080p · 2.5 GiB · Layout fixture",media,null)).ToArray(),new MediaContext("layout-fixture","movie","Layout fixture","","fixture"));
+                Call("RenderSourceChoices", Enumerable.Range(0,100).Select(i=>new StreamChoice("Fixture", "1080p source "+i,"Series episode · HEVC · Multi-audio\n1080p · 2.5 GiB · Layout fixture",media,null, RequestHeaders: FixtureHeaders)).ToArray(),new MediaContext("layout-fixture","movie","Layout fixture","","fixture"));
                 Call("Page", "Details"); deadline=DateTime.UtcNow.AddSeconds(2); phase=7; break;
             case 7:
                 if(DateTime.UtcNow<deadline)return;
@@ -221,7 +223,7 @@ internal static class Program
                 if (media.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
                     var unavailable = new Uri(new Uri(media), "unavailable-fixture.mp4").AbsoluteUri;
-                    Call("BeginSource", new StreamChoice("Fixture", "Unavailable fixture", "", unavailable, null), new MediaContext("layout-fixture", "movie", "Layout fixture", "", "fixture"), true);
+                    Call("BeginSource", new StreamChoice("Fixture", "Unavailable fixture", "", unavailable, null, RequestHeaders: FixtureHeaders), new MediaContext("layout-fixture", "movie", "Layout fixture", "", "fixture"), true);
                     deadline=DateTime.UtcNow.AddSeconds(25);phase=13;
                 }
                 else { phase=99;window.Close(); }

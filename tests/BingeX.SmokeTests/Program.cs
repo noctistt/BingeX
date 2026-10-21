@@ -8,6 +8,7 @@ var directory = Path.Combine(Path.GetTempPath(), "BingeX-test-" + Guid.NewGuid()
 try
 {
     StreamAudioChecks.Run();
+    await HeaderRelayChecks.Run();
     // Keep the mutex-owning thread fixed while the client uses asynchronous I/O.
     using (var first = new SingleInstance(directory))
     using (var second = new SingleInstance(directory))
