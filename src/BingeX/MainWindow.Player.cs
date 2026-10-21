@@ -16,7 +16,7 @@ public partial class MainWindow
     private readonly DispatcherTimer videoClickTimer = new();
     private Point? videoPressPoint;
     private long videoClickGeneration;
-    private readonly DispatcherTimer overlayTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
+    private readonly DispatcherTimer overlayTimer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private PlayerPreferences preferences = new();
     private DateTime lastPlayerInteraction = DateTime.UtcNow;
     private DateTime noticeUntil;
@@ -113,6 +113,7 @@ public partial class MainWindow
     private void ResetMediaControls(bool preserveSubtitles)
     {
         ResetPlaybackWaiting();
+        captionClock.Reset();
         videoClickTimer.Stop();
         videoPressPoint = null;
         mediaGeneration++;
@@ -203,7 +204,7 @@ public partial class MainWindow
         if (useTextSubtitles && textSubtitles != null && player != null && !playbackEnded)
         {
             var text = textSubtitles.TextAt(Math.Max(0, CaptionPosition), subtitleDelayMs);
-            CaptionText.Text = text;
+            if (CaptionText.Text != text) CaptionText.Text = text;
             CaptionPanel.IsVisible = text.Length > 0;
         }
         else CaptionPanel.IsVisible = false;

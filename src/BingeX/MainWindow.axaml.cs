@@ -349,6 +349,7 @@ public partial class MainWindow : Window
     {
         if (NativePlaybackBusy || player == null || !playbackSnapshot.IsSeekable || playbackSnapshot.Length <= 0) return;
         resumeAt = 0;
+        captionClock.Reset();
         ResetPlaybackWaiting();
         var target = (long)(SeekBar.Value / 1000 * playbackSnapshot.Length);
         _ = QueuePlayerCommand(native => native.Time = target);
@@ -382,6 +383,7 @@ public partial class MainWindow : Window
     {
         if (NativePlaybackBusy || player == null || !playbackSnapshot.IsSeekable) return;
         resumeAt = 0;
+        captionClock.Reset();
         ResetPlaybackWaiting();
         var target = PlaybackPolicy.SeekTarget(playbackSnapshot.Time, delta, playbackSnapshot.Length);
         _ = QueuePlayerCommand(native => native.Time = target);

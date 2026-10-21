@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.5. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.6. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -223,3 +223,7 @@ Continue Watching shows recent unfinished videos newest first in one horizontal 
 ### Online mode (0.13.5)
 
 The Online mode switch beside Open media is off by default and saved immediately for the next launch. Off hides Discover, Add-ons, online subtitle search, and online Continue Watching entries. Local files, folders, embedded tracks and subtitle files remain available. Switching off cancels catalog browsing but keeps installed providers, history, title matches and settings; existing playback continues. This is a feature visibility preference, not a network firewall.
+
+### Subtitle timing (0.13.6)
+
+Extension and external text subtitles retain a stable interpolation anchor when VLC repeats timestamps, avoiding backwards jumps across cue boundaries. Interpolation follows playback speed, freezes on pause/buffering, resets for seeks and media changes, and stops extrapolating after 750 ms without an advancing timestamp. Caption refresh runs about 30 times per second and text changes only when the active cue changes. Release-specific subtitle offsets may still need the existing delay control.

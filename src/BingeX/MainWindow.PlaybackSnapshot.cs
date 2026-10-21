@@ -6,7 +6,7 @@ namespace BingeX;
 public partial class MainWindow
 {
     private sealed record PlaybackSnapshot(VLCState State, long Length, long Time, bool IsSeekable,
-        int AudioTrack, int Spu, TrackOption[] Audio, TrackOption[] Subtitles, long CapturedAt)
+        int AudioTrack, int Spu, TrackOption[] Audio, TrackOption[] Subtitles, long CapturedAt, float Rate = 1)
     {
         public bool IsPlaying => State == VLCState.Playing;
         public static PlaybackSnapshot Empty { get; } = new(VLCState.Stopped, 0, 0, false, -1, -1, [], [], 0);
@@ -15,8 +15,16 @@ public partial class MainWindow
     private PlaybackSnapshot playbackSnapshot = PlaybackSnapshot.Empty;
     private bool pollingPlayer;
     private bool playbackFailureHandled;
-    private long CaptionPosition => playbackSnapshot.Time + (playbackSnapshot.IsPlaying
-        ? (long)Math.Clamp(Stopwatch.GetElapsedTime(playbackSnapshot.CapturedAt).TotalMilliseconds, 0, 500) : 0);
+    private readonly SubtitlePlaybackClock captionClock = new();
+    private long CaptionPosition
+    {
+        get
+        {
+            captionClock.Observe(playbackSnapshot.Time, Stopwatch.GetElapsedTime(0, playbackSnapshot.CapturedAt),
+                playbackSnapshot.IsPlaying, playbackSnapshot.Rate);
+            return captionClock.Position(Stopwatch.GetElapsedTime(0, Stopwatch.GetTimestamp()));
+        }
+    }
 
     private static PlaybackSnapshot ReadPlaybackSnapshot(MediaPlayer native, PlaybackSnapshot previous)
     {
@@ -28,10 +36,12 @@ public partial class MainWindow
             return previous with { State = state, CapturedAt = Stopwatch.GetTimestamp() };
         if (state is VLCState.Opening or VLCState.Stopped or VLCState.Error)
             return new(state, 0, 0, false, -1, -1, [], [], Stopwatch.GetTimestamp());
-        return new(state, native.Length, native.Time, native.IsSeekable, native.AudioTrack, native.Spu,
+        var time = native.Time;
+        var capturedAt = Stopwatch.GetTimestamp();
+        return new(state, native.Length, time, native.IsSeekable, native.AudioTrack, native.Spu,
             native.AudioTrackDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)).ToArray(),
             native.SpuDescription.Where(x => x.Id >= 0).Select(x => new TrackOption(x.Id, x.Name)).ToArray(),
-            Stopwatch.GetTimestamp());
+            capturedAt, native.Rate);
     }
 
     private Task QueuePlayerCommand(Action<MediaPlayer> command)
