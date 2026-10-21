@@ -3,6 +3,18 @@ using Avalonia.Media;
 namespace BingeX;
 public partial class MainWindow
 {
+    private long sourceViewRevision;
+    private void ClearSourceChoices()
+    {
+        sourceViewRevision++;
+        availableSources=[]; availableSourceContext=null;
+        sourceAudioFilter="All"; sourceAudioContext="";
+        StreamItems.Children.Clear(); StreamHeading.IsVisible=false; DetailRetry.IsVisible=false;
+        SuggestedSource.IsVisible=false;
+        SourceAudioFilterPanel.IsVisible=false; SourceAudioFilters.Children.Clear(); SourceAudioFilterNotice.Text="";
+    }
+    private bool IsCurrentSourceView(long revision,MediaContext context) =>
+        revision==sourceViewRevision && availableSourceContext==context;
     private string sourceAudioFilter="All",sourceAudioContext="";
     private IEnumerable<StreamChoice> FilteredSources => availableSources.Where(x=>sourceAudioFilter=="All" || SourceAudioInfo.Parse(x).Kind.ToString()==sourceAudioFilter);
     private IEnumerable<StreamChoice> PlaybackSources
@@ -24,6 +36,7 @@ public partial class MainWindow
     }
     private void RenderSourceAudioFilters(MediaContext context)
     {
+        var revision=sourceViewRevision;
         SourceAudioFilterPanel.IsVisible=availableSources.Count>0;
         SourceAudioFilters.Children.Clear();
         foreach(var filter in new[]{"All","Subbed","Dubbed","DualAudio","Unknown"})
@@ -33,6 +46,7 @@ public partial class MainWindow
             button.Classes.Set("primary",sourceAudioFilter==filter);
             button.Click+=(_,_)=>
             {
+                if(!IsCurrentSourceView(revision,context))return;
                 sourceAudioFilter=filter;
                 var saved=store.ShowAudioPreference(context);
                 store.SaveShowAudioPreference(context,saved with{SourceFilter=filter});

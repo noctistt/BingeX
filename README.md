@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.15. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.16. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -267,3 +267,6 @@ Extension title pages include Search all providers, off by default and saved acr
 Source lists include All, Subbed, Dubbed, Dual audio and Unknown filters with counts. Classification uses explicit source labels or structured audio-language alternatives; quality and subtitle language do not prove spoken audio. Filter selection is saved per title and applies to suggested playback, next episode and source retries. Unlabelled or conflicting single-file labels remain Unknown. Provider labels are descriptions, not verified media analysis.
 
 A selected audio language is saved per show. Manually choosing a source with one explicitly labelled audio language also remembers that language. Following episodes match their own separate audio URLs or native audio track labels/languages; prior episode URLs and native track IDs are not reused across episodes. Existing per-video choices retain priority. Automatic source selection prefers a labelled language match and excludes explicitly different languages; sources without audio-language metadata remain eligible. Missing or ambiguous track-language matches keep available playback rather than guessing a different language.
+
+### 0.13.16
+Opening a different title or season clears previous stream choices and audio filters immediately. Retired controls and cancelled lookups cannot restore or play the previous title’s sources.

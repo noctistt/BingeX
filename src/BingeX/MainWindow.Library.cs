@@ -183,7 +183,7 @@ public partial class MainWindow
         Page("Details");
         selectedTitle = title;
         selectedContext = ContextFor(title);
-        StreamItems.Children.Clear(); StreamHeading.IsVisible = false; DetailRetry.IsVisible = false;
+        ClearSourceChoices();
         RenderTitle(title, token);
         EpisodeItems.Children.Clear(); SetEpisodeLayout(false);
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Loading title details…"; DetailMessage.Text = "";
@@ -235,7 +235,7 @@ public partial class MainWindow
     private void SeasonChanged(object? sender, SelectionChangedEventArgs e)
     {
         streamWork.Cancel();
-        StreamItems.Children.Clear(); StreamHeading.IsVisible = false; DetailRetry.IsVisible = false;
+        ClearSourceChoices();
         EpisodeItems.Children.Clear();
         EpisodeScroller.Offset = default;
         StreamScroller.Offset = default;
@@ -267,10 +267,10 @@ public partial class MainWindow
     {
         if (selectedContext == null) return;
         var context = selectedContext;
-        availableSources = []; availableSourceContext = null;
-        SourceAudioFilterPanel.IsVisible=false;
+        ClearSourceChoices();
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
+        var revision=sourceViewRevision;
         SuggestedSource.IsVisible = false;
         DetailBusy.IsVisible = false;
         StreamScroller.Offset = default;
@@ -286,6 +286,7 @@ public partial class MainWindow
                 (addon,ct)=>ids.Length>0 ? library.EpisodeStreams(context.Type,ids,[addon],ct) : library.Streams(context.Type,context.EpisodeId ?? context.Id,[addon],ct),token))
             {
                 token.ThrowIfCancellationRequested();
+                if(revision!=sourceViewRevision)return;
                 all.AddRange(update.Result.Items); failures+=update.Result.Failures;
                 foreach(var check in update.Result.Diagnostics ?? []) addonChecks[check.ManifestUrl]=check;
                 RenderSourceChoicesCore(all,context,true);
@@ -294,6 +295,8 @@ public partial class MainWindow
                 if(availableSources.Any(x=>x.UnsupportedReason==null)) ready?.Invoke(context);
                 token.ThrowIfCancellationRequested();
             }
+            token.ThrowIfCancellationRequested();
+            if(revision!=sourceViewRevision)return;
             RefreshAddons();
             var result=new ProviderResult<StreamChoice>(all,failures);
             if (preferences.SearchAllStreamProviders && context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
@@ -310,6 +313,7 @@ public partial class MainWindow
     private void RenderSourceChoicesCore(IReadOnlyList<StreamChoice> options, MediaContext context, bool append)
     {
         if (!append) StreamItems.Children.Clear();
+        var revision=sourceViewRevision;
         SetSourceAudioContext(context);
         availableSources = SourceSelection.Rank(options, sourcePerformance);
         availableSourceContext = context;
@@ -328,7 +332,7 @@ public partial class MainWindow
             if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE") });
             column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
             var button = new Button { Tag = SourceSelection.Key(stream), Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
-            button.Click += (_, _) => { RememberSourceAudioChoice(stream,context); BeginSource(stream, context); };
+            button.Click += (_, _) => { if(!IsCurrentSourceView(revision,context))return; RememberSourceAudioChoice(stream,context); BeginSource(stream, context); };
             StreamItems.Children.Add(button);
         }
     }
