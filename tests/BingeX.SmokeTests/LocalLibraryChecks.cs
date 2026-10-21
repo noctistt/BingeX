@@ -61,6 +61,13 @@ internal static class LocalLibraryChecks
         Check(LocalVideoPresentation.Episode(sample with { Title = "A Movie 2024" }) == null, "Movie years must not be mistaken for episodes.");
         var missing = LocalLibraryScanner.Scan(Path.Combine(testDirectory, "disconnected-drive"), CancellationToken.None);
         Check(!missing.Complete && missing.Videos.Count == 0, "Missing roots must report an incomplete scan.");
+        var early=sample with{Path="early",Title="My.Show.S02E02",RelativePath=Path.Combine("My Show","Season 2","e2.mkv"),AddedTicks=1};
+        var late=early with{Path="late",Title="My.Show.S02E10",AddedTicks=2};
+        Check(LocalVideoPresentation.Matches(early,"my show s02e02") && LocalVideoPresentation.Matches(early,"season 2") && !LocalVideoPresentation.Matches(early,"different show"),"Search must match all words across normalized filenames and folder paths.");
+        var series=LocalVideoPresentation.Groups(new[]{late,early},1,0);
+        Check(series.Count==1 && series[0].Videos[0].Path=="early","Series grouping must order episodes numerically.");
+        Check(LocalVideoPresentation.Groups(new[]{early,early with{Path="other",Folder=root+"-other"}},1,0).Count==2,"Identically named shows from different roots must not merge.");
+        Check(LocalVideoPresentation.Groups(new[]{early,late},2,1).Single().Videos[0].Path=="late","All videos view preserves a global recency order.");
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
         var observed = false;
         try { LocalLibraryScanner.Scan(root, canceled.Token); } catch (OperationCanceledException) { observed = true; }

@@ -20,10 +20,16 @@ public partial class MainWindow
     private bool localClosing;
     private bool localLibraryReady;
     private bool changingLocalFolders;
+    private readonly HashSet<string> collapsedLocalGroups=new();
+    private readonly Avalonia.Threading.DispatcherTimer localSearchTimer=new(){Interval=TimeSpan.FromMilliseconds(200)};
     private record LocalFolderChoice(string? Path, string Name) { public override string ToString() => Name; }
 
     private void SetupLocalLibrary()
     {
+        LocalSort.SelectedIndex=Math.Clamp(preferences.LocalLibrarySort,0,2);
+        LocalGrouping.SelectedIndex=Math.Clamp(preferences.LocalLibraryGrouping,0,2);
+        localSearchTimer.Tick+=(_,_)=>{localSearchTimer.Stop();RefreshLocalLibrary();};
+        Closed+=(_,_)=>localSearchTimer.Stop();
         localLibraryReady = true;
         RefreshLocalFolders();
         RefreshLocalLibrary();
@@ -128,11 +134,21 @@ public partial class MainWindow
     {
         if (!localLibraryReady) return;
         localDisplayLimit = 100;
-        RefreshLocalLibrary();
+        localSearchTimer.Stop(); localSearchTimer.Start();
+    }
+    private void ClearLocalSearch_Click(object? sender,RoutedEventArgs e)
+    {
+        LocalVideoSearch.Text=""; localSearchTimer.Stop(); localDisplayLimit=100; RefreshLocalLibrary();
     }
     private void LocalFolderFilterChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (!localLibraryReady || changingLocalFolders) return;
+        localSearchTimer.Stop();
+        if(ReferenceEquals(sender,LocalSort) || ReferenceEquals(sender,LocalGrouping))
+        {
+            preferences=preferences with{LocalLibrarySort=LocalSort.SelectedIndex,LocalLibraryGrouping=LocalGrouping.SelectedIndex};
+            store.SavePreferences(preferences);
+        }
         localDisplayLimit = 100;
         RefreshLocalLibrary();
     }
@@ -146,21 +162,25 @@ public partial class MainWindow
         if (!localLibraryReady) return;
         var folder = (LocalFolderFilter.SelectedItem as LocalFolderChoice)?.Path;
         var query = LocalVideoSearch.Text?.Trim() ?? "";
-        var videos = LocalVideoPresentation.Sort(store.LocalVideos(folder), LocalSort.SelectedIndex).Where(x => query.Length == 0 || x.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || x.RelativePath.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        var videos = LocalVideoPresentation.Sort(store.LocalVideos(folder), LocalSort.SelectedIndex).Where(x => LocalVideoPresentation.Matches(x,query)).ToArray();
         LocalVideoCount.Text = $"{videos.Length} video{(videos.Length == 1 ? "" : "s")}" + (videos.Length > localDisplayLimit ? $" · showing {localDisplayLimit}" : "");
         LocalLibraryEmpty.IsVisible = videos.Length == 0;
         LocalLibraryEmpty.Text = query.Length > 0 ? "No matching videos. Try a different title or folder."
             : store.Folders().Count == 0 ? "Add your first folder to build your library." : "No videos indexed here yet. Add a video file and rescan.";
         LocalLoadMore.IsVisible = videos.Length > localDisplayLimit;
         LocalVideoItems.Children.Clear();
-        foreach (var group in videos.Take(localDisplayLimit).GroupBy(x => (x.Folder, Heading: LocalVideoPresentation.Episode(x) is { } episode ? episode.Show + " · Season " + episode.Season : Path.GetDirectoryName(x.RelativePath) ?? "")))
+        foreach (var group in LocalVideoPresentation.Groups(videos.Take(localDisplayLimit),LocalGrouping.SelectedIndex,LocalSort.SelectedIndex))
         {
-            var heading = group.Key.Heading.Length > 0 ? group.Key.Heading.Replace(Path.DirectorySeparatorChar, '/') : FolderName(group.Key.Folder);
-            LocalVideoItems.Children.Add(new TextBlock { Text = heading, FontSize = 18, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             var tiles = new WrapPanel();
-            LocalVideoItems.Children.Add(tiles);
-            foreach (var video in LocalSort.SelectedIndex == 0 ? group.OrderBy(x => LocalVideoPresentation.Episode(x)?.Episode ?? 0).ThenBy(x => x.Title, StringComparer.OrdinalIgnoreCase) : group.AsEnumerable())
+            if(LocalGrouping.SelectedIndex==2)LocalVideoItems.Children.Add(tiles);
+            else
+            {
+                var key=LocalGrouping.SelectedIndex+":"+group.Key;
+                var section=new Expander{Header=group.Name.Replace(Path.DirectorySeparatorChar,'/')+" · "+group.Videos.Count+" videos",Content=tiles,IsExpanded=!collapsedLocalGroups.Contains(key),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
+                section.PropertyChanged+=(_,e)=>{if(e.Property.Name==nameof(Expander.IsExpanded)){if(section.IsExpanded)collapsedLocalGroups.Remove(key);else collapsedLocalGroups.Add(key);}};
+                LocalVideoItems.Children.Add(section);
+            }
+            foreach (var video in group.Videos)
             {
                 var column = new StackPanel { Width = 210, Spacing = 8 };
                 var art = new Grid { Width = 210, Height = 118 };
@@ -180,7 +200,7 @@ public partial class MainWindow
                 column.Children.Add(new TextBlock { Text = video.Title, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 2, Height = 38, FontWeight = FontWeight.SemiBold });
                 var parent = Path.GetDirectoryName(video.RelativePath);
                 column.Children.Add(new TextBlock { Text = (string.IsNullOrEmpty(parent) ? FolderName(video.Folder) : parent) + " · " + FormatVideoSize(video.Size), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11, Foreground = Brush.Parse("#AAA0BA") });
-                var play = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 16, 18), VerticalAlignment = VerticalAlignment.Top };
+                var play = new Button { Tag=video.Path, Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 16, 18), VerticalAlignment = VerticalAlignment.Top };
                 ToolTip.SetTip(play, video.Path);
                 AutomationProperties.SetName(play, "Play " + video.Title);
                 play.Click += (_, _) =>
