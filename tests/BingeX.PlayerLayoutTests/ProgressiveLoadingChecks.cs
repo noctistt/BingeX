@@ -76,6 +76,30 @@ internal static class ProgressiveLoadingChecks
             Require(playback.Single().Name=="English Dubbed","Autoplay must not select a known wrong audio language when the show prefers English.");
             Call("RememberSourceAudioChoice",audioSources[1] with{Name="Hindi Dubbed"},filterContext);
             Require(store.ShowAudioPreference(filterContext).Language=="hindi","Choosing a clearly labelled single-language source remembers its audio language.");
+            Call("ClearSourceChoices");
+            StreamChoice[] filterSources=[
+                new("Provider A","English Dubbed","Full source description","https://fixture/a1080",null,Evidence:new(null,null,1080)),
+                new("Provider A","English Dubbed","","https://fixture/a720",null,Evidence:new(null,null,720)),
+                new("Provider B","Hindi Dubbed","","https://fixture/b1080",null,Evidence:new(null,null,1080)),
+                new("Provider B","Unlabelled","","https://fixture/unknown",null)];
+            Call("RenderSourceChoices",filterSources,filterContext);
+            void Pick(string picker,string label)
+            {
+                var control=Control<ComboBox>(picker);
+                control.SelectedItem=control.Items.Cast<object>().Single(x=>x.ToString()==label);
+            }
+            Pick("SourceProviderPicker","Provider A"); Pick("SourceResolutionPicker","1080p"); Pick("SourceLanguagePicker","English");
+            Require(Control<StackPanel>("StreamItems").Children.Count==1 && ((IEnumerable<StreamChoice>)typeof(MainWindow).GetProperty("PlaybackSources",flags)!.GetValue(window)!).Single().Url.EndsWith("a1080"),"Combined source filters match provider, resolution and language; explicit language overrides the remembered preference.");
+            Call("RenderSourceChoicesCore",filterSources.Append(filterSources[0] with{Url="https://fixture/late"}).ToArray(),filterContext,true);
+            Require(Control<StackPanel>("StreamItems").Children.Count==2 && Control<ComboBox>("SourceProviderPicker").SelectedItem!.ToString()=="Provider A","Late results respect and preserve active filters.");
+            Pick("SourceLanguagePicker","Hindi");
+            Require(Control<StackPanel>("StreamItems").Children.Count==0 && Control<TextBlock>("SourceFilterEmpty").IsVisible,"Conflicting filters show a clear empty state with a reset action.");
+            Call("ResetSourceFilters_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
+            Require(Control<StackPanel>("StreamItems").Children.Count==5 && !Control<TextBlock>("SourceFilterEmpty").IsVisible,"Reset filters restores every eligible source.");
+            Pick("SourceResolutionPicker","Unknown"); Pick("SourceLanguagePicker","Unknown");
+            Require(Control<StackPanel>("StreamItems").Children.Count==1,"Unknown quality and audio remain explicitly selectable.");
+            Call("ClearSourceChoices"); Call("RenderSourceChoices",filterSources,filterContext with{EpisodeId="episode3"});
+            Require(Control<StackPanel>("StreamItems").Children.Count==4 && Control<ComboBox>("SourceProviderPicker").SelectedItem!.ToString()=="All providers" && Control<ComboBox>("SourceResolutionPicker").SelectedItem!.ToString()=="All resolutions" && Control<ComboBox>("SourceLanguagePicker").SelectedItem!.ToString()=="All audio languages","New searches reset all source filters.");
             var staleFilter=Control<WrapPanel>("SourceAudioFilters").Children.OfType<Button>().First();
             var staleSource=Control<StackPanel>("StreamItems").Children.OfType<Button>().First();
             var movie=new TitleInfo("new-movie-fixture","movie","New movie","","","Synopsis","","","","progress-fast",[]);

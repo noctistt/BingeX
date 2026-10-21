@@ -3,6 +3,7 @@ public partial class MainWindow
 {
     private void SetupStreamScope()
     {
+        SetupSourceFilters();
         IncludeTorrentSourcesCheck.IsChecked=preferences.IncludeTorrentSources;
         IncludeTorrentSourcesCheck.PropertyChanged+=(_,e)=>
         {

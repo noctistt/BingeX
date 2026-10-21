@@ -301,7 +301,7 @@ public partial class MainWindow
             var result=new ProviderResult<StreamChoice>(all,failures);
             if (preferences.SearchAllStreamProviders && context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
             var playable = FilteredSources.Count(x => x.UnsupportedReason == null);
-            DetailMessage.Text = playable == 0 && !preferences.IncludeTorrentSources && result.Items.Any(x=>x.Torrent!=null) && !EligibleSources.Any(x=>x.UnsupportedReason==null) ? "Torrent sources are hidden. Enable Include torrent sources to see them." : playable == 0 && EligibleSources.Any(x=>x.UnsupportedReason==null) ? "No playable sources match this audio filter. Choose All or another audio type." : playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
+            DetailMessage.Text = playable == 0 && !preferences.IncludeTorrentSources && result.Items.Any(x=>x.Torrent!=null) && !EligibleSources.Any(x=>x.UnsupportedReason==null) ? "Torrent sources are hidden. Enable Include torrent sources to see them." : playable == 0 && EligibleSources.Any(x=>x.UnsupportedReason==null) ? "No playable sources match these filters. Reset filters to see other sources." : playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
             if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) failed. See Add-ons for connection details.";
             DetailRetry.IsVisible = result.Failures > 0;
         }
@@ -325,7 +325,7 @@ public partial class MainWindow
         {
             if (!existing.Add(SourceSelection.Key(stream))) continue;
             var column = new StackPanel { Spacing = 5 };
-            column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+            column.Children.Add(new TextBlock { Text = (stream.Torrent!=null ? "Torrent · " : stream.Url.Length>0 ? "Direct · " : "External · ") + stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
             var audioInfo=SourceAudioInfo.Parse(stream);
             column.Children.Add(new TextBlock{Text=audioInfo.Label+(audioInfo.Languages.Count>0 ? " · Audio: "+string.Join(", ",audioInfo.Languages.Select(x=>System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(x))) : ""),FontSize=11,Foreground=Brush.Parse("#C7B8E5"),TextWrapping=TextWrapping.Wrap});
             var summary = SourceSelection.Summary(stream);

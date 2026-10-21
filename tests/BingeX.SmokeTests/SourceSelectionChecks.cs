@@ -11,6 +11,11 @@ internal static class SourceSelectionChecks
         Check(parsed.Evidence == new SourceEvidence(2500000000, 123, 1080), "Standard file size and provider seed/quality hints must be extracted without inventing missing values.");
         using var unknown = JsonDocument.Parse("""{"url":"https://example.com/video"}""");
         Check(MediaLibrary.ParseStream("Fixture", unknown.RootElement).Evidence == new SourceEvidence(null, null, null), "Missing evidence must stay unknown.");
+        foreach(var quality in new[]{360,480,720,1080,2160})
+        {
+            var source=MediaLibrary.ParseStream("Fixture",JsonSerializer.SerializeToElement(new{url="https://fixture/video",name=quality+"p"}));
+            Check(source.Evidence?.Resolution==quality,"Resolution filters must recognize explicit SD, HD and 4K labels.");
+        }
         var large = parsed with { Name = "Large 4K", Torrent = parsed.Torrent! with { InfoHash = new string('b', 40) }, Evidence = new(26L * 1024 * 1024 * 1024, 1, 2160) };
         var direct = new StreamChoice("Fixture", "Direct", "", "https://example.com/video", null);
         var health = new Dictionary<string, SourcePerformance>();

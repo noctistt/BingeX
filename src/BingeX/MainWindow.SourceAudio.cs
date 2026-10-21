@@ -9,6 +9,7 @@ public partial class MainWindow
         sourceViewRevision++;
         availableSources=[]; availableSourceContext=null;
         sourceAudioFilter="All"; sourceAudioContext="";
+        sourceProviderFilter=sourceResolutionFilter=sourceLanguageFilter=""; SourceFilterEmpty.IsVisible=false;
         StreamItems.Children.Clear(); StreamHeading.IsVisible=false; DetailRetry.IsVisible=false;
         SuggestedSource.IsVisible=false; TorrentSuggestionHint.IsVisible=false;
         SourceAudioFilterPanel.IsVisible=false; SourceAudioFilters.Children.Clear(); SourceAudioFilterNotice.Text="";
@@ -17,12 +18,12 @@ public partial class MainWindow
         revision==sourceViewRevision && availableSourceContext==context;
     private string sourceAudioFilter="All",sourceAudioContext="";
     private IEnumerable<StreamChoice> EligibleSources => availableSources.Where(x=>preferences.IncludeTorrentSources || x.Torrent==null);
-    private IEnumerable<StreamChoice> FilteredSources => EligibleSources.Where(x=>sourceAudioFilter=="All" || SourceAudioInfo.Parse(x).Kind.ToString()==sourceAudioFilter);
+    private IEnumerable<StreamChoice> FilteredSources => EligibleSources.Where(x=>MatchesSourceFilters(x) && (sourceAudioFilter=="All" || SourceAudioInfo.Parse(x).Kind.ToString()==sourceAudioFilter));
     private IEnumerable<StreamChoice> PlaybackSources
     {
         get
         {
-            var language=availableSourceContext==null ? "" : store.ShowAudioPreference(availableSourceContext).Language;
+            var language=sourceLanguageFilter.Length>0 ? (sourceLanguageFilter=="unknown" ? "" : sourceLanguageFilter) : availableSourceContext==null ? "" : store.ShowAudioPreference(availableSourceContext).Language;
             return FilteredSources.Where(x=>language.Length==0 || SourceAudioInfo.Parse(x).Languages.Count==0 || SourceAudioInfo.Parse(x).Languages.Contains(language))
                 .OrderByDescending(x=>language.Length>0 && SourceAudioInfo.Parse(x).Languages.Contains(language));
         }
@@ -33,6 +34,7 @@ public partial class MainWindow
         if(sourceAudioContext==key)return;
         sourceAudioContext=key;
         sourceAudioFilter="All";
+        sourceProviderFilter=sourceResolutionFilter=sourceLanguageFilter="";
     }
     private void RenderSourceAudioFilters(MediaContext context)
     {
@@ -52,8 +54,9 @@ public partial class MainWindow
             };
             SourceAudioFilters.Children.Add(button);
         }
+        RenderSourceFilters();
         var visible=FilteredSources.Count();
-        SourceAudioFilterNotice.Text=visible>0 && !PlaybackSources.Any() ? "These sources do not match your saved audio language. Pick a source manually to change language." : sourceAudioFilter=="All" ? "Labels come from the provider. Unlabelled audio stays Unknown." : $"{visible} of {EligibleSources.Count()} sources match. Choose All to see other sources.";
+        SourceAudioFilterNotice.Text=visible>0 && !PlaybackSources.Any() ? "These sources do not match your saved audio language. Pick a source manually to change language." : $"{visible} of {EligibleSources.Count()} sources match. Labels come from the provider; unlabelled details stay Unknown.";
     }
     private void RememberSourceAudioChoice(StreamChoice source,MediaContext context)
     {

@@ -27,7 +27,9 @@ public static class SourceSelection
         if (seeds == null && match.Success && int.TryParse(match.Groups[1].Value, out var reported)) seeds = reported;
         int? resolution = Regex.IsMatch(text, @"\b(?:2160p|4k)\b", RegexOptions.IgnoreCase) ? 2160
             : Regex.IsMatch(text, @"\b1080p?\b", RegexOptions.IgnoreCase) ? 1080
-            : Regex.IsMatch(text, @"\b720p?\b", RegexOptions.IgnoreCase) ? 720 : null;
+            : Regex.IsMatch(text, @"\b720p?\b", RegexOptions.IgnoreCase) ? 720
+            : Regex.IsMatch(text, @"\b480p\b", RegexOptions.IgnoreCase) ? 480
+            : Regex.IsMatch(text, @"\b360p\b", RegexOptions.IgnoreCase) ? 360 : null;
         return new(bytes, seeds, resolution);
     }
     private static long? PositiveLong(JsonElement value, string key) => value.TryGetProperty(key, out var number) && number.ValueKind == JsonValueKind.Number && number.TryGetInt64(out var result) && result >= 0 ? result : null;
