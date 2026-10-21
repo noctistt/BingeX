@@ -57,12 +57,15 @@ internal static class ProgressiveLoadingChecks
             Require(Control<StackPanel>("StreamItems").Children.Count==1 && Get("currentPath")==null && !store.Preferences().IncludeTorrentSources,"Disabling torrents blocks stale torrent actions and suggested selection cannot pick a direct stream.");
             var filterContext=new MediaContext("anime-filter-fixture","series","Anime fixture","","fixture","episode1");
             StreamChoice[] audioSources=[new("Fixture","[SUB] 1080p","","https://fixture/sub",null),new("Fixture","English Dubbed","","https://fixture/dub",null),new("Fixture","Dual Audio","","https://fixture/dual",null),new("Fixture","1080p HEVC","","https://fixture/unknown",null)];
+            store.SaveShowAudioPreference(filterContext,new("","","DualAudio"));
             Call("RenderSourceChoices",audioSources,filterContext);
+            Require(Control<StackPanel>("StreamItems").Children.Count==4 && (string)Get("sourceAudioFilter")! == "All","A previous saved Dual audio filter must not hide sources when opening a title.");
             var dubButton=Control<WrapPanel>("SourceAudioFilters").Children.OfType<Button>().Single(x=>x.Content!.ToString()!.StartsWith("Dubbed"));
             dubButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            Require(Control<StackPanel>("StreamItems").Children.Count==1 && store.ShowAudioPreference(filterContext).SourceFilter=="Dubbed","Dub filter shows only labelled dub streams and saves the selection for this show.");
+            Require(Control<StackPanel>("StreamItems").Children.Count==1,"Manual Dub filter shows only labelled dub streams during the current search.");
+            Call("ClearSourceChoices");
             Call("RenderSourceChoices",audioSources,filterContext with{EpisodeId="episode2"});
-            Require(Control<StackPanel>("StreamItems").Children.Count==1,"Next episode retains the source filter.");
+            Require(Control<StackPanel>("StreamItems").Children.Count==4 && (string)Get("sourceAudioFilter")! == "All","A new episode search starts with All audio types.");
             var unknown=Control<WrapPanel>("SourceAudioFilters").Children.OfType<Button>().Single(x=>x.Content!.ToString()!.StartsWith("Unknown"));
             unknown.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Require(Control<StackPanel>("StreamItems").Children.Count==1,"Unlabelled streams remain available under Unknown.");

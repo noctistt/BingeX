@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.18. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.19. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -276,3 +276,6 @@ Stremio add-on streams can supply validated custom request headers through the e
 
 ### 0.13.18
 Stream searches have a remembered Include torrent sources checkbox, off by default. Hidden torrent sources are excluded from automatic playback and suggestions. Try suggested torrent only selects peer-to-peer torrents; direct streams remain manually selectable. Mixed providers may still be queried to obtain their direct streams.
+
+### 0.13.19
+Audio type starts at All for each new title or episode search. Manual filters apply to the current results, including progressively arriving sources, without restoring old restrictive filters. Preferred spoken audio language remains remembered.

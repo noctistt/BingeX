@@ -32,8 +32,7 @@ public partial class MainWindow
         var key=context.Type+":"+context.Id;
         if(sourceAudioContext==key)return;
         sourceAudioContext=key;
-        var saved=store.ShowAudioPreference(context).SourceFilter;
-        sourceAudioFilter=saved=="All" || Enum.TryParse<SourceAudioKind>(saved,out _) ? saved : "All";
+        sourceAudioFilter="All";
     }
     private void RenderSourceAudioFilters(MediaContext context)
     {
@@ -49,8 +48,6 @@ public partial class MainWindow
             {
                 if(!IsCurrentSourceView(revision,context))return;
                 sourceAudioFilter=filter;
-                var saved=store.ShowAudioPreference(context);
-                store.SaveShowAudioPreference(context,saved with{SourceFilter=filter});
                 RenderSourceChoices(availableSources,context);
             };
             SourceAudioFilters.Children.Add(button);
