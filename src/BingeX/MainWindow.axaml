@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.8" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.9" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -193,6 +193,10 @@
                     <TextBlock x:Name="NowPlaying" Grid.Column="1" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <Button Grid.Column="2" Content="Mini-player" Click="MinimizePlayer_Click" ToolTip.Tip="Keep watching while browsing" Margin="12,0,0,0" />
                   </Grid>
+                  <Border x:Name="EpisodeAutoplayPanel" IsVisible="False" Background="#E82B233C" CornerRadius="8" Padding="10">
+                    <WrapPanel><TextBlock x:Name="EpisodeAutoplayText" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0" /><Button Content="Play now" Click="NextEpisode_Click" Margin="0,0,8,0" /><Button Content="Cancel" Click="CancelEpisodeAutoplay_Click" /></WrapPanel>
+                  </Border>
+                  <Button x:Name="NextEpisodeButton" Content="Next episode →" IsVisible="False" Click="NextEpisode_Click" HorizontalAlignment="Right" />
                   <Slider x:Name="SeekBar" Classes="playerSlider" AutomationProperties.Name="Playback position" Minimum="0" Maximum="1000" Value="0" />
                   <Grid ColumnDefinitions="Auto,*,Auto">
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -227,6 +231,10 @@
               </Border>
               <Border x:Name="MiniControls" IsVisible="False" Background="#E8101018" VerticalAlignment="Bottom" Padding="10,8">
                 <StackPanel Spacing="6">
+                  <StackPanel x:Name="MiniEpisodeAutoplayPanel" IsVisible="False" Spacing="4">
+                    <TextBlock x:Name="MiniEpisodeAutoplayText" TextWrapping="Wrap" FontSize="11" />
+                    <WrapPanel><Button Content="Play now" Click="NextEpisode_Click" Padding="8,4" Margin="0,0,8,0" /><Button Content="Cancel" Click="CancelEpisodeAutoplay_Click" Padding="8,4" /></WrapPanel>
+                  </StackPanel>
                   <TextBlock x:Name="MiniTitle" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="SemiBold" />
                   <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                     <Button x:Name="MiniPlayButton" Content="Pause" Click="Play_Click" Padding="10,5" />
@@ -244,6 +252,7 @@
                       <ComboBox x:Name="SpeedBox" SelectedIndex="2" HorizontalAlignment="Stretch" AutomationProperties.Name="Playback speed">
                         <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
                       </ComboBox>
+                      <CheckBox x:Name="AutoplayEpisodesCheck" Content="Autoplay next episode" />
                       <TextBlock x:Name="AudioSettingsHeading" Text="Audio track" Foreground="#BFB5D1" />
                       <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
                       <StackPanel x:Name="StreamAudioSection" Spacing="6" IsVisible="False">

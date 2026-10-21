@@ -53,6 +53,7 @@ public partial class MainWindow : Window
         SetupLocalLibrary();
         SetupSources();
         SetupOnlineMode();
+        SetupEpisodeNavigation();
         RefreshHistory();
         Opened += (_, _) =>
         {
@@ -117,6 +118,7 @@ public partial class MainWindow : Window
     private void Page(string page)
     {
         if (!onlineEnabled && page is "Details" or "Add-ons") page = "Library";
+        if (page != "Player") CancelEpisodeAutoplay();
         using var timing = diagnostics.Measure("page-layout");
         if (page == "Player" && activePage != "Player") playerReturnPage = activePage;
         if (page != "Player" && pendingSource != null) ResetSourceAttempts();
@@ -185,6 +187,9 @@ public partial class MainWindow : Window
             if (localClosing || request != playbackRequest) return;
             suppressCurrentHistory = false;
             currentContext = context;
+            playingEpisodeTitle = context != null && selectedTitle?.Id == context.Id && selectedTitle.Type == context.Type
+                ? selectedTitle : context != null && playingEpisodeTitle?.Id == context.Id ? playingEpisodeTitle : null;
+            UpdateEpisodeActions();
             currentHistoryKey = context?.HistoryKey ?? path;
             if (context != null) store.SaveContext(context);
             resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
@@ -368,6 +373,7 @@ public partial class MainWindow : Window
     private async void Play_Click(object? sender, RoutedEventArgs e)
     {
         videoClickTimer.Stop();
+        CancelEpisodeAutoplay();
         if (NativePlaybackBusy || player == null || currentPath == null) return;
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {

@@ -114,6 +114,7 @@ public partial class MainWindow
     {
         ResetPlaybackWaiting();
         captionClock.Reset();
+        CancelEpisodeAutoplay();
         videoClickTimer.Stop();
         videoPressPoint = null;
         mediaGeneration++;
@@ -146,7 +147,7 @@ public partial class MainWindow
         var generation = mediaGeneration;
         Dispatcher.UIThread.Post(() =>
         {
-            if (NativePlaybackBusy || generation != mediaGeneration || player == null || playbackSnapshot.State is VLCState.Playing or VLCState.Opening) return;
+            if (playbackEnded || NativePlaybackBusy || generation != mediaGeneration || player == null || playbackSnapshot.State is VLCState.Playing or VLCState.Opening) return;
             if (lastDuration <= 0 && activeSource != null && !sourceStarted)
             {
                 if (TryScheduleNextSource("This source ended before video playback could start.")) return;
@@ -170,6 +171,7 @@ public partial class MainWindow
             updatingSeek = false;
             CaptionPanel.IsVisible = false;
             RevealPlayerControls();
+            ScheduleEpisodeAutoplay();
         });
     }
     private void RevealPlayerControls()
@@ -189,6 +191,7 @@ public partial class MainWindow
     private void UpdatePlayerOverlay()
     {
         UpdatePlaybackWaiting();
+        UpdateEpisodeActions();
         if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;

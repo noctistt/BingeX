@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.8. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.9. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -235,3 +235,7 @@ Small native timestamp corrections and slowly advancing samples no longer rewind
 ### Episodes beside streams (0.13.8)
 
 Title pages use independent scrolling panes: episode cards on the left, stream details on the right, with the synopsis above. Episode titles, overviews and stream descriptions wrap without line truncation. The selected episode is highlighted; choosing another resets the stream pane to the top while keeping your place in the episode list. Titles with video entries use the episode pane even if their provider labels them as movies. Movies without entries use the full width for streams.
+
+### Next episode (0.13.9)
+
+Player controls show Next episode when the current title has a following entry. Playback settings include opt-in, persisted Autoplay next episode with an eight-second cancelable countdown after completion. Next episode queries the installed providers and prefers a playable source from the current provider; when none is available, the next episode and stream retry controls remain visible. Verified numbering determines episode/season order; unnumbered channels retain provider order. Browsing a different title does not change the playing title's episode list.

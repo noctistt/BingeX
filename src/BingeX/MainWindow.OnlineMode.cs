@@ -30,6 +30,7 @@ public partial class MainWindow
         OnlineModeSwitch.IsChecked = enabled;
         if (!enabled)
         {
+            CancelEpisodeAutoplay();
             browseWork.Cancel(); posterWork.Cancel(); detailWork.Cancel(); streamWork.Cancel();
             CancelOnlineSubtitles();
             onlineSubtitleView = false;
@@ -42,6 +43,7 @@ public partial class MainWindow
         }
         ApplyOnlineMode();
         RefreshHistory();
+        UpdateEpisodeActions();
         Status(enabled ? "Online mode on." : "Online features hidden. Your add-ons and saved data are kept.");
         if (enabled) await RefreshCatalogs();
     }
@@ -51,6 +53,7 @@ public partial class MainWindow
         DiscoverSection.IsVisible = onlineEnabled;
         ConnectCatalogButton.IsVisible = onlineEnabled;
         OnlineSubtitleButton.IsVisible = onlineEnabled;
+        AutoplayEpisodesCheck.IsVisible = onlineEnabled;
         WelcomeHero.IsVisible = !onlineEnabled || ConnectedAddons().Count == 0;
         WelcomeTitle.Text = onlineEnabled ? "Find your next obsession." : "Your videos. Ready to play.";
     }
