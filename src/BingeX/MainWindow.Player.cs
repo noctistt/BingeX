@@ -380,6 +380,7 @@ public partial class MainWindow
             // An explicit choice takes precedence over any pending startup restoration.
             pendingAudioSelection = null;
             if (currentHistoryKey != null) store.SaveAudioSelection(currentHistoryKey, new(track.Id, track.Name));
+            RememberShowAudio("",track.Name);
             PlayerNotice("Audio: " + track.Name);
         }
     }

@@ -82,7 +82,6 @@ public partial class MainWindow
         nextEpisodeBusy = true;
         episodePreparationCancelled=false;
         var generation = mediaGeneration;
-        var preferredProvider = activeSource?.Provider;
         try
         {
             SaveProgress();
@@ -98,12 +97,12 @@ public partial class MainWindow
             await FindStreamsProgressive(context =>
             {
                 if(episodePreparationCancelled || localClosing || !onlineEnabled || generation!=mediaGeneration || activePage!="Details" || context.Id!=title.Id || context.EpisodeId!=next.Id) return;
-                var first=availableSources.Where(x=>x.UnsupportedReason==null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault();
+                var first=PlaybackSources.FirstOrDefault(x=>x.UnsupportedReason==null);
                 if(first!=null) BeginSource(first,context);
             });
             if (episodePreparationCancelled || localClosing || !onlineEnabled || generation != mediaGeneration || activePage != "Details" || selectedContext?.Id != title.Id || selectedContext.EpisodeId != next.Id) return;
             var source = availableSourceContext?.HistoryKey == selectedContext.HistoryKey
-                ? availableSources.Where(x=>x.UnsupportedReason == null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault() : null;
+                ? PlaybackSources.FirstOrDefault(x=>x.UnsupportedReason == null) : null;
             if (source != null) BeginSource(source,selectedContext);
             else Status("No playable source found for the next episode. Choose or retry a source on this page.");
         }

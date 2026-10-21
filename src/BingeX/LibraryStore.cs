@@ -105,6 +105,20 @@ public sealed partial class LibraryStore : IDisposable
         command.ExecuteNonQuery();
     }
 
+    public ShowAudioPreference ShowAudioPreference(MediaContext context)
+    {
+        using var command=connection.CreateCommand();
+        command.CommandText="SELECT value FROM preferences WHERE key=$key";
+        command.Parameters.AddWithValue("$key","show-audio:"+context.Type+":"+context.Id);
+        try{return JsonSerializer.Deserialize<ShowAudioPreference>(command.ExecuteScalar() as string ?? "null") ?? new();}catch(JsonException){return new();}
+    }
+    public void SaveShowAudioPreference(MediaContext context,ShowAudioPreference preference)
+    {
+        using var command=connection.CreateCommand();
+        command.CommandText="INSERT OR REPLACE INTO preferences VALUES($key,$value)";
+        command.Parameters.AddWithValue("$key","show-audio:"+context.Type+":"+context.Id);
+        command.Parameters.AddWithValue("$value",JsonSerializer.Serialize(preference)); command.ExecuteNonQuery();
+    }
     public SubtitlePreference? SubtitlePreference(MediaContext context)
     {
         using var command=connection.CreateCommand();

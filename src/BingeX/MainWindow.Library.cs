@@ -268,6 +268,7 @@ public partial class MainWindow
         if (selectedContext == null) return;
         var context = selectedContext;
         availableSources = []; availableSourceContext = null;
+        SourceAudioFilterPanel.IsVisible=false;
         streamWork.Cancel(); streamWork.Dispose(); streamWork = new();
         var token = streamWork.Token;
         SuggestedSource.IsVisible = false;
@@ -296,8 +297,8 @@ public partial class MainWindow
             RefreshAddons();
             var result=new ProviderResult<StreamChoice>(all,failures);
             if (preferences.SearchAllStreamProviders && context.Id.StartsWith("cs:") && !library.HasSharedId(context.Type,context.EpisodeId ?? context.Id)) AddCatalogMatchAction(context);
-            var playable = result.Items.Count(x => x.UnsupportedReason == null);
-            DetailMessage.Text = playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
+            var playable = FilteredSources.Count(x => x.UnsupportedReason == null);
+            DetailMessage.Text = playable == 0 && result.Items.Any(x=>x.UnsupportedReason==null) ? "No playable sources match this audio filter. Choose All or another audio type." : playable > 0 ? $"{playable} playable source(s). Choose one to start watching." : result.Items.Count > 0 ? "Sources were found, but they need playback features BingeX does not support yet." : "No streams found. Add a compatible stream provider in Add-ons. Catalog providers only supply title information.";
             if (result.Failures > 0) DetailMessage.Text += $" {result.Failures} provider(s) failed. See Add-ons for connection details.";
             DetailRetry.IsVisible = result.Failures > 0;
         }
@@ -309,21 +310,25 @@ public partial class MainWindow
     private void RenderSourceChoicesCore(IReadOnlyList<StreamChoice> options, MediaContext context, bool append)
     {
         if (!append) StreamItems.Children.Clear();
+        SetSourceAudioContext(context);
         availableSources = SourceSelection.Rank(options, sourcePerformance);
         availableSourceContext = context;
-        SuggestedSource.IsVisible = availableSources.Any(x => x.UnsupportedReason == null);
+        SuggestedSource.IsVisible = PlaybackSources.Any(x => x.UnsupportedReason == null);
+        RenderSourceAudioFilters(context);
         var existing = StreamItems.Children.OfType<Button>().Select(x=>x.Tag).OfType<string>().ToHashSet(StringComparer.Ordinal);
-        foreach (var stream in availableSources)
+        foreach (var stream in FilteredSources)
         {
             if (!existing.Add(SourceSelection.Key(stream))) continue;
             var column = new StackPanel { Spacing = 5 };
             column.Children.Add(new TextBlock { Text = stream.Provider + " · " + stream.Name, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+            var audioInfo=SourceAudioInfo.Parse(stream);
+            column.Children.Add(new TextBlock{Text=audioInfo.Label+(audioInfo.Languages.Count>0 ? " · Audio: "+string.Join(", ",audioInfo.Languages.Select(x=>System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(x))) : ""),FontSize=11,Foreground=Brush.Parse("#C7B8E5"),TextWrapping=TextWrapping.Wrap});
             var summary = SourceSelection.Summary(stream);
             if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
             if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE") });
             column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
             var button = new Button { Tag = SourceSelection.Key(stream), Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
-            button.Click += (_, _) => BeginSource(stream, context);
+            button.Click += (_, _) => { RememberSourceAudioChoice(stream,context); BeginSource(stream, context); };
             StreamItems.Children.Add(button);
         }
     }

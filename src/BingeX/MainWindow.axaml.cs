@@ -203,6 +203,8 @@ public partial class MainWindow : Window
             ResetMediaControls(preserve);
             currentStreamSubtitles = streamSubtitles ?? [];
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
+            if(pendingAudioSelection==null && context!=null && store.ShowAudioPreference(context) is {Language.Length:>0} audioPreference)
+                pendingAudioSelection=new(-3,audioPreference.Label,audioPreference.Language);
             streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
             thumbnailAttempted = false;
             currentPath = path; currentTitle = title;

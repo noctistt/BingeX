@@ -15,8 +15,12 @@ public partial class MainWindow
     {
         currentStreamAudioOptions = options ?? [];
         var saved = pendingAudioSelection;
+        var language=saved?.Language ?? "";
+        if(language.Length==0 && saved==null && currentContext!=null)language=store.ShowAudioPreference(currentContext).Language;
+        var languageMatch=currentStreamAudioOptions.FirstOrDefault(x=>language.Length>0 && SubtitlePreference.LanguageKey(x.Language)==language);
         var selected = currentStreamAudioOptions.FirstOrDefault(x => saved?.Id == -2 && x.Label == saved.Name)
-            ?? currentStreamAudioOptions.FirstOrDefault();
+            ?? languageMatch ?? currentStreamAudioOptions.FirstOrDefault();
+        if(languageMatch!=null)pendingAudioSelection=null;
         if (saved?.Id == -2) pendingAudioSelection = null;
         settingStreamAudio = true;
         try
@@ -45,6 +49,7 @@ public partial class MainWindow
                 externalAudioPath = null;
                 pendingAudioSelection = null; audioRestoreUntil = null; trackSignature = "";
                 if (currentHistoryKey != null) store.SaveAudioSelection(currentHistoryKey, new(-2, option.Label));
+                RememberShowAudio(option.Language,option.Label);
                 PlayerNotice("Audio: " + option.Label);
             }
             else

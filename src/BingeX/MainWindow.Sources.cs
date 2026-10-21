@@ -39,7 +39,7 @@ public partial class MainWindow
     private void BeginSource(StreamChoice choice, MediaContext context, bool fresh = true)
     {
         CancelSourceSwitch();
-        if (fresh) sourcePlan = new(availableSourceContext?.HistoryKey == context.HistoryKey ? availableSources : [choice]);
+        if (fresh) sourcePlan = new(availableSourceContext?.HistoryKey == context.HistoryKey ? PlaybackSources.ToArray() : [choice]);
         sourcePlan?.Mark(choice);
         activeSource = choice; activeSourceContext = context;
         sourceStarted = false; sourceLastPercent = 0; sourceLastProgress = DateTime.UtcNow;
@@ -48,7 +48,7 @@ public partial class MainWindow
     }
     private void SuggestedSource_Click(object? sender, RoutedEventArgs e)
     {
-        var first = SourceSelection.Rank(availableSources, sourcePerformance).FirstOrDefault(x => x.UnsupportedReason == null);
+        var first = PlaybackSources.FirstOrDefault(x => x.UnsupportedReason == null);
         if (first != null && availableSourceContext != null) BeginSource(first, availableSourceContext);
     }
     private void ReportSourceProgress(TorrentStatus update)
