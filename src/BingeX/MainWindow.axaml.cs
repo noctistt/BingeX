@@ -58,6 +58,7 @@ public partial class MainWindow : Window
         RefreshHistory();
         Opened += (_, _) =>
         {
+            _ = AnimateStartupBrand();
             _ = ScanMediaFolders();
             try
             {

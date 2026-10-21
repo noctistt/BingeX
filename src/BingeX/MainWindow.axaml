@@ -6,7 +6,7 @@
   <Grid x:Name="RootLayout" ColumnDefinitions="205,*" RowDefinitions="*,Auto">
     <Border x:Name="Sidebar" Background="#161620" Padding="22,30" Grid.RowSpan="2">
       <StackPanel Spacing="16">
-        <TextBlock Text="BingeX" FontSize="30" FontWeight="Bold" Foreground="#B69AFF" />
+        <StackPanel Orientation="Horizontal" Spacing="9"><Image Source="/Assets/BingeX.png" Width="36" Height="36" /><TextBlock Text="BingeX" FontSize="27" FontWeight="Bold" Foreground="#D8C8FF" VerticalAlignment="Center" /></StackPanel>
         <TextBlock Text="YOUR NEXT GREAT WATCH" FontSize="9" LetterSpacing="1" Classes="muted" Margin="0,0,0,28" />
         <Button x:Name="LibraryNav" Classes="nav active" Content="Home" Click="Library_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="LocalLibraryNav" Classes="nav" Content="My Library" Click="LocalLibrary_Click" HorizontalAlignment="Stretch" />
@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.23" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.24" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -411,6 +411,13 @@
     </Grid>
     <Border x:Name="StatusFooter" Grid.Column="1" Grid.Row="1" Background="#191923" Padding="24,10">
       <TextBlock x:Name="StatusLabel" Text="Ready • Open a local video to begin" Classes="muted" TextWrapping="Wrap" />
+    </Border>
+    <Border x:Name="StartupSplash" Grid.ColumnSpan="2" Grid.RowSpan="2" ZIndex="100" Background="#101018" IsVisible="True">
+      <StackPanel x:Name="StartupBrand" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Opacity="0">
+        <Image Source="/Assets/BingeX.png" Width="104" Height="104" />
+        <TextBlock Text="BingeX" FontSize="38" FontWeight="Bold" Foreground="#E6DAFF" HorizontalAlignment="Center" />
+        <TextBlock Text="LOCAL. OPEN. YOURS." FontSize="10" LetterSpacing="3" Foreground="#AAA0BC" HorizontalAlignment="Center" />
+      </StackPanel>
     </Border>
   </Grid>
 </Window>

@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.13.23</Version>
+    <Version>0.13.24</Version>
     <Product>BingeX</Product>
     <Description>BingeX media player</Description>
     <ApplicationIcon>Assets/BingeX.ico</ApplicationIcon>
@@ -16,6 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/BingeX.ico" />
+    <AvaloniaResource Include="Assets/BingeX.png" />
     <EmbeddedResource Include="Assets/cloudstream-*.json" />
     <EmbeddedResource Include="Assets/cloudstream-patch.jar" />
   </ItemGroup>
