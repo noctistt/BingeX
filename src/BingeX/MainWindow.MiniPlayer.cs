@@ -20,6 +20,9 @@ public partial class MainWindow
         PlayerPage.ZIndex = miniPlayer ? 10 : 0;
         VideoFrame.BorderThickness = new Thickness(miniPlayer ? 1 : 0);
         VideoFrame.BorderBrush = Brush.Parse("#615078");
+        PlayerLoadingTitle.FontSize=miniPlayer ? 16 : 24;
+        PlayerLoadingDetail.FontSize=miniPlayer ? 12 : 14;
+        PlayerLoadingHint.IsVisible=!miniPlayer;
         MiniControls.IsVisible = miniPlayer;
         PlayerControls.IsVisible = !miniPlayer;
         if (miniPlayer)

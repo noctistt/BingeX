@@ -23,6 +23,7 @@ public partial class MainWindow
     private WindowState beforeFullscreen = WindowState.Normal;
     private SubtitleDocument? textSubtitles;
     private string? textSubtitleName;
+    private string textSubtitleSource="File";
     private bool useTextSubtitles;
     private bool playerUiReady;
     private bool updatingTracks;
@@ -38,7 +39,7 @@ public partial class MainWindow
     private int? lastSubtitleTrack;
     private AudioTrackSelection? pendingAudioSelection;
     private DateTime? audioRestoreUntil;
-    private record TrackOption(int Id, string Name) { public override string ToString() => Name; }
+    private record TrackOption(int Id, string Name) { public string DisplayName => Id >= 0 ? "Embedded · " + Name : Name; public override string ToString() => Name; }
     private const int TextSubtitleId = int.MinValue;
 
     private void SetupPlayerControls()
@@ -251,6 +252,8 @@ public partial class MainWindow
         RevealPlayerControls();
         PlayerOverlay.Focus();
     }
+    private void AudioSettingsTab_Click(object? sender, RoutedEventArgs e) { PlayerSettingsPanel.IsVisible=false; ShowPlayerSettings(false); }
+    private void SubtitleSettingsTab_Click(object? sender, RoutedEventArgs e) { PlayerSettingsPanel.IsVisible=false; ShowPlayerSettings(true); }
     private void ShowPlayerSettings(bool subtitles)
     {
         var show = onlineSubtitleView || !PlayerSettingsPanel.IsVisible || subtitleSettingsOpen != subtitles;
@@ -259,9 +262,11 @@ public partial class MainWindow
         OnlineSubtitleSection.IsVisible = false;
         SubtitleSearchBack.IsVisible = false;
         subtitleSettingsOpen = subtitles;
+        AudioSettingsTab.Classes.Set("active", !subtitles);
+        SubtitleSettingsTab.Classes.Set("active", subtitles);
         PlaybackSettingsSection.IsVisible = !subtitles;
         SubtitleSettingsSection.IsVisible = subtitles;
-        PlayerSettingsTitle.Text = subtitles ? "Subtitles" : "Playback settings";
+        PlayerSettingsTitle.Text = subtitles ? "Subtitles" : "Audio & playback";
         PlayerSettingsPanel.IsVisible = show;
         if (show) { RefreshTracks(); SettingsScroll.Offset = new Vector(0, 0); }
         RevealPlayerControls();
@@ -322,8 +327,10 @@ public partial class MainWindow
         if (useTextSubtitles && playbackSnapshot.Spu >= 0) _ = QueuePlayerCommand(native => native.SetSpu(-1));
         var subtitles = new List<TrackOption> { new(-1, "Off") };
         subtitles.AddRange(playbackSnapshot.Subtitles);
-        if (textSubtitles != null) subtitles.Add(new(TextSubtitleId, "External · " + textSubtitleName));
+        if (textSubtitles != null) subtitles.Add(new(TextSubtitleId, textSubtitleSource + " · " + textSubtitleName));
         subtitles.AddRange(currentStreamSubtitles.Take(400).Select((choice,index) => new TrackOption(-1000-index, "Extension · " + (choice.Label.Length > 0 ? choice.Label : OnlineSubtitles.LanguageName(choice.Language)))));
+        var subtitleCount=subtitles.Count(x=>x.Id != -1);
+        PlayerTrackSummary.Text = (audio.Length==1 ? "1 audio track" : $"{audio.Length} audio tracks")+" · "+(subtitleCount==1 ? "1 subtitle option" : $"{subtitleCount} subtitle options");
         var signature = string.Join('|', audio.Select(x => $"a{x.Id}:{x.Name}")) + string.Join('|', subtitles.Select(x => $"s{x.Id}:{x.Name}"));
         updatingTracks = true;
         try
@@ -409,7 +416,7 @@ public partial class MainWindow
                 var contents = await File.ReadAllTextAsync(path);
                 var document = await Task.Run(() => SubtitleDocument.Parse(contents));
                 if (NativePlaybackBusy || generation != mediaGeneration) return;
-                textSubtitles = document; textSubtitleName = Path.GetFileName(path); useTextSubtitles = true;
+                textSubtitles = document; textSubtitleSource="File"; textSubtitleName = Path.GetFileName(path); useTextSubtitles = true;
                 player.SetSpu(-1);
                 trackSignature = "";
                 RefreshTracks();

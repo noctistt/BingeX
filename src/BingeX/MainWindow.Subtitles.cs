@@ -230,7 +230,8 @@ public partial class MainWindow
             var document = await subtitleDownloads.Download(choice.Url, token, choice.Headers);
             if (!SubtitleRequestCurrent(token, generation) || player == null) return;
             textSubtitles = document;
-            textSubtitleName = OnlineSubtitles.LanguageName(choice.Language) + " · " + choice.Provider + " #" + choice.Id;
+            textSubtitleSource="Downloaded";
+            textSubtitleName = (choice.Label.Length>0 ? choice.Label : OnlineSubtitles.LanguageName(choice.Language)) + " · " + choice.Provider;
             useTextSubtitles = true;
             lastSubtitleTrack = TextSubtitleId;
             if (!NativePlaybackBusy) player.SetSpu(-1);

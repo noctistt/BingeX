@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.11" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.12" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -140,6 +140,14 @@
             </Grid>
             <ScrollViewer x:Name="StreamScroller" Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="12" Margin="0,0,12,0">
+                <Border x:Name="EpisodePreparingPanel" IsVisible="False" Background="#292139" BorderBrush="#574371" BorderThickness="1" CornerRadius="12" Padding="16">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Loading next episode…" FontWeight="SemiBold" FontSize="18" />
+                    <TextBlock x:Name="EpisodePreparingTitle" TextWrapping="Wrap" Foreground="#D9CFEB" />
+                    <TextBlock Text="Sources appear below as providers respond." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                    <Button Content="Cancel" Classes="playerAction" Click="CancelEpisodePreparation_Click" ToolTip.Tip="Cancel episode preparation" HorizontalAlignment="Left" />
+                  </StackPanel>
+                </Border>
           <StackPanel x:Name="DetailBusy" IsVisible="False" Spacing="8">
             <ProgressBar IsIndeterminate="True" Height="3" Foreground="#A78BFA" />
             <TextBlock x:Name="DetailLoadingText" Text="Loading title…" Classes="muted" />
@@ -160,9 +168,11 @@
           <local:VideoSurfaceView x:Name="VideoSurface" IsVisible="False">
             <Grid x:Name="PlayerOverlay" Background="Transparent" Focusable="True">
               <Border x:Name="PlayerLoading" IsVisible="False" Background="Black" IsHitTestVisible="False">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                  <TextBlock Text="Opening stream…" FontSize="22" HorizontalAlignment="Center" />
-                  <ProgressBar IsIndeterminate="True" Width="180" Height="3" />
+                <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="12" Margin="24" MaxWidth="560">
+                  <TextBlock x:Name="PlayerLoadingTitle" Text="Opening video…" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
+                  <TextBlock x:Name="PlayerLoadingDetail" Foreground="#DED7EA" TextAlignment="Center" TextWrapping="Wrap" />
+                  <ProgressBar IsIndeterminate="True" Width="160" Height="3" Foreground="#B69AFF" Margin="0,6" />
+                  <TextBlock x:Name="PlayerLoadingHint" Text="Preparing playback" FontSize="12" Foreground="#A8A1B8" TextAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
               </Border>
               <StackPanel x:Name="PlayerEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" IsHitTestVisible="False">
@@ -190,14 +200,18 @@
                 <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#00101018" Offset="0" /><GradientStop Color="#F0101018" Offset="0.25" /><GradientStop Color="#FA101018" Offset="1" /></LinearGradientBrush></Border.Background>
                 <StackPanel Spacing="8">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Button x:Name="PlayerBackButton" Content="← Back" Click="NavigateBack_Click" IsVisible="False" Margin="0,0,12,0" ToolTip.Tip="Back (Alt+Left)" />
-                    <TextBlock x:Name="NowPlaying" Grid.Column="1" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <Button Grid.Column="2" Content="Mini-player" Click="MinimizePlayer_Click" ToolTip.Tip="Keep watching while browsing" Margin="12,0,0,0" />
+                    <Button x:Name="PlayerBackButton" Content="← Back" Classes="playerAction" Click="NavigateBack_Click" IsVisible="False" Margin="0,0,12,0" ToolTip.Tip="Back (Alt+Left)" />
+                    <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                      <TextBlock x:Name="NowPlaying" Text="Open a file to start watching" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" FontSize="14" />
+                      <TextBlock x:Name="PlayerTrackSummary" Text="Your video. Your controls." Foreground="#A8A1B8" FontSize="11" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="playerAction" Click="MinimizePlayer_Click" ToolTip.Tip="Keep watching while browsing" AutomationProperties.Name="Minimize to mini-player" Margin="12,0,0,0">
+                      <StackPanel Orientation="Horizontal" Spacing="7"><Path Width="18" Height="16" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 17,1 L 17,15 L 1,15 Z M 9,8 L 15,8 L 15,13 L 9,13 Z" /><TextBlock Text="Mini-player" /></StackPanel>
+                    </Button>
                   </Grid>
                   <Border x:Name="EpisodeAutoplayPanel" IsVisible="False" Background="#E82B233C" CornerRadius="8" Padding="10">
                     <WrapPanel><TextBlock x:Name="EpisodeAutoplayText" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0" /><Button Content="Play now" Click="NextEpisode_Click" Margin="0,0,8,0" /><Button Content="Cancel" Click="CancelEpisodeAutoplay_Click" /></WrapPanel>
                   </Border>
-                  <Button x:Name="NextEpisodeButton" Content="Next episode →" IsVisible="False" Click="NextEpisode_Click" HorizontalAlignment="Right" />
                   <Slider x:Name="SeekBar" Classes="playerSlider" AutomationProperties.Name="Playback position" Minimum="0" Maximum="1000" Value="0" />
                   <Grid ColumnDefinitions="Auto,*,Auto">
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -209,6 +223,9 @@
                       </Button>
                       <Button Classes="playerIcon" Click="Forward_Click" ToolTip.Tip="Forward 10 seconds (Right)" AutomationProperties.Name="Forward 10 seconds">
                         <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 19,7 A 9,9 0 1 0 21,14 M 19,2 L 19,8 L 13,8" /><TextBlock Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
+                      </Button>
+                      <Button x:Name="NextEpisodeButton" Classes="playerIcon" IsVisible="False" Click="NextEpisode_Click" ToolTip.Tip="Next episode" AutomationProperties.Name="Next episode">
+                        <Path Width="20" Height="20" Fill="White" Data="M 3,3 L 15,10 L 3,17 Z M 16,3 L 19,3 L 19,17 L 16,17 Z" />
                       </Button>
                       <TextBlock x:Name="TimeLabel" Text="00:00 / --:--" Foreground="#C8C3D5" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
                     </StackPanel>
@@ -248,6 +265,10 @@
                 <ScrollViewer x:Name="SettingsScroll" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="Auto,*,Auto"><Button x:Name="SubtitleSearchBack" IsVisible="False" Content="←" Click="SubtitleSearchBack_Click" ToolTip.Tip="Back to subtitles" AutomationProperties.Name="Back to subtitles" Padding="8" Margin="0,0,8,0" /><TextBlock Grid.Column="1" x:Name="PlayerSettingsTitle" Text="Playback settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="2" Content="Close" Click="CloseSettings_Click" /></Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                      <Button x:Name="AudioSettingsTab" Content="Audio &amp; playback" Classes="playerAction" Click="AudioSettingsTab_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                      <Button x:Name="SubtitleSettingsTab" Grid.Column="1" Content="Subtitles" Classes="playerAction" Click="SubtitleSettingsTab_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    </Grid>
                     <StackPanel x:Name="PlaybackSettingsSection" Spacing="12">
                       <TextBlock Text="Playback speed" Foreground="#BFB5D1" />
                       <ComboBox x:Name="SpeedBox" SelectedIndex="2" HorizontalAlignment="Stretch" AutomationProperties.Name="Playback speed">
@@ -255,7 +276,9 @@
                       </ComboBox>
                       <CheckBox x:Name="AutoplayEpisodesCheck" Content="Autoplay next episode" />
                       <TextBlock x:Name="AudioSettingsHeading" Text="Audio track" Foreground="#BFB5D1" />
-                      <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" />
+                      <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" AutomationProperties.Name="Audio track">
+                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
                       <StackPanel x:Name="StreamAudioSection" Spacing="6" IsVisible="False">
                         <TextBlock Text="Stream audio language" Foreground="#BEB4D1" />
                         <ComboBox x:Name="StreamAudioPicker" HorizontalAlignment="Stretch" SelectionChanged="StreamAudioChanged" />
@@ -269,7 +292,10 @@
                     <StackPanel x:Name="SubtitleSettingsSection" Spacing="12" IsVisible="False">
                       <Button x:Name="OnlineSubtitleButton" Content="Search online…" Classes="primary" Click="OnlineSubtitles_Click" HorizontalAlignment="Stretch" />
                       <TextBlock Text="Subtitle track" Foreground="#BFB5D1" />
-                      <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" />
+                      <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" AutomationProperties.Name="Subtitle track">
+                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <TextBlock Text="Embedded = in the video · Downloaded = online captions · File = added locally. Your language choice is remembered for this show." Foreground="#AAA0BA" FontSize="11" TextWrapping="Wrap" />
                       <Button Content="Load subtitle file…" Click="Subtitle_Click" HorizontalAlignment="Left" />
                       <TextBlock Text="Subtitle delay (seconds)" Foreground="#BFB5D1" />
                       <NumericUpDown x:Name="SubtitleDelayInput" Minimum="-300" Maximum="300" Increment="0.05" FormatString="0.00" Value="0" ValueChanged="SubtitleDelayChanged" />

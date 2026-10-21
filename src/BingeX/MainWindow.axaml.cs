@@ -120,6 +120,7 @@ public partial class MainWindow : Window
     {
         if (!onlineEnabled && page is "Details" or "Add-ons") page = "Library";
         if (page != "Player") CancelEpisodeAutoplay();
+        if (page != "Details") EpisodePreparingPanel.IsVisible=false;
         using var timing = diagnostics.Measure("page-layout");
         if (page == "Player" && activePage != "Player") playerReturnPage = activePage;
         if (page != "Player" && pendingSource != null) ResetSourceAttempts();
@@ -177,6 +178,10 @@ public partial class MainWindow : Window
         Status("Opening " + title + "…");
         // Commit navigation before waiting for the old decoder to release its
         // stream. A slow native stop must not leave the source page on screen.
+        PlayerLoadingTitle.Text = nextEpisodeBusy ? "Loading next episode…" : "Opening video…";
+        PlayerLoadingDetail.Text = title;
+        PlayerLoadingHint.Text = uri.IsFile ? "Reading your local video" : activeSource != null ? $"Connecting to {activeSource.Provider}" : "Connecting to the video source";
+        PlayerTrackSummary.Text = "Preparing audio and subtitles…";
         PlayerLoading.IsVisible = true;
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title; MiniTitle.Text = title;

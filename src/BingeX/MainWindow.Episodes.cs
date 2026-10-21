@@ -6,6 +6,7 @@ public partial class MainWindow
 {
     private TitleInfo? playingEpisodeTitle;
     private bool nextEpisodeBusy;
+    private bool episodePreparationCancelled;
     private DateTime? nextEpisodeAt;
     private TitleInfo? cachedEpisodeTitle;
     private MediaContext? cachedEpisodeContext;
@@ -65,11 +66,21 @@ public partial class MainWindow
     }
     private void CancelEpisodeAutoplay_Click(object? sender,RoutedEventArgs e) => CancelEpisodeAutoplay();
     private async void NextEpisode_Click(object? sender,RoutedEventArgs e) => await StartNextEpisode();
+    private void CancelEpisodePreparation_Click(object? sender,RoutedEventArgs e)
+    {
+        episodePreparationCancelled=true;
+        streamWork.Cancel();
+        EpisodePreparingPanel.IsVisible=false;
+        DetailBusy.IsVisible=false;
+        DetailMessage.Text="Episode preparation cancelled. Choose a source below or retry streams.";
+        DetailRetry.IsVisible=true;
+    }
     private async Task StartNextEpisode()
     {
         if (nextEpisodeBusy || NativePlaybackBusy || playbackStarting || !onlineEnabled || NextEpisode is not { } next || playingEpisodeTitle is not { } title) return;
         CancelEpisodeAutoplay();
         nextEpisodeBusy = true;
+        episodePreparationCancelled=false;
         var generation = mediaGeneration;
         var preferredProvider = activeSource?.Provider;
         try
@@ -82,19 +93,21 @@ public partial class MainWindow
             SeasonPicker.ItemsSource = title.Episodes.Select(x=>x.Season).Distinct().Select(x=>new SeasonOption(x)).ToArray();
             SeasonPicker.SelectedItem = ((SeasonOption[])SeasonPicker.ItemsSource).First(x=>x.Number==next.Season);
             SetSelectedEpisode(next);
+            EpisodePreparingTitle.Text=selectedContext!.DisplayName;
+            EpisodePreparingPanel.IsVisible=true;
             await FindStreamsProgressive(context =>
             {
-                if(localClosing || !onlineEnabled || generation!=mediaGeneration || activePage!="Details" || context.Id!=title.Id || context.EpisodeId!=next.Id) return;
+                if(episodePreparationCancelled || localClosing || !onlineEnabled || generation!=mediaGeneration || activePage!="Details" || context.Id!=title.Id || context.EpisodeId!=next.Id) return;
                 var first=availableSources.Where(x=>x.UnsupportedReason==null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault();
                 if(first!=null) BeginSource(first,context);
             });
-            if (localClosing || !onlineEnabled || generation != mediaGeneration || activePage != "Details" || selectedContext?.Id != title.Id || selectedContext.EpisodeId != next.Id) return;
+            if (episodePreparationCancelled || localClosing || !onlineEnabled || generation != mediaGeneration || activePage != "Details" || selectedContext?.Id != title.Id || selectedContext.EpisodeId != next.Id) return;
             var source = availableSourceContext?.HistoryKey == selectedContext.HistoryKey
                 ? availableSources.Where(x=>x.UnsupportedReason == null).OrderByDescending(x=>x.Provider==preferredProvider).FirstOrDefault() : null;
             if (source != null) BeginSource(source,selectedContext);
             else Status("No playable source found for the next episode. Choose or retry a source on this page.");
         }
         catch { if (!localClosing) Status("Could not open the next episode. Choose an episode or retry its streams."); }
-        finally { nextEpisodeBusy = false; UpdateEpisodeActions(); }
+        finally { EpisodePreparingPanel.IsVisible=false; nextEpisodeBusy = false; UpdateEpisodeActions(); }
     }
 }

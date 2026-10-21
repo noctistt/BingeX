@@ -39,6 +39,7 @@ internal static class ExtensionSubtitleChecks
             if(!(bool)Get("useTextSubtitles")! || handler.Requests<2 || handler.LastPath!="/subtitle-next" || window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible) throw new Exception("Next episode must download matching captions automatically without opening settings.");
             Set("currentContext",previousContext);
             log("PASS: subtitle preference automatically selects and downloads the next episode caption without opening settings");
+            await PlayerPolishChecks.Run(window,log);
             log("PASS: extension captions appear in CC picker and selecting one loads header-protected text subtitles");
         }
         finally

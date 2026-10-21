@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.11. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.12. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -249,3 +249,7 @@ Episode cards and Next episode use one shared list grouped by reliable season/ep
 Catalog providers and stream providers report results individually. Early catalog posters and playable sources are shown while slow providers remain pending; source rows append without shifting existing choices. Next-episode playback can begin from an early supported result. Catalog pages are cached in memory for five minutes; Refresh invalidates the cache. Stream URLs are freshly resolved. The Cloudstream helper still serializes its native extension requests, on a separate queue so waiting extensions do not occupy Stremio HTTP slots.
 
 Selecting an extension or online subtitle saves its language per title. Following episodes download their own matching caption without opening settings. Embedded subtitle labels/languages and Off are also remembered. Missing preferred captions leave CC available for manual selection; local subtitle files are not reused as captions for a different episode. No subtitle URL is stored in preferences.
+
+### Player controls and preparation states (0.13.12)
+
+Player controls have consistent button sizes, a compact next-episode icon, track counts and a mini-player action. Audio & playback and Subtitles tabs stay within the same settings panel. Track menus distinguish embedded, downloaded and local-file captions while retaining the original track names. Opening a video names the title and source; next-episode lookup shows a preparation card with Cancel autoplay. Cancel stops pending lookup from starting a late source. Native video layout and decoding behavior are unchanged.

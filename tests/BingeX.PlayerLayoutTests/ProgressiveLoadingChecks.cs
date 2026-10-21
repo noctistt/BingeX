@@ -43,6 +43,19 @@ internal static class ProgressiveLoadingChecks
             var first=Control<StackPanel>("StreamItems").Children[0];
             handler.ReleaseStreams.TrySetResult(); await streams;
             Require(Control<StackPanel>("StreamItems").Children.Count==2 && ReferenceEquals(first,Control<StackPanel>("StreamItems").Children[0]),"Late streams append without replacing the source under the pointer.");
+            var priorContext=Get("currentContext"); var priorTitle=Get("playingEpisodeTitle");
+            var sequence=new TitleInfo("sequence-fixture","series","Sequence fixture","","","Synopsis","","","","progress-fast",[new("first","Episode one",1,1,""),new("next","Episode two",1,2,"")]);
+            Set("playingEpisodeTitle",sequence); Set("currentContext",new MediaContext(sequence.Id,sequence.Type,sequence.Name,"","progress-fast","first"));
+            handler.ReleaseStreams=new(TaskCreationOptions.RunContinuationsAsynchronously); handler.HoldAllStreams=true;
+            var preparing=(Task)Call("StartNextEpisode")!;
+            deadline=DateTime.UtcNow.AddSeconds(5);
+            while(!Control<Border>("EpisodePreparingPanel").IsVisible && DateTime.UtcNow<deadline) await Task.Delay(25);
+            Require(Control<Border>("EpisodePreparingPanel").IsVisible && Control<TextBlock>("EpisodePreparingTitle").Text!.Contains("Episode two"),"Next-episode preparation names the target episode.");
+            Call("CancelEpisodePreparation_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
+            await preparing.WaitAsync(TimeSpan.FromSeconds(5)); handler.ReleaseStreams.TrySetResult();
+            Require(!Control<Border>("EpisodePreparingPanel").IsVisible && Get("currentPath")==null && Control<TextBlock>("DetailMessage").Text!.Contains("cancelled"),"Cancel must prevent a late source from starting playback.");
+            Set("currentContext",priorContext); Set("playingEpisodeTitle",priorTitle);
+
         }
         finally
         {
@@ -56,6 +69,7 @@ internal static class ProgressiveLoadingChecks
     {
         public TaskCompletionSource ReleaseCatalog=new(TaskCreationOptions.RunContinuationsAsynchronously),ReleaseStreams=new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int CatalogRequests;
+        public bool HoldAllStreams;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token)
         {
             var uri=request.RequestUri!; var slow=uri.Host=="slow.fixture";
@@ -67,7 +81,7 @@ internal static class ProgressiveLoadingChecks
             }
             else if(uri.AbsolutePath.Contains("/stream/"))
             {
-                if(slow)await ReleaseStreams.Task.WaitAsync(token);
+                if(slow || HoldAllStreams)await ReleaseStreams.Task.WaitAsync(token);
                 value=new{streams=new[]{new{name=slow?"Slow source":"Fast source",url="https://"+uri.Host+"/video"}}};
             }
             else { CatalogRequests++; value=new{metas=new[]{new{id="fixture-movie",type="movie",name="Fixture"}}}; }
