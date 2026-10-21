@@ -43,6 +43,18 @@ internal static class ProgressiveLoadingChecks
             var first=Control<StackPanel>("StreamItems").Children[0];
             handler.ReleaseStreams.TrySetResult(); await streams;
             Require(Control<StackPanel>("StreamItems").Children.Count==2 && ReferenceEquals(first,Control<StackPanel>("StreamItems").Children[0]),"Late streams append without replacing the source under the pointer.");
+            var torrentContext=new MediaContext("torrent-filter-fixture","movie","Torrent filter","","fixture");
+            StreamChoice[] mixed=[new("Fixture","Direct","","https://fixture/direct",null),new("Fixture","Torrent","","",null,new TorrentSource(new string('a',40),null,[],[]))];
+            Control<CheckBox>("IncludeTorrentSourcesCheck").IsChecked=false;
+            Call("RenderSourceChoices",mixed,torrentContext);
+            Require(Control<StackPanel>("StreamItems").Children.Count==1 && !Control<Button>("SuggestedSource").IsVisible,"Torrent opt-out keeps direct streams and hides torrent suggestions.");
+            Control<CheckBox>("IncludeTorrentSourcesCheck").IsChecked=true;
+            Require(Control<StackPanel>("StreamItems").Children.Count==2 && Control<Button>("SuggestedSource").IsVisible && store.Preferences().IncludeTorrentSources,"Enabling torrents immediately reveals existing results and persists the choice.");
+            var retiredTorrent=Control<StackPanel>("StreamItems").Children.OfType<Button>().Single(x=>Equals(x.Tag,SourceSelection.Key(mixed[1])));
+            Control<CheckBox>("IncludeTorrentSourcesCheck").IsChecked=false;
+            retiredTorrent.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Call("SuggestedSource_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
+            Require(Control<StackPanel>("StreamItems").Children.Count==1 && Get("currentPath")==null && !store.Preferences().IncludeTorrentSources,"Disabling torrents blocks stale torrent actions and suggested selection cannot pick a direct stream.");
             var filterContext=new MediaContext("anime-filter-fixture","series","Anime fixture","","fixture","episode1");
             StreamChoice[] audioSources=[new("Fixture","[SUB] 1080p","","https://fixture/sub",null),new("Fixture","English Dubbed","","https://fixture/dub",null),new("Fixture","Dual Audio","","https://fixture/dual",null),new("Fixture","1080p HEVC","","https://fixture/unknown",null)];
             Call("RenderSourceChoices",audioSources,filterContext);

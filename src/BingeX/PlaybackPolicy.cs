@@ -12,4 +12,4 @@ public static class PlaybackPolicy
         Math.Clamp(time + delta, 0, Math.Max(0, duration));
 }
 
-public record PlayerPreferences(int Volume = 80, int SubtitleSize = 28, string SubtitleColor = "White", bool SubtitleBackground = true, bool AutoplayEpisodes = false, bool SearchAllStreamProviders = false);
+public record PlayerPreferences(int Volume = 80, int SubtitleSize = 28, string SubtitleColor = "White", bool SubtitleBackground = true, bool AutoplayEpisodes = false, bool SearchAllStreamProviders = false, bool IncludeTorrentSources = false);

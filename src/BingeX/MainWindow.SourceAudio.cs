@@ -10,13 +10,14 @@ public partial class MainWindow
         availableSources=[]; availableSourceContext=null;
         sourceAudioFilter="All"; sourceAudioContext="";
         StreamItems.Children.Clear(); StreamHeading.IsVisible=false; DetailRetry.IsVisible=false;
-        SuggestedSource.IsVisible=false;
+        SuggestedSource.IsVisible=false; TorrentSuggestionHint.IsVisible=false;
         SourceAudioFilterPanel.IsVisible=false; SourceAudioFilters.Children.Clear(); SourceAudioFilterNotice.Text="";
     }
     private bool IsCurrentSourceView(long revision,MediaContext context) =>
         revision==sourceViewRevision && availableSourceContext==context;
     private string sourceAudioFilter="All",sourceAudioContext="";
-    private IEnumerable<StreamChoice> FilteredSources => availableSources.Where(x=>sourceAudioFilter=="All" || SourceAudioInfo.Parse(x).Kind.ToString()==sourceAudioFilter);
+    private IEnumerable<StreamChoice> EligibleSources => availableSources.Where(x=>preferences.IncludeTorrentSources || x.Torrent==null);
+    private IEnumerable<StreamChoice> FilteredSources => EligibleSources.Where(x=>sourceAudioFilter=="All" || SourceAudioInfo.Parse(x).Kind.ToString()==sourceAudioFilter);
     private IEnumerable<StreamChoice> PlaybackSources
     {
         get
@@ -37,11 +38,11 @@ public partial class MainWindow
     private void RenderSourceAudioFilters(MediaContext context)
     {
         var revision=sourceViewRevision;
-        SourceAudioFilterPanel.IsVisible=availableSources.Count>0;
+        SourceAudioFilterPanel.IsVisible=EligibleSources.Any();
         SourceAudioFilters.Children.Clear();
         foreach(var filter in new[]{"All","Subbed","Dubbed","DualAudio","Unknown"})
         {
-            var count=filter=="All" ? availableSources.Count : availableSources.Count(x=>SourceAudioInfo.Parse(x).Kind.ToString()==filter);
+            var count=filter=="All" ? EligibleSources.Count() : EligibleSources.Count(x=>SourceAudioInfo.Parse(x).Kind.ToString()==filter);
             var button=new Button{Content=(filter=="DualAudio" ? "Dual audio" : filter)+$" ({count})",Margin=new Avalonia.Thickness(0,0,8,6),Padding=new Avalonia.Thickness(12,7)};
             button.Classes.Set("primary",sourceAudioFilter==filter);
             button.Click+=(_,_)=>
@@ -55,7 +56,7 @@ public partial class MainWindow
             SourceAudioFilters.Children.Add(button);
         }
         var visible=FilteredSources.Count();
-        SourceAudioFilterNotice.Text=visible>0 && !PlaybackSources.Any() ? "These sources do not match your saved audio language. Pick a source manually to change language." : sourceAudioFilter=="All" ? "Labels come from the provider. Unlabelled audio stays Unknown." : $"{visible} of {availableSources.Count} sources match. Choose All to see other sources.";
+        SourceAudioFilterNotice.Text=visible>0 && !PlaybackSources.Any() ? "These sources do not match your saved audio language. Pick a source manually to change language." : sourceAudioFilter=="All" ? "Labels come from the provider. Unlabelled audio stays Unknown." : $"{visible} of {EligibleSources.Count()} sources match. Choose All to see other sources.";
     }
     private void RememberSourceAudioChoice(StreamChoice source,MediaContext context)
     {

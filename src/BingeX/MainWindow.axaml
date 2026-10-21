@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.17" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.18" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -160,8 +160,9 @@
           <TextBlock x:Name="DetailMessage" Classes="muted" TextWrapping="Wrap" />
           <Button x:Name="DetailRetry" Content="Retry streams" Click="FindStreams_Click" IsVisible="False" HorizontalAlignment="Left" />
           <TextBlock x:Name="StreamHeading" TextWrapping="Wrap" Text="Available streams" FontSize="23" FontWeight="SemiBold" IsVisible="False" />
-          <WrapPanel><Button x:Name="SuggestedSource" IsVisible="False" Content="Try suggested source" Classes="primary" Click="SuggestedSource_Click" Margin="0,0,14,0" /><CheckBox x:Name="AutoNextSource" IsChecked="True" Content="Try another source if this one stalls (up to 3 attempts)" VerticalAlignment="Center" /></WrapPanel>
-          <TextBlock Text="Suggested order uses available quality, size and advertised seed counts. Availability is checked when you play." Classes="muted" TextWrapping="Wrap" />
+          <CheckBox x:Name="IncludeTorrentSourcesCheck" Content="Include torrent sources" ToolTip.Tip="Show peer-to-peer torrent results. Direct video streams remain available." />
+          <WrapPanel><Button x:Name="SuggestedSource" IsVisible="False" Content="Try suggested torrent" Classes="primary" Click="SuggestedSource_Click" Margin="0,0,14,0" /><CheckBox x:Name="AutoNextSource" IsChecked="True" Content="Try another source if this one stalls (up to 3 attempts)" VerticalAlignment="Center" /></WrapPanel>
+          <TextBlock x:Name="TorrentSuggestionHint" IsVisible="False" Text="Suggested torrents use available quality, size and advertised seed counts. Availability is checked when you play." Classes="muted" TextWrapping="Wrap" />
           <StackPanel x:Name="SourceAudioFilterPanel" IsVisible="False" Spacing="4">
             <TextBlock Text="Audio type" FontWeight="SemiBold" />
             <WrapPanel x:Name="SourceAudioFilters" />
