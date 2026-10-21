@@ -14,7 +14,7 @@
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.12" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.13" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -123,7 +123,6 @@
                 <TextBlock x:Name="DetailFacts" Foreground="#D2CBDD" TextWrapping="Wrap" />
                 <TextBlock x:Name="DetailGenres" Classes="muted" TextWrapping="Wrap" />
                 <TextBlock x:Name="DetailDescription" TextWrapping="Wrap" LineHeight="23" />
-                <Button x:Name="MovieSourcesButton" Content="Find streams" Classes="primary" Click="FindStreams_Click" HorizontalAlignment="Left" />
               </StackPanel>
             </Grid>
           </Border>
@@ -140,6 +139,8 @@
             </Grid>
             <ScrollViewer x:Name="StreamScroller" Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
               <StackPanel Spacing="12" Margin="0,0,12,0">
+                <Button x:Name="MovieSourcesButton" Content="Find streams" Classes="primary" Click="FindStreams_Click" HorizontalAlignment="Left" />
+
                 <Border x:Name="EpisodePreparingPanel" IsVisible="False" Background="#292139" BorderBrush="#574371" BorderThickness="1" CornerRadius="12" Padding="16">
                   <StackPanel Spacing="8">
                     <TextBlock Text="Loading next episode…" FontWeight="SemiBold" FontSize="18" />
@@ -261,6 +262,18 @@
                   </Grid>
                 </StackPanel>
               </Border>
+              <Border x:Name="CaptionQuickPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="330" MaxHeight="330" Margin="16,16,16,145" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="16">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="12">
+                  <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Subtitles" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="1" Content="×" Classes="playerAction" Click="CloseCaptionQuick_Click" AutomationProperties.Name="Close subtitle picker" /></Grid>
+                  <ComboBox x:Name="QuickSubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="QuickSubtitleTrackChanged" AutomationProperties.Name="Quick subtitle track">
+                    <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Text="Online captions are fetched in memory. No subtitle file is saved." Foreground="#AAA0BA" FontSize="11" TextWrapping="Wrap" />
+                  <Button Content="More subtitle settings…" Classes="playerAction" Click="MoreSubtitleSettings_Click" HorizontalAlignment="Stretch" />
+                </StackPanel>
+                </ScrollViewer>
+              </Border>
               <Border x:Name="PlayerSettingsPanel" IsVisible="False" Background="#F51E1A2B" BorderBrush="#423451" BorderThickness="1" CornerRadius="14" Width="350" MaxHeight="480" Margin="16,16,16,145" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="18">
                 <ScrollViewer x:Name="SettingsScroll" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel Spacing="12">
@@ -295,7 +308,7 @@
                       <ComboBox x:Name="SubtitleTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="SubtitleTrackChanged" AutomationProperties.Name="Subtitle track">
                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
                       </ComboBox>
-                      <TextBlock Text="Embedded = in the video · Downloaded = online captions · File = added locally. Your language choice is remembered for this show." Foreground="#AAA0BA" FontSize="11" TextWrapping="Wrap" />
+                      <TextBlock Text="Embedded = in the video · Online = fetched from a provider · File = added locally. Your language choice is remembered for this show." Foreground="#AAA0BA" FontSize="11" TextWrapping="Wrap" />
                       <Button Content="Load subtitle file…" Click="Subtitle_Click" HorizontalAlignment="Left" />
                       <TextBlock Text="Subtitle delay (seconds)" Foreground="#BFB5D1" />
                       <NumericUpDown x:Name="SubtitleDelayInput" Minimum="-300" Maximum="300" Increment="0.05" FormatString="0.00" Value="0" ValueChanged="SubtitleDelayChanged" />

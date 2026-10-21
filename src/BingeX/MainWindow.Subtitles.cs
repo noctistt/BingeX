@@ -223,6 +223,7 @@ public partial class MainWindow
     }
     private async Task ApplyOnlineSubtitle(SubtitleChoice choice,bool automatic)
     {
+        var fromQuickPicker=CaptionQuickPanel.IsVisible;
         var token = BeginOnlineSubtitles("Loading subtitle…");
         var generation = mediaGeneration;
         try
@@ -230,7 +231,7 @@ public partial class MainWindow
             var document = await subtitleDownloads.Download(choice.Url, token, choice.Headers);
             if (!SubtitleRequestCurrent(token, generation) || player == null) return;
             textSubtitles = document;
-            textSubtitleSource="Downloaded";
+            textSubtitleSource="Online";
             textSubtitleName = (choice.Label.Length>0 ? choice.Label : OnlineSubtitles.LanguageName(choice.Language)) + " · " + choice.Provider;
             useTextSubtitles = true;
             lastSubtitleTrack = TextSubtitleId;
@@ -240,7 +241,7 @@ public partial class MainWindow
             if(!automatic)
             {
                 RememberSubtitlePreference(new("online",SubtitlePreference.LanguageKey(choice.Language),choice.Label,choice.Provider));
-                ShowPlayerSettings(true);
+                if(!fromQuickPicker) ShowPlayerSettings(true);
                 PlayerNotice("Subtitles loaded: " + textSubtitleName);
                 PlayerOverlay.Focus();
             }

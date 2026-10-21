@@ -38,6 +38,7 @@ public partial class MainWindow
             OnlineSubtitleSection.IsVisible = false;
             SubtitleSearchBack.IsVisible = false;
             PlayerSettingsPanel.IsVisible = false;
+            CaptionQuickPanel.IsVisible = false;
             BrowseBusy.IsVisible = false;
             if (activePage is "Details" or "Add-ons") Page("Library");
             if (playerReturnPage is "Details" or "Add-ons") playerReturnPage = "Library";

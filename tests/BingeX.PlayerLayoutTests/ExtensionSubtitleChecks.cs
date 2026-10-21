@@ -39,6 +39,16 @@ internal static class ExtensionSubtitleChecks
             if(!(bool)Get("useTextSubtitles")! || handler.Requests<2 || handler.LastPath!="/subtitle-next" || window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible) throw new Exception("Next episode must download matching captions automatically without opening settings.");
             Set("currentContext",previousContext);
             log("PASS: subtitle preference automatically selects and downloads the next episode caption without opening settings");
+            Call("Captions_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
+            var quick=window.FindControl<ComboBox>("QuickSubtitleTrackPicker")!;
+            var beforeQuickRequests=handler.Requests;
+            Set("useTextSubtitles",false);
+            quick.SelectedItem=quick.Items.Cast<object>().Single(x=>x.ToString()!.Contains("Extension · English next episode"));
+            deadline=DateTime.UtcNow.AddSeconds(5);
+            while(DateTime.UtcNow<deadline && (!(bool)Get("useTextSubtitles")! || handler.Requests==beforeQuickRequests)) await Task.Delay(25);
+            if(!(bool)Get("useTextSubtitles")! || handler.Requests==beforeQuickRequests || window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible || !window.FindControl<Border>("CaptionQuickPanel")!.IsVisible)
+                throw new Exception("Choosing online captions from CC must remain in the quick picker.");
+            Call("CloseCaptionQuick_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
             await PlayerPolishChecks.Run(window,log);
             log("PASS: extension captions appear in CC picker and selecting one loads header-protected text subtitles");
         }

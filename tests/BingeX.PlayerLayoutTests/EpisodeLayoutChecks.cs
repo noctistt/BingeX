@@ -71,6 +71,13 @@ internal static class EpisodeLayoutChecks
                 Require(((Button)Control<WrapPanel>("EpisodeItems").Children[201]).Classes.Contains("primary"),"The chosen episode remains highlighted.");
             }
             Call("SetEpisodeLayout",false); await Task.Delay(100);
+            Call("RenderTitle",title with{Episodes=[],Description=string.Join(" ",Enumerable.Repeat("Long synopsis remains scrollable.",80))},CancellationToken.None);
+            window.Width=960;window.Height=680;
+            Control<ScrollViewer>("StreamScroller").Offset=default;
+            await Task.Delay(150);
+            var streamPane=Control<ScrollViewer>("StreamScroller"); var find=Control<Button>("MovieSourcesButton");
+            var findAt=find.TranslatePoint(default,streamPane);
+            Require(find.IsEffectivelyVisible && findAt!=null && findAt.Value.Y>=0 && findAt.Value.Y+find.Bounds.Height<=streamPane.Viewport.Height,"Find streams must stay fully visible outside a long, height-limited synopsis.");
             Require(Control<ScrollViewer>("StreamScroller").Bounds.Width>Control<Grid>("TitleContentGrid").Bounds.Width*.9,"Movies without entries give streams the full width.");
         }
         finally

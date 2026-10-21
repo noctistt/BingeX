@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.12. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.13. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -253,3 +253,7 @@ Selecting an extension or online subtitle saves its language per title. Followin
 ### Player controls and preparation states (0.13.12)
 
 Player controls have consistent button sizes, a compact next-episode icon, track counts and a mini-player action. Audio & playback and Subtitles tabs stay within the same settings panel. Track menus distinguish embedded, downloaded and local-file captions while retaining the original track names. Opening a video names the title and source; next-episode lookup shows a preparation card with Cancel autoplay. Cancel stops pending lookup from starting a late source. Native video layout and decoding behavior are unchanged.
+
+### Subtitle picker and title action visibility (0.13.13)
+
+Online caption text is fetched and parsed in memory, including preferred captions restored for following episodes; it is not saved as a subtitle file. The selected track label now says Online rather than Downloaded. CC opens a compact subtitle-track picker with a link to full subtitle settings. The settings icon keeps the full audio/playback and subtitle tabs. Find streams sits in the stream pane rather than inside the height-limited synopsis, so long descriptions cannot clip the action.

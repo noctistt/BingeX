@@ -18,6 +18,11 @@ internal static class PlayerPolishChecks
         Require(Control<Border>("PlayerSettingsPanel").IsVisible && Control<StackPanel>("SubtitleSettingsSection").IsVisible && Control<Button>("SubtitleSettingsTab").Classes.Contains("active"),"Switching tabs keeps the panel open and highlights the current section.");
         Call("SubtitleSettingsTab_Click",null,new RoutedEventArgs());
         Require(Control<Border>("PlayerSettingsPanel").IsVisible,"Clicking the selected tab must not close settings.");
+        Call("Captions_Click",null,new RoutedEventArgs());
+        Require(Control<Border>("CaptionQuickPanel").IsVisible && !Control<Border>("PlayerSettingsPanel").IsVisible,"CC opens a dedicated quick subtitle picker instead of the full settings panel.");
+        Require(Control<ComboBox>("QuickSubtitleTrackPicker").Items.Count==Control<ComboBox>("SubtitleTrackPicker").Items.Count,"Quick subtitle picker retains all native and online choices.");
+        Call("MoreSubtitleSettings_Click",null,new RoutedEventArgs());
+        Require(!Control<Border>("CaptionQuickPanel").IsVisible && Control<Border>("PlayerSettingsPanel").IsVisible,"More subtitle settings opens the full panel and closes the quick picker.");
         var native=Control<ComboBox>("AudioTrackPicker").Items.Cast<object>().FirstOrDefault(x=>(string?)x.GetType().GetProperty("DisplayName")?.GetValue(x) is { } name && name.StartsWith("Embedded"));
         Require(native!=null,"Embedded track choices identify their source without changing track IDs.");
         Control<Border>("PlayerSettingsPanel").IsVisible=false;

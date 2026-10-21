@@ -57,7 +57,7 @@ public partial class MainWindow
         videoClickTimer.Tick += (_, _) =>
         {
             videoClickTimer.Stop();
-            if (!NativePlaybackBusy && activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible)
+            if (!NativePlaybackBusy && activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible && !CaptionQuickPanel.IsVisible)
                 Play_Click(null, new RoutedEventArgs());
         };
         PlayerOverlay.PointerMoved += (_, e) =>
@@ -70,7 +70,7 @@ public partial class MainWindow
             RevealPlayerControls();
             videoClickTimer.Stop();
             videoPressPoint = null;
-            if (NativePlaybackBusy || Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
+            if (NativePlaybackBusy || Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) ||
                 !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
             if (miniPlayer) { RestorePlayer_Click(null, new()); e.Handled = true; return; }
@@ -87,7 +87,7 @@ public partial class MainWindow
             var start = videoPressPoint;
             videoPressPoint = null;
             if (start == null || e.InitialPressMouseButton != MouseButton.Left ||
-                Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, TorrentPanel) ||
+                Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) ||
                 VideoPointerMoved(e.GetPosition(PlayerOverlay), start.Value)) return;
             // Wait out the native double-click interval so fullscreen never also pauses playback.
             videoClickTimer.Interval = PlatformSettings?.GetDoubleTapTime(e.Pointer.Type) ?? TimeSpan.FromMilliseconds(500);
@@ -136,6 +136,7 @@ public partial class MainWindow
         }
         CaptionPanel.IsVisible = false;
         PlayerSettingsPanel.IsVisible = false;
+        CaptionQuickPanel.IsVisible = false;
         PlaybackNotice.IsVisible = false;
         trackSignature = ""; trackTicks = 0;
         AudioTrackPicker.ItemsSource = new[] { new TrackOption(-1, "Waiting for audio tracks…") };
@@ -197,7 +198,7 @@ public partial class MainWindow
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
         var hide = WindowState == WindowState.FullScreen && playbackSnapshot.IsPlaying && !playbackEnded &&
-            !PlayerSettingsPanel.IsVisible && !PlayerControls.IsPointerOver && !seekDragging && idle.TotalSeconds > 3;
+            !PlayerSettingsPanel.IsVisible && !CaptionQuickPanel.IsVisible && !PlayerControls.IsPointerOver && !seekDragging && idle.TotalSeconds > 3;
         if (!miniPlayer && PlayerControls.IsVisible == hide)
         {
             PlayerControls.IsVisible = !hide;
@@ -244,11 +245,31 @@ public partial class MainWindow
         DescribeButton(FullscreenButton, full ? "Exit fullscreen" : "Fullscreen", "F");
     }
     private void Settings_Click(object? sender, RoutedEventArgs e) => ShowPlayerSettings(false);
-    private void Captions_Click(object? sender, RoutedEventArgs e) => ShowPlayerSettings(true);
+    private void Captions_Click(object? sender, RoutedEventArgs e)
+    {
+        var show=!CaptionQuickPanel.IsVisible;
+        PlayerSettingsPanel.IsVisible=false;
+        CancelOnlineSubtitles();
+        CaptionQuickPanel.IsVisible=show;
+        if(show) RefreshTracks();
+        RevealPlayerControls();
+    }
+    private void CloseCaptionQuick_Click(object? sender,RoutedEventArgs e) => CaptionQuickPanel.IsVisible=false;
+    private void MoreSubtitleSettings_Click(object? sender,RoutedEventArgs e)
+    {
+        CaptionQuickPanel.IsVisible=false;
+        ShowPlayerSettings(true);
+    }
+    private void QuickSubtitleTrackChanged(object? sender,SelectionChangedEventArgs e)
+    {
+        if(!updatingTracks && QuickSubtitleTrackPicker.SelectedItem!=null)
+            SubtitleTrackPicker.SelectedItem=QuickSubtitleTrackPicker.SelectedItem;
+    }
     private void CloseSettings_Click(object? sender, RoutedEventArgs e)
     {
         CancelOnlineSubtitles();
         PlayerSettingsPanel.IsVisible = false;
+        CaptionQuickPanel.IsVisible = false;
         RevealPlayerControls();
         PlayerOverlay.Focus();
     }
@@ -256,6 +277,7 @@ public partial class MainWindow
     private void SubtitleSettingsTab_Click(object? sender, RoutedEventArgs e) { PlayerSettingsPanel.IsVisible=false; ShowPlayerSettings(true); }
     private void ShowPlayerSettings(bool subtitles)
     {
+        CaptionQuickPanel.IsVisible=false;
         var show = onlineSubtitleView || !PlayerSettingsPanel.IsVisible || subtitleSettingsOpen != subtitles;
         CancelOnlineSubtitles();
         onlineSubtitleView = false;
@@ -340,10 +362,12 @@ public partial class MainWindow
                 trackSignature = signature;
                 AudioTrackPicker.ItemsSource = audio.Length > 0 ? audio : new[] { new TrackOption(-1, "No audio tracks") };
                 SubtitleTrackPicker.ItemsSource = subtitles;
+                QuickSubtitleTrackPicker.ItemsSource = subtitles;
                 AudioTrackPicker.IsEnabled = audio.Length > 0;
             }
             AudioTrackPicker.SelectedItem = (AudioTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == playbackSnapshot.AudioTrack);
             SubtitleTrackPicker.SelectedItem = (SubtitleTrackPicker.ItemsSource as IEnumerable<TrackOption>)?.FirstOrDefault(x => x.Id == (useTextSubtitles ? TextSubtitleId : playbackSnapshot.Spu));
+            QuickSubtitleTrackPicker.SelectedItem=SubtitleTrackPicker.SelectedItem;
         }
         finally { updatingTracks = false; }
     }
@@ -526,7 +550,8 @@ public partial class MainWindow
             case Key.G: SubtitleDelayInput.Value = Math.Max(-300, (SubtitleDelayInput.Value ?? 0) - .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.H: SubtitleDelayInput.Value = Math.Min(300, (SubtitleDelayInput.Value ?? 0) + .05m); PlayerNotice("Subtitle delay: " + SubtitleDelayInput.Value?.ToString("0.00") + "s"); break;
             case Key.Escape:
-                if (PlayerSettingsPanel.IsVisible) { CancelOnlineSubtitles(); PlayerSettingsPanel.IsVisible = false; }
+                if (CaptionQuickPanel.IsVisible) CaptionQuickPanel.IsVisible=false;
+                else if (PlayerSettingsPanel.IsVisible) { CancelOnlineSubtitles(); PlayerSettingsPanel.IsVisible = false; }
                 else if (WindowState == WindowState.FullScreen) SetFullscreen(false);
                 else return;
                 RevealPlayerControls();

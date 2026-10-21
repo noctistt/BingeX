@@ -28,6 +28,7 @@ public partial class MainWindow
         if (miniPlayer)
         {
             PlayerSettingsPanel.IsVisible = false;
+            CaptionQuickPanel.IsVisible = false;
             TorrentPanel.IsVisible = false;
             PlaybackNotice.IsVisible = false;
             PlayerOverlay.Cursor = Avalonia.Input.Cursor.Default;
