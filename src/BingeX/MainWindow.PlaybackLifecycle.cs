@@ -22,6 +22,7 @@ public partial class MainWindow
     private async Task FinishWindowCloseAsync()
     {
         localClosing = true;
+        cloudstreamLifetime.Cancel();
         playbackRequest++; playbackStarting = false;
         addonCheckLifetime.Cancel();
         SaveProgress();
@@ -30,5 +31,6 @@ public partial class MainWindow
         StopTorrentPlayback();
         await StopNativePlayerAsync();
         await torrentCleanup;
+        await cloudstream.DisposeAsync();
     }
 }

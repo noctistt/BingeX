@@ -18,6 +18,8 @@ public partial class MainWindow : Window
     private MediaPlayer? player;
     private string? currentPath;
     private string currentTitle = "";
+    private IReadOnlyDictionary<string, string>? currentRequestHeaders;
+    private string? currentStreamAudio;
     private long resumeAt;
     private int saveTicks;
     private bool updatingSeek;
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         VideoSurface.SizeChanged += (_, _) => SynchronizePlayerOverlay();
         library = new MediaLibrary(addons);
+        SetupCloudstream();
         SetupPlayerControls();
         RefreshHistory();
         RefreshAddons();
@@ -150,7 +153,7 @@ public partial class MainWindow : Window
         if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
     }
 
-    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null)
     {
         if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
@@ -185,6 +188,8 @@ public partial class MainWindow : Window
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
             thumbnailAttempted = false;
             currentPath = path; currentTitle = title;
+            currentRequestHeaders = requestHeaders;
+            currentStreamAudio = streamAudio;
             PlayerEmpty.IsVisible = false;
             NowPlaying.Text = title; MiniTitle.Text = title;
             // Preserve navigation if the user went back while native stop ran.
@@ -218,7 +223,14 @@ public partial class MainWindow : Window
                 using var nativeTiming = diagnostics.Measure("native-start");
                 if (request != Volatile.Read(ref playbackRequest)) return;
                 using var media = input == null ? new Media(playbackEngine, playbackUrl == null ? uri : new Uri(playbackUrl)) : new Media(playbackEngine, input);
+                if (requestHeaders != null)
+                    foreach (var header in requestHeaders)
+                    {
+                        if (header.Key.Equals("Referer", StringComparison.OrdinalIgnoreCase)) media.AddOption(":http-referrer=" + header.Value);
+                        if (header.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) media.AddOption(":http-user-agent=" + header.Value);
+                    }
                 if (extraAudio != null && File.Exists(extraAudio)) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(extraAudio));
+                else if (streamAudio != null) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(streamAudio));
                 started = native.Play(media);
                 if (started) { native.SetRate(speed); native.SetAudioDelay(0); native.Volume = volume; }
                 failed = native.State == VLCState.Error;
@@ -348,7 +360,7 @@ public partial class MainWindow : Window
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
-            else Play(currentPath, currentTitle, currentContext);
+            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio);
         }
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();

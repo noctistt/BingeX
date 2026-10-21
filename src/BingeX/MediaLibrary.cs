@@ -15,7 +15,7 @@ public record MediaContext(string Id, string Type, string Name, string Poster, s
     public string HistoryKey => $"stremio:{Type}:{EpisodeId ?? Id}";
     public string DisplayName => EpisodeName == null ? Name : $"{Name} · {EpisodeName}";
 }
-public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null);
+public record StreamChoice(string Provider, string Name, string Description, string Url, string? UnsupportedReason, TorrentSource? Torrent = null, SourceEvidence? Evidence = null, IReadOnlyDictionary<string, string>? RequestHeaders = null, string? AudioUrl = null);
 public record SubtitleChoice(string Provider, string Id, string Language, string Label, string Url);
 public record ProviderResult<T>(IReadOnlyList<T> Items, int Failures, IReadOnlyList<AddonCheck>? Diagnostics = null);
 
@@ -122,7 +122,7 @@ public sealed class MediaLibrary(AddonClient client)
                 var response = await Request(AddonClient.Endpoint(addon.ManifestUrl, "stream", type, id), token);
                 if (!response.TryGetProperty("streams", out var streams) || streams.ValueKind != JsonValueKind.Array)
                     return Result([], "The provider returned an invalid stream response.", true);
-                var items = streams.EnumerateArray().Select(x => ParseStream(addon.Name, x)).ToArray();
+                var items = streams.EnumerateArray().Select(x => ParseStream(addon.Name, x, addon.ManifestUrl.StartsWith("cloudstream://"))).ToArray();
                 return Result(items, items.Length == 0 ? "Responded, but returned no streams for the last title checked." : $"Returned {items.Length} stream(s); {items.Count(x => x.UnsupportedReason == null)} supported. Playback has not been verified.");
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
@@ -149,7 +149,7 @@ public sealed class MediaLibrary(AddonClient client)
         }));
         return new(results.SelectMany(x => x.Items).DistinctBy(x => (x.Language, x.Url)).Take(800).ToArray(), results.Sum(x => x.Failures));
     }
-    public static StreamChoice ParseStream(string provider, JsonElement stream)
+    public static StreamChoice ParseStream(string provider, JsonElement stream, bool cloudstream = false)
     {
         var url = AddonClient.Text(stream, "url");
         string? reason = null;
@@ -160,12 +160,24 @@ public sealed class MediaLibrary(AddonClient client)
             catch (FormatException error) { reason = error.Message; }
         }
         else if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")) reason = "External or unsupported playback source";
-        else if (stream.TryGetProperty("behaviorHints", out var hints) && hints.ValueKind == JsonValueKind.Object && hints.TryGetProperty("proxyHeaders", out _)) reason = "Requires custom request headers";
+        else if (!cloudstream && stream.TryGetProperty("behaviorHints", out var hints) && hints.ValueKind == JsonValueKind.Object && hints.TryGetProperty("proxyHeaders", out _)) reason = "Requires custom request headers";
+        Dictionary<string, string>? headers = null;
+        if (cloudstream)
+        {
+            if (stream.TryGetProperty("drm", out var drm) && drm.ValueKind == JsonValueKind.True) reason = "DRM streams are not supported by this bridge";
+            if (stream.TryGetProperty("behaviorHints", out var behavior) && behavior.TryGetProperty("proxyHeaders", out var proxy) && proxy.TryGetProperty("request", out var request))
+            {
+                headers = request.EnumerateObject().ToDictionary(x => x.Name, x => x.Value.GetString() ?? "", StringComparer.OrdinalIgnoreCase);
+                if (headers.Any(x => (!x.Key.Equals("Referer", StringComparison.OrdinalIgnoreCase) && !x.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) || x.Value.Contains('\r') || x.Value.Contains('\n'))) reason = "This extension needs unsupported request headers";
+            }
+        }
         var name = AddonClient.Text(stream, "name", "Direct stream");
         var description = AddonClient.Text(stream, "description", AddonClient.Text(stream, "title"));
         var evidence = SourceSelection.Read(stream, name, description);
         if (torrent != null && evidence.Bytes > TorrentPlayback.CacheLimit) reason = "Above the 32 GB torrent cache limit";
-        return new(provider, name, description, url, reason, torrent, evidence);
+        var audioUrl = cloudstream ? AddonClient.Text(stream, "audioUrl") : "";
+        if (audioUrl.Length > 0 && (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var audio) || audio.Scheme is not ("http" or "https"))) reason = "Unsupported external audio address";
+        return new(provider, name, description, url, reason, torrent, evidence, headers, audioUrl.Length == 0 ? null : audioUrl);
     }
     public static TitleInfo ParseTitle(JsonElement meta, string addonId, string fallbackType)
     {

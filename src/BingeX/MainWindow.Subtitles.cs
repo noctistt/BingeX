@@ -172,7 +172,7 @@ public partial class MainWindow
         SubtitleTitleResults.Children.Clear();
         try
         {
-            var providers = store.Addons().ToList();
+            var providers = ConnectedAddons().ToList();
             if (!providers.Any(x => x.Id == OnlineSubtitles.DefaultProvider.Id)) providers.Add(OnlineSubtitles.DefaultProvider);
             var result = await library.Subtitles(type, id, providers, token);
             if (!SubtitleRequestCurrent(token, generation)) return;

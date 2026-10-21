@@ -55,7 +55,7 @@ public partial class MainWindow
         try
         {
             var previous = CatalogPicker.SelectedItem as CatalogInfo;
-            var installed = store.Addons();
+            var installed = ConnectedAddons();
             WelcomeHero.IsVisible = installed.Count == 0;
             var result = await library.Catalogs(installed, token);
             token.ThrowIfCancellationRequested();
@@ -112,7 +112,7 @@ public partial class MainWindow
         BrowseLoading("Searching your catalogs…");
         try
         {
-            if (catalogs.Count == 0) { catalogs = (await library.Catalogs(store.Addons(), token)).Items; RenderDiscoverNavigation(); }
+            if (catalogs.Count == 0) { catalogs = (await library.Catalogs(ConnectedAddons(), token)).Items; RenderDiscoverNavigation(); }
             token.ThrowIfCancellationRequested();
             if (!DiscoverCatalogs.Any(x => x.Searchable)) { BrowseNotice("This add-on does not support search in the selected category. Choose another add-on or category."); return; }
             var result = await library.Search(DiscoverCatalogs, query, token);
@@ -182,7 +182,7 @@ public partial class MainWindow
         MovieSourcesButton.IsEnabled = false;
         try
         {
-            var full = await library.Details(title, store.Addons(), token);
+            var full = await library.Details(title, ConnectedAddons(), token);
             token.ThrowIfCancellationRequested();
             selectedTitle = full;
             selectedContext = ContextFor(full);
@@ -254,7 +254,7 @@ public partial class MainWindow
         DetailBusy.IsVisible = true; DetailLoadingText.Text = "Checking your stream providers…"; DetailMessage.Text = ""; DetailRetry.IsVisible = false;
         try
         {
-            var result = await library.Streams(context.Type, context.EpisodeId ?? context.Id, store.Addons(), token);
+            var result = await library.Streams(context.Type, context.EpisodeId ?? context.Id, ConnectedAddons(), token);
             token.ThrowIfCancellationRequested();
             if (result.Diagnostics != null)
             {
@@ -295,7 +295,7 @@ public partial class MainWindow
         HistoryItems.Children.Clear();
         var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration)).ToArray();
         EmptyHistory.IsVisible = history.Length == 0;
-        HistorySection.IsVisible = history.Length > 0 || store.Addons().Count == 0;
+        HistorySection.IsVisible = history.Length > 0 || ConnectedAddons().Count == 0;
         foreach (var media in history)
         {
             var context = store.Context(media.Path);

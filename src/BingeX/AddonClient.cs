@@ -6,6 +6,7 @@ namespace BingeX;
 public sealed class AddonClient : IDisposable
 {
     private readonly HttpClient http;
+    public Func<string, CancellationToken, Task<JsonElement>>? CloudstreamRequest { get; set; }
     public AddonClient(HttpMessageHandler? handler = null)
     {
         http = handler == null ? new HttpClient() : new HttpClient(handler);
@@ -14,6 +15,8 @@ public sealed class AddonClient : IDisposable
     }
     public async Task<JsonElement> Get(string url, CancellationToken cancellationToken = default)
     {
+        if (url.StartsWith("cloudstream://", StringComparison.Ordinal) && CloudstreamRequest != null)
+            return await CloudstreamRequest(url, cancellationToken);
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !string.IsNullOrEmpty(uri.UserInfo))
             throw new InvalidOperationException("Use an HTTPS add-on URL without embedded username/password credentials.");
         var json = await http.GetStringAsync(uri, cancellationToken);

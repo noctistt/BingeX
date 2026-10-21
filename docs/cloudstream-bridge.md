@@ -1,6 +1,6 @@
 # Cloudstream Windows compatibility spike
 
-Status: developer proof, not an installed BingeX feature. No extension installation UI or bundled runtime yet.
+Status: experimental user-facing integration in 0.13.0. Add-ons has a separate Cloudstream section with optional bridge download, repository discovery, installation, removal and provider browsing. No extensions or upstream engine/runtime binaries are bundled in the installer.
 
 ## Architecture
 
@@ -9,7 +9,9 @@ Status: developer proof, not an installed BingeX feature. No extension installat
 The current protocol is compatible with SkyStream's `cs3_engine`, investigated at commit `f5523ae07d729b579be30976df8783a0b98c4559`:
 https://github.com/akashdh11/skystream/tree/f5523ae07d729b579be30976df8783a0b98c4559/packages/cs3_engine
 
-No upstream engine binaries or code are copied into BingeX. That engine is GPL-3.0; bundling it requires preserving its license, notices and corresponding source, and reviewing the resulting distribution's licensing. The current helper uses locally supplied assets only. Java 17+ is required by upstream; tests used existing JDK 22.
+No upstream engine binaries or code are copied into BingeX. The optional download fetches pinned engine JARs and a pinned Temurin 21 runtime, verifies SHA-256 for each, and records the upstream GPL-3.0 source/license links. Original patch source under `tools/cloudstream-patch` preserves the generic separate audio-track contract. Only the small original patch JAR and download lockfiles are embedded in BingeX.
+
+Installed extensions live separately from Stremio's database entries. Virtual provider manifests and scoped title/episode IDs connect them to the existing MediaLibrary without a localhost HTTP listener. Helper errors, cancellations and unsupported browser/UI events stop the helper; the next request starts a fresh one. External audio attaches through LibVLC's audio-slave support. Referer and User-Agent are supported; other request headers and DRM are explicitly marked unsupported. Subtitle links returned during stream resolution are exposed to the existing subtitle panel when they need no custom headers.
 
 ## Reproduce
 
@@ -43,6 +45,8 @@ Repository source inspected at `cf16b3b45cda911a36ddca69f9acbe4763c6a4b1`. All f
 YouTube test binary SHA-256: `a246eb1584cec9e69ba8c50136b9e8dc11a2fc0ab225710c31ad66c2ec4f4efe`.
 This is the first verified candidate for desktop integration, not a guarantee for every YouTube video. No extension files, Java runtime or upstream engine are bundled in BingeX yet.
 
-## Remaining before user-facing support
+## 0.13.0 verification and limits
 
-Use YouTube as the first integration candidate; validate HTTP headers, audio, subtitles and seeking in the visible player. Implement provider-to-BingeX catalog/details/episode mapping. Add repository parsing, pinned runtime acquisition with integrity checks, explicit installation and removal, compatibility labels, helper restart and app shutdown integration. Ship Stremio and Cloudstream as separate installation choices, with one shared player. Do not advertise all `.cs3` extensions as compatible.
+`tests/BingeX.CloudstreamIntegration` exercises the actual download, GitHub-repository resolution, hash-verified extension installation, virtual manifests, MediaLibrary search/details/streams, native video AND audio decoding beyond three seconds, persistent installation, helper restart, and removal. It takes isolated-data-directory, repository-URL, extension-name and search-query arguments; no production profile is used. The official YouTube extension passed this flow using the downloaded Temurin runtime and generic audio patch. This is headless decoding evidence, not an assurance for every video or site.
+
+The visible repository UI was checked with a fresh isolated profile and listed all five official extensions. Existing local playback/subtitle/torrent smoke checks passed. Browser verification, extension settings, arbitrary request headers, DRM, pagination and automatic extension updates remain unsupported. The provider's declared home page may be unavailable even when its search works. Each repository entry must supply its SHA-256 fileHash. Extensions execute code with the user's permissions: process isolation is not a security sandbox.

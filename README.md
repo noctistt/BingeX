@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.12.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -191,3 +191,10 @@ The native UI regression visits the empty Player from Home, My Library, Details 
 Discover now has named add-on tabs and a second row of categories supplied by the selected add-on, such as Movies, Series or Anime. The catalog picker and search are scoped to that provider/category. Search-only categories show a search prompt rather than requesting an unsupported browsing endpoint. Switching tabs cancels old requests so a slow provider cannot replace the current results. Stream-only add-ons do not supply Discover catalogs; their streams remain available on title pages.
 
 A centered, non-blocking waiting indicator appears in the full player and mini-player when VLC reports buffering. It also acknowledges an unchanged playback clock after two seconds while the player reports Playing. That clock-based fallback is a heuristic, not a network-speed measurement; it cannot detect every video-only stall if the playback clock continues. The indicator clears on progress, intentional pause, new media or seeking and never pauses/resumes the decoder itself. Initial startup retains the opening screen.
+
+
+## Cloudstream extensions (0.13.0 experimental)
+
+Open Add-ons → Cloudstream · Experimental, download the optional bridge, then enter an HTTPS repo.json URL or GitHub repository page and choose Read repository. Install a trusted extension, then use Browse providers or select it under Home → Discover. Extensions are loaded dynamically; none are hardcoded or bundled. Stremio add-ons remain a separate installation flow.
+
+The first bridge download includes a checksum-pinned external SkyStream engine and Temurin Java, stored under the BingeX profile. No system Java installation is needed. Bridge components and extensions are SHA-256 checked. Sources, license links and implementation limits are documented in [docs/cloudstream-bridge.md](docs/cloudstream-bridge.md). Browser verification, extension settings, DRM, arbitrary request headers and automatic updates are not supported yet. Some providers may offer search even if their home feed is unavailable. Install only extensions you trust: they run code with your user permissions.
