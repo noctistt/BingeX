@@ -32,7 +32,11 @@ public partial class MainWindow
             if (activePage != "Player" || activeSource == null || playbackEnded) return;
             if (playbackSnapshot.Time > 1000 && !torrentStarting) sourceStarted = true;
             if (!sourceStarted && DateTime.UtcNow - sourceLastProgress > TimeSpan.FromSeconds(35))
-                TryScheduleNextSource("This source has not delivered playable data.");
+            {
+                if(!TryScheduleNextSource("This source has not delivered playable data."))
+                    ShowSourceRecovery("Source timed out","No playable video arrived. Choose another source, or wait for this source to recover.");
+                sourceLastProgress=DateTime.UtcNow;
+            }
         };
         sourceTimer.Start();
     }

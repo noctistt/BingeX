@@ -64,5 +64,6 @@ public partial class MainWindow
         if (TryScheduleNextSource(failure)) return;
         if (torrentSession != null) StopTorrentPlayback();
         PlayerNotice(failure);
+        ShowSourceRecovery("Playback interrupted",failure);
     }
 }

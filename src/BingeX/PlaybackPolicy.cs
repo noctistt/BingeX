@@ -8,6 +8,9 @@ public static class PlaybackPolicy
     public static long ResumeTarget(long savedPosition, long duration) =>
         duration > 0 && IsIncomplete(savedPosition, duration) ? Math.Clamp(savedPosition, 0, duration) : 0;
 
+    public static long SourceSwitchPosition(string? previousKey,string? nextKey,long position,long pending,bool ended)=>
+        nextKey!=null && previousKey==nextKey && !ended ? Math.Max(0,Math.Max(position,pending)) : 0;
+
     public static long SeekTarget(long time, long delta, long duration) =>
         Math.Clamp(time + delta, 0, Math.Max(0, duration));
 }

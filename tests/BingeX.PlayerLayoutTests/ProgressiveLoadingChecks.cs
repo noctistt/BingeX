@@ -134,6 +134,20 @@ internal static class ProgressiveLoadingChecks
             Require(!choosingNext.IsCompleted && Get("currentPath")==null,"An early result from another provider cannot win next-episode playback while the preferred provider is pending.");
             handler.ReleaseStreams.TrySetResult(); await choosingNext.WaitAsync(TimeSpan.FromSeconds(5));
             Require(Get("currentPath")==null && Control<StackPanel>("StreamItems").Children.Count==2 && Control<TextBlock>("DetailMessage").Text!.Contains("Choose an alternative"),"When preferred quality is unavailable, next-episode alternatives stay visible for manual choice.");
+            var recoveryContext=(MediaContext)Get("currentContext")!;
+            var priorPosition=Get("lastPosition"); var priorDuration=Get("lastDuration"); var priorKey=Get("currentHistoryKey"); var priorName=Get("currentTitle"); var priorResume=Get("resumeAt");
+            Set("currentPath","https://fixture/failed"); Set("currentHistoryKey",recoveryContext.HistoryKey); Set("currentTitle","Recovery fixture");
+            Set("lastPosition",45000L); Set("lastDuration",120000L); Set("resumeAt",0L);
+            Call("SaveProgress");
+            Require(store.FindHistory(recoveryContext.HistoryKey)?.Position==45000,"Stopped/error recovery retains the last known episode position.");
+            Call("ShowSourceRecovery","Source unavailable","Fixture failure");
+            Require(Control<Border>("PlayerRecovery").IsVisible && Control<TextBlock>("PlayerRecoveryTitle").Text=="Source unavailable","Failure acknowledgement stays visible with an actionable source choice.");
+            Set("currentPath",null);
+            await (Task)Call("OpenCurrentSources")!;
+            Require(((MediaContext)Get("selectedContext")!).HistoryKey==recoveryContext.HistoryKey && Control<StackPanel>("StreamItems").Children.Count==2,"Choose another source returns to the playing episode, not a browsed title or next episode.");
+            Call("ResetSourceRecovery");
+            Require(!Control<Border>("PlayerRecovery").IsVisible,"New media clears old recovery notices.");
+            Set("lastPosition",priorPosition); Set("lastDuration",priorDuration); Set("currentHistoryKey",priorKey); Set("currentTitle",priorName); Set("resumeAt",priorResume);
             Set("activeSource",priorSource); Set("activeSourceContext",priorSourceContext);
             Set("currentContext",priorContext); Set("playingEpisodeTitle",priorTitle);
 

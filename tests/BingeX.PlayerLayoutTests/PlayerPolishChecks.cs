@@ -26,6 +26,20 @@ internal static class PlayerPolishChecks
         var native=Control<ComboBox>("AudioTrackPicker").Items.Cast<object>().FirstOrDefault(x=>(string?)x.GetType().GetProperty("DisplayName")?.GetValue(x) is { } name && name.StartsWith("Embedded"));
         Require(native!=null,"Embedded track choices identify their source without changing track IDs.");
         Control<Border>("PlayerSettingsPanel").IsVisible=false;
+        var snapshotField=typeof(MainWindow).GetField("playbackSnapshot",flags)!;
+        var snapshot=snapshotField.GetValue(window)!;
+        var waiting=snapshot.GetType().GetMethod("<Clone>$")!.Invoke(snapshot,null)!;
+        waiting.GetType().GetProperty("State")!.SetValue(waiting,LibVLCSharp.Shared.VLCState.Buffering);
+        snapshotField.SetValue(window,waiting);
+        typeof(MainWindow).GetField("stalledSourceSince",flags)!.SetValue(window,DateTime.UtcNow.AddSeconds(-31));
+        Call("UpdateSourceRecovery");
+        Require(Control<Border>("PlayerRecovery").IsVisible && Control<TextBlock>("PlayerRecoveryTitle").Text=="Stream is taking too long","A prolonged buffering stall exposes persistent recovery actions.");
+        var recovered=snapshot.GetType().GetMethod("<Clone>$")!.Invoke(snapshot,null)!;
+        recovered.GetType().GetProperty("State")!.SetValue(recovered,LibVLCSharp.Shared.VLCState.Playing);
+        recovered.GetType().GetProperty("Time")!.SetValue(recovered,(long)snapshot.GetType().GetProperty("Time")!.GetValue(snapshot)!+1000);
+        snapshotField.SetValue(window,recovered); Call("UpdateSourceRecovery");
+        Require(!Control<Border>("PlayerRecovery").IsVisible,"Actual playback progress clears the stale timeout acknowledgement.");
+        snapshotField.SetValue(window,snapshot); Call("ResetSourceRecovery");
         var state=window.WindowState; var width=window.Width; var height=window.Height;
         var next=Control<Button>("NextEpisodeButton"); var nextVisible=next.IsVisible;
         try

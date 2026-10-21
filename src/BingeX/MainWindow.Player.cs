@@ -70,7 +70,7 @@ public partial class MainWindow
             RevealPlayerControls();
             videoClickTimer.Stop();
             videoPressPoint = null;
-            if (NativePlaybackBusy || Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) ||
+            if (NativePlaybackBusy || Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) || Inside(e.Source, PlayerRecovery) ||
                 !e.GetCurrentPoint(PlayerOverlay).Properties.IsLeftButtonPressed) return;
             PlayerOverlay.Focus();
             if (miniPlayer) { RestorePlayer_Click(null, new()); e.Handled = true; return; }
@@ -87,7 +87,7 @@ public partial class MainWindow
             var start = videoPressPoint;
             videoPressPoint = null;
             if (start == null || e.InitialPressMouseButton != MouseButton.Left ||
-                Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) ||
+                Inside(e.Source, MiniControls) || Inside(e.Source, PlayerControls) || Inside(e.Source, PlayerSettingsPanel) || Inside(e.Source, CaptionQuickPanel) || Inside(e.Source, TorrentPanel) || Inside(e.Source, PlayerRecovery) ||
                 VideoPointerMoved(e.GetPosition(PlayerOverlay), start.Value)) return;
             // Wait out the native double-click interval so fullscreen never also pauses playback.
             videoClickTimer.Interval = PlatformSettings?.GetDoubleTapTime(e.Pointer.Type) ?? TimeSpan.FromMilliseconds(500);
@@ -114,6 +114,7 @@ public partial class MainWindow
     private void ResetMediaControls(bool preserveSubtitles)
     {
         ResetPlaybackWaiting();
+        ResetSourceRecovery(); sourceResumePending=false;
         captionClock.Reset();
         CancelEpisodeAutoplay();
         videoClickTimer.Stop();
@@ -193,6 +194,7 @@ public partial class MainWindow
     private void UpdatePlayerOverlay()
     {
         UpdatePlaybackWaiting();
+        UpdateSourceRecovery();
         UpdateEpisodeActions();
         if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;

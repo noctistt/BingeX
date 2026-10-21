@@ -170,6 +170,7 @@ public partial class MainWindow : Window
         if (!Uri.TryCreate(path, UriKind.Absolute, out var uri)) { Status("Invalid media location."); return; }
         if (uri.IsFile && !File.Exists(path)) { Status("This file has moved or is no longer available."); return; }
         if (input == null && playbackUrl == null && (activeSource == null || activeSource.Url != path)) ResetSourceAttempts();
+        var switchingPosition=PlaybackPolicy.SourceSwitchPosition(currentContext?.HistoryKey,context?.HistoryKey,lastPosition,resumeAt,playbackEnded);
         using var timing = diagnostics.Measure("stream-start-total");
         SaveProgress(); thumbnailWork.Cancel();
         var request = ++playbackRequest;
@@ -201,6 +202,7 @@ public partial class MainWindow : Window
             if (context != null) store.SaveContext(context);
             resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
             ResetMediaControls(preserve);
+            if(switchingPosition>0){resumeAt=switchingPosition;sourceResumePending=true;}
             currentStreamSubtitles = streamSubtitles ?? [];
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
             if(pendingAudioSelection==null && context!=null && store.ShowAudioPreference(context) is {Language.Length:>0} audioPreference)
@@ -268,13 +270,13 @@ public partial class MainWindow : Window
                 playbackSnapshot = PlaybackSnapshot.Empty;
                 if (TryScheduleNextSource("This source could not start.")) return;
                 if (input != null || playbackUrl != null) StopTorrentPlayback();
-                Status("Unable to start this media."); return;
+                ShowSourceRecovery("Source unavailable","This source could not start. Choose another source for this title."); return;
             }
             Status("Loading " + title);
         }
         catch (Exception)
         {
-            if (!localClosing && request == playbackRequest) { playbackStarting = false; PlayerLoading.IsVisible = false; playbackSnapshot = PlaybackSnapshot.Empty; PlayerNotice("Playback could not start. Try another source."); }
+            if (!localClosing && request == playbackRequest) { playbackStarting = false; PlayerLoading.IsVisible = false; playbackSnapshot = PlaybackSnapshot.Empty; PlayerNotice("Playback could not start. Try another source."); ShowSourceRecovery("Source unavailable","Playback could not start. Choose another source to continue."); }
         }
         finally { if (request == playbackRequest) playbackStarting = false; }
     }
@@ -327,7 +329,7 @@ public partial class MainWindow : Window
         if (snapshot.Time > 0) lastPosition = snapshot.Time;
         if (resumeAt > 0 && snapshot.IsSeekable && snapshot.Length > 0)
         {
-            var target = PlaybackPolicy.ResumeTarget(resumeAt, snapshot.Length);
+            var target = sourceResumePending ? Math.Clamp(resumeAt,0,Math.Max(0,snapshot.Length-1000)) : PlaybackPolicy.ResumeTarget(resumeAt, snapshot.Length);
             _ = QueuePlayerCommand(native => native.Time = target);
             resumeAt = 0;
             if (target > 0) PlayerNotice("Resumed at " + Clock(target));
@@ -376,7 +378,7 @@ public partial class MainWindow : Window
         if (currentContext == null && !File.Exists(currentPath)) return;
         if (playbackEnded) store.Save(new(currentHistoryKey, currentTitle, lastDuration, lastDuration));
         else if (NativePlaybackBusy) store.Save(new(currentHistoryKey, currentTitle, Math.Max(0, lastPosition), lastDuration));
-        else if (playbackSnapshot.State is VLCState.Playing or VLCState.Paused && lastDuration > 0)
+        else if (lastPosition > 0 && lastDuration > 0)
             store.Save(new(currentHistoryKey, currentTitle, Math.Max(0, lastPosition), lastDuration));
     }
     private async void Play_Click(object? sender, RoutedEventArgs e)
