@@ -1,4 +1,5 @@
 using BingeX;
+using LibVLCSharp.Shared;
 
 if (args.Length < 4)
     throw new ArgumentException("Arguments: java.exe engine-directory isolated-data-directory extension.cs3 [search-query]");
@@ -42,4 +43,38 @@ foreach (var provider in providers)
     var count = links.GetProperty("links").GetArrayLength();
     if (count == 0) throw new Exception("No stream links returned: playback is NOT proven.");
     Console.WriteLine($"PASS: {count} stream link(s) resolved. URLs intentionally omitted.");
+    if (args.Contains("--playback"))
+    {
+        Core.Initialize();
+        using var vlc = new LibVLC("--quiet", "--vout=dummy", "--aout=dummy", "--no-video-title-show");
+        var played = false;
+        foreach (var link in links.GetProperty("links").EnumerateArray().Take(4))
+        {
+            Console.WriteLine($"Testing stream: {link.GetProperty("name").GetString()}, type {link.GetProperty("type").GetString()}.");
+            using var player = new MediaPlayer(vlc);
+            using var media = new Media(vlc, link.GetProperty("url").GetString()!, FromType.FromLocation);
+            if (link.TryGetProperty("referer", out var referer) && !string.IsNullOrEmpty(referer.GetString()))
+                media.AddOption(":http-referrer=" + referer.GetString());
+            if (link.TryGetProperty("headers", out var headers))
+                foreach (var header in headers.EnumerateObject())
+                    if (header.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                        media.AddOption(":http-user-agent=" + header.Value.GetString());
+            if (!player.Play(media)) continue;
+            var until = DateTime.UtcNow.AddSeconds(25);
+            while (DateTime.UtcNow < until && player.State != VLCState.Error)
+            {
+                await Task.Delay(250);
+                if (player.Time >= 3000 && media.Statistics.DecodedVideo > 0)
+                {
+                    played = true;
+                    Console.WriteLine("PASS: LibVLC playback advanced beyond 3 seconds with decoded video frames.");
+                    break;
+                }
+            }
+            player.Stop();
+            if (!played) Console.WriteLine("Stream did not meet the video decoding check within 25 seconds.");
+            if (played) break;
+        }
+        if (!played) throw new Exception("Resolved streams did not produce decoded video in LibVLC.");
+    }
 }
