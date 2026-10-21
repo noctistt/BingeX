@@ -11,8 +11,7 @@ public partial class MainWindow
     private void UpdatePlayerLayout()
     {
         miniPlayer = activePage != "Player" && currentPath != null;
-        PlayerPage.IsVisible = activePage == "Player" || miniPlayer;
-        VideoSurface.IsVisible = PlayerPage.IsVisible;
+        var visible = activePage == "Player" || miniPlayer;
         PlayerPage.Width = miniPlayer ? 360 : double.NaN;
         PlayerPage.Height = miniPlayer ? 244 : double.NaN;
         PlayerPage.HorizontalAlignment = miniPlayer ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Stretch;
@@ -31,6 +30,12 @@ public partial class MainWindow
             PlayerOverlay.Cursor = Avalonia.Input.Cursor.Default;
         }
         MiniTitle.Text = currentTitle;
+        // Showing VideoView opens its separate native overlay window. Apply the
+        // destination layout first, so it cannot open with the previous geometry.
+        PlayerPage.IsVisible = visible;
+        VideoSurface.IsVisible = visible;
+        UpdateLayout();
+        SynchronizePlayerOverlay();
         ApplySubtitleAppearance();
         UpdatePlayerOverlay();
     }

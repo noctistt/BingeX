@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        VideoSurface.SizeChanged += (_, _) => SynchronizePlayerOverlay();
         library = new MediaLibrary(addons);
         SetupPlayerControls();
         RefreshHistory();
@@ -185,7 +186,12 @@ public partial class MainWindow : Window
             NowPlaying.Text = title; MiniTitle.Text = title;
             // Realize and arrange the native video surface before the decoder starts.
             Page("Player");
-            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Loaded);
+            if (!await WaitForPlayerLayoutAsync(request))
+            {
+                if (!localClosing && request == playbackRequest)
+                    PlayerNotice("The player could not finish opening. Restore the window and try again.");
+                return;
+            }
             if (localClosing || request != playbackRequest) return;
             var native = player;
             if (OperatingSystem.IsWindows() && native.Hwnd == IntPtr.Zero)

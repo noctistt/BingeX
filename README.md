@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.11.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.11.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -163,3 +163,11 @@ Use **← Back** or **Alt+Left** in the player to return to the page you opened 
 ## Playback startup fix (0.11.1)
 
 The main video surface is shown and arranged before starting VLC. Native stop/start operations run in a serialized background queue; UI polling and playback gestures wait while a native transition is active. Newer source selections supersede pending starts, preventing an old stop from interrupting a new stream. Closing the mini-player or app waits for native playback to stop before hiding or disposing its video surface. Video snapshots also run outside the UI dispatcher. Regression checks cover first HLS startup, repeated mini-to-full source changes, rapid selections, stalled HTTP recovery and closing while buffering using local fixtures; they do not certify any third-party provider's availability.
+
+## Player layout compatibility update (0.11.2)
+
+Mini/full dimensions are applied before showing the native overlay; controls receive the exact video-surface dimensions on resize. Playback waits for layout and two frame callbacks instead of assuming a nonzero window handle means the surface is ready. The player has an opaque black background while opening.
+
+Windows interface rendering uses Avalonia software rendering with a redirection surface as a compatibility measure for stale owner-window drawing around the native VLC child and transparent controls. This affects the interface, with a possible CPU cost while drawing it; VLC hardware decoding and video output remain independently configured. This is a candidate mitigation for the reported misplaced black video box, stale details page and detached controls. The exact third-party-stream failure has not been reproduced locally.
+
+The interactive Windows regression in `tests/BingeX.PlayerLayoutTests` checks native Win32 video dimensions against the controls, DPI scaling, page visibility and full/mini controls across startup, source changes, resizing and restoration. Run it with an isolated data directory and a local playable fixture.

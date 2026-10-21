@@ -23,8 +23,20 @@ internal static class Program
             if (args[i] == "--subtitle" && i + 1 < args.Length) StartupSubtitle = File.Exists(args[++i]) ? Path.GetFullPath(args[i]) : null;
             else if (StartupFile == null && File.Exists(args[i])) StartupFile = Path.GetFullPath(args[i]);
         }
-        AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace()
+        CreateAppBuilder()
             .StartWithClassicDesktopLifetime(args);
         return 0;
     }
+
+    public static AppBuilder CreateAppBuilder() => AppBuilder.Configure<App>()
+        .UsePlatformDetect()
+        // Keep the Avalonia owner and transparent controls on the same Windows
+        // framebuffer path around VLC's native child window. This changes UI
+        // rendering only; VLC retains its own hardware decoding/video output.
+        .With(new Win32PlatformOptions
+        {
+            RenderingMode = [Win32RenderingMode.Software],
+            CompositionMode = [Win32CompositionMode.RedirectionSurface]
+        })
+        .LogToTrace();
 }
