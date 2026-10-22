@@ -29,14 +29,12 @@ public partial class MainWindow
         MusicMessage.Text=musicLibrary.Tracks.Length>0?$"{musicLibrary.Tracks.Length} tracks indexed. Add folders or rescan to update your collection.":"Add a music folder to get started.";
         RenderMusic();ApplyMusicOnlineMode();
     }
-    private void ShowMusic(bool show)
+    private void LibraryMusic_Click(object? sender,RoutedEventArgs e)=>Page("Music");
+    private void ManageMusicConnections_Click(object? sender,RoutedEventArgs e)
     {
-        MusicLibraryContent.IsVisible=show;VideoLibraryContent.IsVisible=!show;
-        LibraryMusicTab.Classes.Set("primary",show);LibraryVideosTab.Classes.Set("primary",!show);
-        if(show)RenderMusic();
+        if(!onlineEnabled)return;Page("Add-ons");MusicServerPanel.IsExpanded=true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(()=>MusicServerPanel.BringIntoView(),Avalonia.Threading.DispatcherPriority.Loaded);
     }
-    private void LibraryMusic_Click(object? sender,RoutedEventArgs e)=>ShowMusic(true);
-    private void LibraryVideos_Click(object? sender,RoutedEventArgs e)=>ShowMusic(false);
     private static string AlbumKey(MusicTrack x)=>x.Folder+"|"+x.AlbumArtist+"|"+x.Album;
     private MusicTrack[] AlbumTracks()=>musicLibrary?.Tracks.Where(x=>AlbumKey(x)==musicAlbum).OrderBy(x=>x.Disc).ThenBy(x=>x.Track).ThenBy(x=>x.Title,StringComparer.OrdinalIgnoreCase).ToArray()??[];
     private void RenderMusic()
@@ -114,7 +112,7 @@ public partial class MainWindow
     }
     private void ApplyMusicOnlineMode()
     {
-        MusicServerPanel.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
+        MusicServerPanel.IsVisible=onlineEnabled;MusicManageConnections.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
         if(!onlineEnabled)DisconnectMusicServer();
     }
     private CancellationToken BeginMusicServerRequest()

@@ -26,7 +26,7 @@ internal static class Program
     private static IReadOnlyDictionary<string, string>? FixtureHeaders => Environment.GetEnvironmentVariable("BINGEX_LAYOUT_HEADER_FIXTURE") == "1"
         ? new Dictionary<string,string> { ["Origin"] = "https://provider.example", ["Cookie"] = "session=fixture" } : null;
     private static int emptySource;
-    private static readonly string[] EmptySources = ["Library", "My Library", "Details", "Add-ons"];
+    private static readonly string[] EmptySources = ["Library", "My Library", "Music", "Details", "Add-ons"];
     private static object? Field(string name) => typeof(MainWindow).GetField(name, Private)!.GetValue(window);
     private static object? Call(string name, params object?[] args) { var clock=Stopwatch.StartNew(); try{return typeof(MainWindow).GetMethod(name, Private)!.Invoke(window, args);} finally{Log($"TIMING: {name} {clock.Elapsed.TotalMilliseconds:0}ms");} }
     private static MediaPlayer Player => (MediaPlayer)Field("player")!;
@@ -110,7 +110,7 @@ internal static class Program
     {
         Require(Field("currentPath") == null, "Empty-page check unexpectedly loaded media");
         Require(!Control<ScrollViewer>("LibraryPage").IsVisible && !Control<ScrollViewer>("DetailsPage").IsVisible &&
-            !Control<ScrollViewer>("LocalLibraryPage").IsVisible && !Control<ScrollViewer>("AddonsPage").IsVisible,
+            !Control<ScrollViewer>("LocalLibraryPage").IsVisible && !Control<ScrollViewer>("MusicPage").IsVisible && !Control<ScrollViewer>("AddonsPage").IsVisible,
             "A previous page is still visible behind Player");
         Require(GetClassLongPtr(Player.Hwnd, -10) == GetStockObject(4),
             "Empty native video window has no black background and can retain previous-page pixels");

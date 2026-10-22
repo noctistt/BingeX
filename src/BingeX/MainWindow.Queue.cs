@@ -21,7 +21,7 @@ public partial class MainWindow
     private void QueuePage_Click(object? sender,RoutedEventArgs e)
     {
         var collapse=activePage=="My Library" && ReferenceEquals(sender,LibraryQueueButton) && QueuePanel.IsExpanded;
-        Page("My Library"); ShowMusic(false); RenderLocalQueue();QueuePanel.IsExpanded=!collapse;
+        Page("My Library"); RenderLocalQueue();QueuePanel.IsExpanded=!collapse;
         if(!collapse)Avalonia.Threading.Dispatcher.UIThread.Post(()=>QueuePanel.BringIntoView(),Avalonia.Threading.DispatcherPriority.Loaded);
     }
     private void RenderLocalQueue()

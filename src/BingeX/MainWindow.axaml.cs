@@ -148,6 +148,8 @@ public partial class MainWindow : Window
         DetailsPage.IsVisible = page == "Details";
         LibraryPage.IsVisible = page == "Library";
         LocalLibraryPage.IsVisible = page == "My Library";
+        MusicPage.IsVisible=page=="Music";MusicNav.Classes.Set("active",page=="Music");
+        if(page=="Music")RenderMusic();
         UpdatePlayerLayout();
         AddonsPage.IsVisible = page == "Add-ons";
         AppSettingsPage.IsVisible=page=="Settings"; SettingsNav.Classes.Set("active",page=="Settings");

@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -329,3 +329,8 @@ My Library has Videos and Music tabs. Add a music folder to index tags, embedded
 With Online mode enabled, Music can connect to a user-configured Navidrome/OpenSubsonic server, browse/search albums with pagination and play tracks through the private header relay. Username/password and authenticated URLs remain session-only; no streamed music URLs are saved to history or audio-track preferences, including on replay. HTTPS is required except loopback or explicitly allowed HTTP. API redirects are rejected. Streams request format=raw and no bitrate limit, but the server ultimately determines delivery. Quality values are file metadata or server-reported values, not proof of lossless or bit-perfect output. Gapless output, remote artwork, server playlist editing, music downloads and Echo-extension compatibility are not implemented. Disconnect/Online off closes the browser session and prevents new browsing or track selection; a currently playing track may continue until stopped or changed.
 
 The metadata reader uses TagLibSharp 2.3.0 under LGPL-2.1-only; its source, package manifest and license notices accompany the existing dependency inventory. Native regression covers tagged local WAV indexing, non-destructive scan/removal, persistence/cancellation, album order/search, real local and token-authenticated server audio decoding, next/replay, online-mode cleanup and credential-free history against a local fixture. A real user's Navidrome installation has not been tested.
+
+
+### 0.14.1 — Separate music and connection management
+
+Music now has a dedicated sidebar page for local albums, tracks and browsing a connected music server. My Library keeps video folders and the shared playback queue. Navidrome/OpenSubsonic address, login and disconnect controls live in Add-ons, alongside the other connection types. Music links to that setup and Add-ons links back to Music. Online mode still gates server features; local music remains available offline. Existing music folders, preferences and playback sessions are preserved.

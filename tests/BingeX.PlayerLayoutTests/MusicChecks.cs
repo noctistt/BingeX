@@ -35,8 +35,8 @@ internal static class MusicChecks
             Check(SHA256.HashData(File.ReadAllBytes(first)).SequenceEqual(original),"Music indexing must not write source media.");
             Check(new MusicLibrary(store.DataDirectory).Tracks.Count(x=>x.Folder==root)==2,"Music index survives reopening.");
             using(var cancelled=new CancellationTokenSource()){cancelled.Cancel();var rejected=false;try{music.Scan(root,cancelled.Token);}catch(OperationCanceledException){rejected=true;}Check(rejected,"Music scan cancellation is honored.");}
-            Call("Page","My Library");Call("ShowMusic",true);
-            Check(Control<StackPanel>("MusicLibraryContent").IsVisible&&!Control<StackPanel>("VideoLibraryContent").IsVisible&&!Control<Expander>("MusicServerPanel").IsVisible,"Music has its own offline library tab and hides server entry points.");
+            Call("LibraryMusic_Click",null,new RoutedEventArgs());
+            Check(Control<ScrollViewer>("MusicPage").IsVisible&&!Control<ScrollViewer>("LocalLibraryPage").IsVisible&&!Control<Expander>("MusicServerPanel").IsVisible,"Music has its own offline sidebar page and hides server entry points.");
             await Task.Delay(100);
             using(var image=new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize((int)window.Bounds.Width,(int)window.Bounds.Height))){image.Render(window);image.Save(Path.Combine(store.DataDirectory,"music-library.png"));}
             Check(Control<WrapPanel>("MusicAlbums").Children.Count==1,"Tracks form one album rather than separate filename cards.");
@@ -54,6 +54,10 @@ internal static class MusicChecks
             Control<TextBox>("MusicServerAddress").Text=server.Address;Control<TextBox>("MusicServerUser").Text="fixture";Control<TextBox>("MusicServerPassword").Text="fixture-password";
             Call("ConnectMusicServer_Click",null,new RoutedEventArgs());await Wait(()=>Get("musicServer")!=null,"Music server fixture did not connect.");
             Check(Control<TextBox>("MusicServerPassword").Text==""&&Control<WrapPanel>("ServerAlbumItems").Children.Count==1,"Server login clears the password control and displays albums.");
+            Call("ManageMusicConnections_Click",null,new RoutedEventArgs());
+            Check(Control<ScrollViewer>("AddonsPage").IsVisible && Control<Expander>("MusicServerPanel").IsEffectivelyVisible && !Control<ScrollViewer>("MusicPage").IsVisible,"Music setup belongs to Add-ons.");
+            Call("LibraryMusic_Click",null,new RoutedEventArgs());await Task.Delay(100);
+            Check(Control<ScrollViewer>("MusicPage").IsVisible && Control<StackPanel>("MusicServerBrowser").IsEffectivelyVisible && !Control<TextBox>("MusicServerPassword").IsEffectivelyVisible,"Music browses connected albums without exposing setup fields.");
             var owner=(SubsonicMusic)Get("musicServer")!;
             await (Task)Call("LoadServerTracks",owner,new MusicAlbum("album","Server album","Server artist",2))!;
             Control<StackPanel>("ServerTrackItems").Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -71,7 +75,7 @@ internal static class MusicChecks
         {
             if(Get("currentPath")!=null){Call("CloseMiniPlayer_Click",null,new RoutedEventArgs());await Wait(()=>Get("currentPath")==null,"Music test cleanup failed.");}
             Call("DisconnectMusicServer");await (Task)Call("SetOnlineMode",false)!;music.Remove(root);queue.Clear();store.RemoveHistory(first);store.RemoveHistory(second);
-            Control<CheckBox>("QueueAutoplayCheck").IsChecked=saved.AutoplayLocalQueue;store.SavePreferences(saved);Set("preferences",saved);Call("RenderLocalQueue");foreach(var entry in originalState)Set(entry.Key,entry.Value);Call("ShowMusic",false);Call("Page","Library");
+            Control<CheckBox>("QueueAutoplayCheck").IsChecked=saved.AutoplayLocalQueue;store.SavePreferences(saved);Set("preferences",saved);Call("RenderLocalQueue");foreach(var entry in originalState)Set(entry.Key,entry.Value);Call("Page","Library");
         }
         log("PASS: music tags/quality, read-only scan, persistence/cancellation, album tabs/search/order, real local/server audio decoding, next/replay, token-auth relay, credential-free history and online-mode cleanup.");
     }
