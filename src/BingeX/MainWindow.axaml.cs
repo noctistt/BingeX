@@ -38,6 +38,7 @@ public partial class MainWindow : Window
             Page(playerReturnPage);
         }
         else if (activePage == "Details") Page("Library");
+        else if(activePage=="Settings")Page(settingsReturnPage);
     }
 
     public MainWindow()
@@ -55,6 +56,8 @@ public partial class MainWindow : Window
         SetupOnlineMode();
         SetupEpisodeNavigation();
         SetupStreamScope();
+        SetupAppSettings();
+        UpdateSeekLabels();
         RefreshHistory();
         Opened += (_, _) =>
         {
@@ -134,7 +137,7 @@ public partial class MainWindow : Window
         if (page != "Library") { catalogWork.Cancel(); browseWork.Cancel(); posterWork.Cancel(); }
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }
         activePage = page;
-        NavigateBackButton.IsVisible = page is "Player" or "Details";
+        NavigateBackButton.IsVisible = page is "Player" or "Details" or "Settings";
         LibraryNav.Classes.Set("active", page is "Library" or "Details");
         LocalLibraryNav.Classes.Set("active", page == "My Library");
         PlayerNav.Classes.Set("active", page == "Player");
@@ -144,6 +147,8 @@ public partial class MainWindow : Window
         LocalLibraryPage.IsVisible = page == "My Library";
         UpdatePlayerLayout();
         AddonsPage.IsVisible = page == "Add-ons";
+        AppSettingsPage.IsVisible=page=="Settings"; SettingsNav.Classes.Set("active",page=="Settings");
+        if(page=="Settings")PopulateAppSettings();
         if (page == "Player") RevealPlayerControls();
         if (page == "My Library") RefreshLocalLibrary();
         PageTitle.Text = page == "Library" ? "Home" : page == "Details" ? "Discover" : page;
@@ -201,7 +206,7 @@ public partial class MainWindow : Window
             UpdateEpisodeActions();
             currentHistoryKey = context?.HistoryKey ?? path;
             if (context != null) store.SaveContext(context);
-            resumeAt = store.FindHistory(currentHistoryKey)?.Position ?? 0;
+            resumeAt = preferences.ResumePlayback ? store.FindHistory(currentHistoryKey)?.Position ?? 0 : 0;
             ResetMediaControls(preserve);
             if(switchingPosition>0){resumeAt=switchingPosition;sourceResumePending=true;}
             currentStreamSubtitles = streamSubtitles ?? [];
@@ -395,8 +400,8 @@ public partial class MainWindow : Window
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();
     }
-    private void Back_Click(object? sender, RoutedEventArgs e) => Skip(-10000);
-    private void Forward_Click(object? sender, RoutedEventArgs e) => Skip(10000);
+    private void Back_Click(object? sender, RoutedEventArgs e) => Skip(-preferences.SeekSeconds*1000L);
+    private void Forward_Click(object? sender, RoutedEventArgs e) => Skip(preferences.SeekSeconds*1000L);
     private void Skip(long delta)
     {
         if (NativePlaybackBusy || player == null || !playbackSnapshot.IsSeekable) return;

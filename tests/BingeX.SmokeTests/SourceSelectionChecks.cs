@@ -36,6 +36,7 @@ internal static class SourceSelectionChecks
         Check(PlaybackPolicy.SourceSwitchPosition("episode1","episode1",45000,0,false)==45000,"Switching source within an episode preserves the last playback position.");
         Check(PlaybackPolicy.SourceSwitchPosition("episode1","episode2",45000,0,false)==0 && PlaybackPolicy.SourceSwitchPosition("episode1",null,45000,0,false)==0,"Position must not leak into another episode or local media.");
         Check(PlaybackPolicy.SourceSwitchPosition("episode1","episode1",0,45000,false)==45000 && PlaybackPolicy.SourceSwitchPosition("episode1","episode1",45000,0,true)==0,"An interrupted pending resume survives another switch, while completed media can replay.");
+        Check(JsonSerializer.Deserialize<PlayerPreferences>("{}") is {SeekSeconds:10,ResumePlayback:true,StartupAnimation:true,DefaultSpeedIndex:2},"Older profiles without settings fields must retain compatible defaults.");
         var plan = new SourceAttemptPlan(ranked);
         plan.Mark(direct); Check(plan.Next == parsed, "A failed source must not be selected again.");
         plan.Mark(parsed); Check(plan.Next == large, "Fallback must advance to another distinct supported source.");

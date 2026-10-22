@@ -10,6 +10,7 @@ internal static class DiscoverChecks
     public static async Task Run(MainWindow window, Action<string> log)
     {
         await LocalBrowsingChecks.Run(window, log);
+        AppSettingsChecks.Run(window,log);
         await OnlineModeChecks.Run(window, log);
         await ProgressiveLoadingChecks.Run(window, log);
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;

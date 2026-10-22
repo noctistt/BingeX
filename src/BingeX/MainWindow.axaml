@@ -12,9 +12,10 @@
         <Button x:Name="LocalLibraryNav" Classes="nav" Content="My Library" Click="LocalLibrary_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="PlayerNav" Classes="nav" Content="Player" Click="Player_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
+        <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.24" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.25" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -187,6 +188,31 @@
           </Grid>
         </Grid>
       </ScrollViewer>
+      <ScrollViewer x:Name="AppSettingsPage" Grid.Row="1" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18" MaxWidth="820" HorizontalAlignment="Stretch">
+          <TextBlock Text="Make BingeX yours" FontSize="24" FontWeight="SemiBold" />
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10">
+            <TextBlock Text="Playback" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Seek interval (buttons and arrow keys)" /><ComboBox x:Name="SettingsSeek" Width="220"><ComboBoxItem Content="5 seconds" /><ComboBoxItem Content="10 seconds" /><ComboBoxItem Content="15 seconds" /><ComboBoxItem Content="30 seconds" /><ComboBoxItem Content="60 seconds" /></ComboBox>
+            <CheckBox x:Name="SettingsResume" Content="Resume unfinished videos" /><CheckBox x:Name="SettingsClickPause" Content="Click video to pause or play" />
+            <CheckBox x:Name="SettingsAutoplay" Content="Autoplay next online episode" /><CheckBox x:Name="SettingsAutoSwitch" Content="Offer another source when playback fails" />
+            <TextBlock Text="Default playback speed" /><ComboBox x:Name="SettingsSpeed" Width="220"><ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" /></ComboBox>
+            <TextBlock Text="Volume" /><NumericUpDown x:Name="SettingsVolume" Minimum="0" Maximum="100" Increment="5" Width="220" />
+          </StackPanel></Border>
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10">
+            <TextBlock Text="Text subtitles" FontSize="20" FontWeight="SemiBold" /><TextBlock Text="Appearance applies to loaded SRT/WebVTT captions. Embedded tracks may use their own styling." Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="Size" /><ComboBox x:Name="SettingsSubSize" Width="220"><ComboBoxItem Content="Small" /><ComboBoxItem Content="Medium" /><ComboBoxItem Content="Large" /><ComboBoxItem Content="Extra large" /></ComboBox>
+            <TextBlock Text="Color" /><ComboBox x:Name="SettingsSubColor" Width="220"><ComboBoxItem Content="White" /><ComboBoxItem Content="Yellow" /><ComboBoxItem Content="Mint" /></ComboBox><CheckBox x:Name="SettingsSubBackground" Content="Dark subtitle background" />
+          </StackPanel></Border>
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10"><TextBlock Text="Library defaults" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Sort by" /><ComboBox x:Name="SettingsLibrarySort" Width="220"><ComboBoxItem Content="Name" /><ComboBoxItem Content="Recently added" /><ComboBoxItem Content="Last watched" /></ComboBox>
+            <TextBlock Text="Group by" /><ComboBox x:Name="SettingsLibraryGrouping" Width="220"><ComboBoxItem Content="Folder" /><ComboBoxItem Content="Series and season" /><ComboBoxItem Content="All videos" /></ComboBox>
+          </StackPanel></Border>
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10"><TextBlock Text="Appearance" FontSize="20" FontWeight="SemiBold" /><CheckBox x:Name="SettingsAnimation" Content="Show startup logo animation" /><TextBlock Text="Applies on the next launch. Opening a video directly always skips the animation." Classes="muted" TextWrapping="Wrap" /></StackPanel></Border>
+          <WrapPanel><Button Content="Save settings" Classes="primary" Click="SaveAppSettings_Click" Margin="0,0,12,0" /><TextBlock x:Name="SettingsSaved" VerticalAlignment="Center" TextWrapping="Wrap" Classes="muted" /></WrapPanel>
+          <Expander x:Name="ShortcutsSection" Header="Keyboard shortcuts (?)" HorizontalAlignment="Stretch"><TextBlock x:Name="ShortcutList" TextWrapping="Wrap" LineHeight="26" Margin="12" /></Expander>
+        </StackPanel>
+      </ScrollViewer>
       <Grid x:Name="PlayerPage" Grid.Row="1" IsVisible="False" Background="Black">
         <Border x:Name="VideoFrame" Background="Black" CornerRadius="12" ClipToBounds="True">
           <local:VideoSurfaceView x:Name="VideoSurface" IsVisible="False">
@@ -246,11 +272,11 @@
                       <Button x:Name="PlayButton" Classes="playerIcon primary" Click="Play_Click" ToolTip.Tip="Play (Space)" AutomationProperties.Name="Play">
                         <Path x:Name="PlayIcon" Width="20" Height="20" Stretch="Uniform" Fill="White" Data="M 6,3 L 21,12 L 6,21 Z" />
                       </Button>
-                      <Button Classes="playerIcon" Click="Back_Click" ToolTip.Tip="Back 10 seconds (Left)" AutomationProperties.Name="Back 10 seconds">
-                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 5,7 A 9,9 0 1 1 3,14 M 5,2 L 5,8 L 11,8" /><TextBlock Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
+                      <Button x:Name="SeekBackButton" Classes="playerIcon" Click="Back_Click" ToolTip.Tip="Back 10 seconds (Left)" AutomationProperties.Name="Back 10 seconds">
+                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 5,7 A 9,9 0 1 1 3,14 M 5,2 L 5,8 L 11,8" /><TextBlock x:Name="SeekBackLabel" Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
                       </Button>
-                      <Button Classes="playerIcon" Click="Forward_Click" ToolTip.Tip="Forward 10 seconds (Right)" AutomationProperties.Name="Forward 10 seconds">
-                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 19,7 A 9,9 0 1 0 21,14 M 19,2 L 19,8 L 13,8" /><TextBlock Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
+                      <Button x:Name="SeekForwardButton" Classes="playerIcon" Click="Forward_Click" ToolTip.Tip="Forward 10 seconds (Right)" AutomationProperties.Name="Forward 10 seconds">
+                        <Grid><Path Width="24" Height="24" Stroke="White" StrokeThickness="1.7" Data="M 19,7 A 9,9 0 1 0 21,14 M 19,2 L 19,8 L 13,8" /><TextBlock x:Name="SeekForwardLabel" Text="10" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0" /></Grid>
                       </Button>
                       <Button x:Name="NextEpisodeButton" Classes="playerIcon" IsVisible="False" Click="NextEpisode_Click" ToolTip.Tip="Next episode" AutomationProperties.Name="Next episode">
                         <Path Width="20" Height="20" Fill="White" Data="M 3,3 L 15,10 L 3,17 Z M 16,3 L 19,3 L 19,17 L 16,17 Z" />
@@ -315,6 +341,7 @@
                         <ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" />
                       </ComboBox>
                       <CheckBox x:Name="AutoplayEpisodesCheck" Content="Autoplay next episode" />
+                      <Button Content="App settings &amp; shortcuts…" Click="AppSettings_Click" Classes="playerAction" HorizontalAlignment="Stretch" />
                       <TextBlock x:Name="AudioSettingsHeading" Text="Audio track" Foreground="#BFB5D1" />
                       <ComboBox x:Name="AudioTrackPicker" HorizontalAlignment="Stretch" SelectionChanged="AudioTrackChanged" AutomationProperties.Name="Audio track">
                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>

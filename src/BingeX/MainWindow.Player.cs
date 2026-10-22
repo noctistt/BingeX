@@ -57,7 +57,7 @@ public partial class MainWindow
         videoClickTimer.Tick += (_, _) =>
         {
             videoClickTimer.Stop();
-            if (!NativePlaybackBusy && activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible && !CaptionQuickPanel.IsVisible)
+            if (preferences.ClickToPause && !NativePlaybackBusy && activePage == "Player" && mediaGeneration == videoClickGeneration && !PlayerSettingsPanel.IsVisible && !CaptionQuickPanel.IsVisible)
                 Play_Click(null, new RoutedEventArgs());
         };
         PlayerOverlay.PointerMoved += (_, e) =>
@@ -534,18 +534,20 @@ public partial class MainWindow
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {
-        if (!e.Handled && e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt && activePage is "Player" or "Details")
+        if (!e.Handled && e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt && activePage is "Player" or "Details" or "Settings")
         {
             NavigateBack_Click(null, new()); e.Handled = true; return;
         }
-        if (e.Handled || activePage != "Player" || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0) return;
+        if(e.Handled)return;
         var ancestors = e.Source is Visual visual ? visual.GetVisualAncestors().Prepend(visual).ToArray() : [];
         if (ancestors.Any(x => x is TextBox or ComboBox or NumericUpDown or Slider)) return;
+        if(e.Key==Key.OemQuestion && e.KeyModifiers==KeyModifiers.Shift){OpenShortcutHelp();e.Handled=true;return;}
+        if (activePage != "Player" || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0) return;
         switch (e.Key)
         {
             case Key.Space when !ancestors.Any(x => x is Button or CheckBox): Play_Click(null, new()); break;
-            case Key.Left: Skip(-10000); break;
-            case Key.Right: Skip(10000); break;
+            case Key.Left: Skip(-preferences.SeekSeconds*1000L); break;
+            case Key.Right: Skip(preferences.SeekSeconds*1000L); break;
             case Key.F: case Key.F11: SetFullscreen(WindowState != WindowState.FullScreen); break;
             case Key.M: Mute_Click(null, new()); break;
             case Key.S: Settings_Click(null, new()); break;

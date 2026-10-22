@@ -160,6 +160,10 @@ public sealed partial class LibraryStore : IDisposable
             return preferences == null ? new() : preferences with
             {
                 Volume = Math.Clamp(preferences.Volume, 0, 100),
+                SeekSeconds = new[]{5,10,15,30,60}.Contains(preferences.SeekSeconds) ? preferences.SeekSeconds : 10,
+                DefaultSpeedIndex = Math.Clamp(preferences.DefaultSpeedIndex,0,5),
+                LocalLibrarySort = Math.Clamp(preferences.LocalLibrarySort,0,2),
+                LocalLibraryGrouping = Math.Clamp(preferences.LocalLibraryGrouping,0,2),
                 SubtitleSize = new[] { 20, 28, 36, 44 }.Contains(preferences.SubtitleSize) ? preferences.SubtitleSize : 28,
                 SubtitleColor = new[] { "White", "Yellow", "Mint" }.Contains(preferences.SubtitleColor) ? preferences.SubtitleColor : "White"
             };
