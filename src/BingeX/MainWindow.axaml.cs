@@ -148,7 +148,6 @@ public partial class MainWindow : Window
         LibraryPage.IsVisible = page == "Library";
         LocalLibraryPage.IsVisible = page == "My Library";
         UpdatePlayerLayout();
-        QueuePage.IsVisible=page=="Queue";QueueNav.Classes.Set("active",page=="Queue");
         AddonsPage.IsVisible = page == "Add-ons";
         AppSettingsPage.IsVisible=page=="Settings"; SettingsNav.Classes.Set("active",page=="Settings");
         if(page=="Settings"){PopulateAppSettings();_ = UpdateStorage(null);}

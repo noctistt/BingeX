@@ -17,7 +17,11 @@ internal static class LocalQueueUiChecks
         try
         {
             Call("AddQueueFiles",new[]{path,path},false);Call("QueuePage_Click",null,new RoutedEventArgs());
-            Check(Control<ScrollViewer>("QueuePage").IsVisible && !Control<ScrollViewer>("AppSettingsPage").IsVisible && queue.Items.Count==1 && Get("currentPath")==null,"Queue page works offline and adding files does not start playback.");
+            Check(Control<ScrollViewer>("LocalLibraryPage").IsVisible && Control<Expander>("QueuePanel").IsExpanded && ((StackPanel)Control<ScrollViewer>("LocalLibraryPage").Content!).Children.Contains(Control<Expander>("QueuePanel")) && !Control<ScrollViewer>("AppSettingsPage").IsVisible && queue.Items.Count==1 && Get("currentPath")==null,"Queue opens inside My Library while adding files does not start playback.");
+            Call("QueuePage_Click",Control<Button>("LibraryQueueButton"),new RoutedEventArgs());
+            Check(!Control<Expander>("QueuePanel").IsExpanded && queue.Items.Count==1,"Library queue button collapses the panel without clearing it.");
+            Call("Page","Player"); Call("QueuePage_Click",Control<Button>("QueueOpenButton"),new RoutedEventArgs());
+            Check(Control<ScrollViewer>("LocalLibraryPage").IsVisible && Control<Expander>("QueuePanel").IsExpanded,"The player queue action opens the same My Library panel.");
             Control<CheckBox>("QueueAutoplayCheck").IsChecked=true;
             using(var reopened=new LibraryStore(store.DataDirectory))Check(reopened.Preferences().AutoplayLocalQueue,"Local autoplay preference persists independently.");
             var context=new MediaContext("remote-fixture","series","Remote","","fixture","ep1");Set("currentContext",context);

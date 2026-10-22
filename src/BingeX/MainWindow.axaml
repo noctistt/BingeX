@@ -10,13 +10,12 @@
         <TextBlock Text="YOUR NEXT GREAT WATCH" FontSize="9" LetterSpacing="1" Classes="muted" Margin="0,0,0,20" />
         <Button x:Name="LibraryNav" Classes="nav active" Content="Home" Click="Library_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="LocalLibraryNav" Classes="nav" Content="My Library" Click="LocalLibrary_Click" HorizontalAlignment="Stretch" />
-        <Button x:Name="QueueNav" Classes="nav" Content="Queue" Click="QueuePage_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="PlayerNav" Classes="nav" Content="Player" Click="Player_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.30" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.31" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -92,9 +91,19 @@
             <StackPanel Spacing="10">
               <TextBlock Text="Your videos, together." FontSize="26" FontWeight="SemiBold" />
               <TextBlock Text="Add a folder to find its videos, including subfolders. Your files stay where they are." Foreground="#C8BFDC" TextWrapping="Wrap" />
-              <WrapPanel><Button Content="+ Add folder" Classes="primary" Click="AddMediaFolder_Click" Margin="0,0,10,0" /><Button Content="Rescan folders" Click="RescanMediaFolders_Click" Margin="0,0,10,0" /><Button Content="Clear unused video cache" Click="ClearVideoCache_Click" /></WrapPanel>
+              <WrapPanel><Button Content="+ Add folder" Classes="primary" Click="AddMediaFolder_Click" Margin="0,0,10,0" /><Button Content="Rescan folders" Click="RescanMediaFolders_Click" Margin="0,0,10,0" /><Button x:Name="LibraryQueueButton" Content="Queue" Click="QueuePage_Click" Margin="0,0,10,0" /><Button Content="Clear unused video cache" Click="ClearVideoCache_Click" /></WrapPanel>
             </StackPanel>
           </Border>
+          <Expander x:Name="QueuePanel" Header="Playback queue" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <ScrollViewer MaxHeight="420" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14" Margin="0,12,0,0">
+        <TextBlock Text="Your local playback queue" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Text="Add files or videos from a folder and its subfolders. Reorder with the arrows. Removing or clearing items never deletes files or stops current playback. Queue contents are kept only for this app session." Classes="muted" TextWrapping="Wrap" />
+        <WrapPanel><Button Content="Add files…" Click="AddQueueFiles_Click" Classes="primary" Margin="0,0,10,0" /><Button Content="Add video folder…" Click="AddQueueFolder_Click" Margin="0,0,10,0" /><Button Content="Clear queue" Click="ClearQueue_Click" /></WrapPanel>
+        <CheckBox x:Name="QueueAutoplayCheck" Content="Automatically play the next local queue item" />
+        <ProgressBar x:Name="QueueFolderBusy" IsVisible="False" IsIndeterminate="True" Height="3" /><Button x:Name="QueueCancelScan" Content="Cancel folder scan" IsVisible="False" Click="CancelQueueScan_Click" HorizontalAlignment="Left" />
+        <TextBlock x:Name="QueueCount" Classes="muted" /><TextBlock x:Name="QueueMessage" TextWrapping="Wrap" Classes="muted" /><TextBlock x:Name="QueueEmpty" Text="The queue is empty. Add local files to get started." Classes="muted" /><StackPanel x:Name="QueueItems" Spacing="6" />
+      </StackPanel></ScrollViewer>
+          </Expander>
           <StackPanel x:Name="MediaFolderItems" Spacing="8" />
           <ProgressBar x:Name="LocalScanBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="{DynamicResource AccentLight}" />
           <TextBlock x:Name="LocalScanMessage" Foreground="#BFB5D1" TextWrapping="Wrap" />
@@ -189,14 +198,6 @@
           </Grid>
         </Grid>
       </ScrollViewer>
-      <ScrollViewer x:Name="QueuePage" Grid.Row="1" IsVisible="False" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14">
-        <TextBlock Text="Your local playback queue" FontSize="24" FontWeight="SemiBold" />
-        <TextBlock Text="Add files or videos from a folder and its subfolders. Reorder with the arrows. Removing or clearing items never deletes files or stops current playback. Queue contents are kept only for this app session." Classes="muted" TextWrapping="Wrap" />
-        <WrapPanel><Button Content="Add files…" Click="AddQueueFiles_Click" Classes="primary" Margin="0,0,10,0" /><Button Content="Add video folder…" Click="AddQueueFolder_Click" Margin="0,0,10,0" /><Button Content="Clear queue" Click="ClearQueue_Click" /></WrapPanel>
-        <CheckBox x:Name="QueueAutoplayCheck" Content="Automatically play the next local queue item" />
-        <ProgressBar x:Name="QueueFolderBusy" IsVisible="False" IsIndeterminate="True" Height="3" /><Button x:Name="QueueCancelScan" Content="Cancel folder scan" IsVisible="False" Click="CancelQueueScan_Click" HorizontalAlignment="Left" />
-        <TextBlock x:Name="QueueCount" Classes="muted" /><TextBlock x:Name="QueueMessage" TextWrapping="Wrap" Classes="muted" /><TextBlock x:Name="QueueEmpty" Text="The queue is empty. Add local files to get started." Classes="muted" /><StackPanel x:Name="QueueItems" Spacing="6" />
-      </StackPanel></ScrollViewer>
       <ScrollViewer x:Name="AppSettingsPage" Grid.Row="1" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="18" MaxWidth="820" HorizontalAlignment="Stretch">
           <TextBlock Text="Make BingeX yours" FontSize="24" FontWeight="SemiBold" />

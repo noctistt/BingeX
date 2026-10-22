@@ -18,7 +18,12 @@ public partial class MainWindow
         RenderLocalQueue();
     }
     private static bool QueueMedia(string path)=>LocalLibraryScanner.IsVideo(path) || new[]{".mp3",".flac",".wav",".m4a",".aac",".ogg",".opus",".wma"}.Contains(Path.GetExtension(path).ToLowerInvariant());
-    private void QueuePage_Click(object? sender,RoutedEventArgs e){Page("Queue");RenderLocalQueue();}
+    private void QueuePage_Click(object? sender,RoutedEventArgs e)
+    {
+        var collapse=activePage=="My Library" && ReferenceEquals(sender,LibraryQueueButton) && QueuePanel.IsExpanded;
+        Page("My Library"); RenderLocalQueue();QueuePanel.IsExpanded=!collapse;
+        if(!collapse)Avalonia.Threading.Dispatcher.UIThread.Post(()=>QueuePanel.BringIntoView(),Avalonia.Threading.DispatcherPriority.Loaded);
+    }
     private void RenderLocalQueue()
     {
         QueueItems.Children.Clear();
@@ -47,7 +52,8 @@ public partial class MainWindow
     {
         var active=currentContext==null && currentPath!=null && localQueue.IsCurrent(currentPath);
         LocalQueueActions.IsVisible=localQueue.Items.Count>0;
-        QueueOpenButton.Content=$"Queue ({localQueue.Items.Count})";
+        QueueOpenButton.Content=LibraryQueueButton.Content=$"Queue ({localQueue.Items.Count})";
+        QueuePanel.Header=$"Playback queue ({localQueue.Items.Count})";
         QueuePreviousButton.IsEnabled=active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>0;
         QueueNextButton.IsEnabled=active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>=0 && localQueue.CurrentIndex<localQueue.Items.Count-1;
     }
