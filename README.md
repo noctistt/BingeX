@@ -6,6 +6,12 @@ A modern desktop media player with local playback, a visual media library, and S
 
 Early development preview 0.13.24. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
+## Trying the beta
+
+Start with the [beta getting-started guide](docs/beta-getting-started.md) and [known issues, troubleshooting and release checklist](docs/beta-known-issues.md), covering preview **0.13.24**. Public download/community links have not been configured yet. Stable builds are intended to remain free; optional supporter previews are planned.
+
+The sections below contain development notes and historical milestones. For current user-facing behaviour, use the version-specific beta guides above.
+
 ## What we are building
 
 - A modern interface with dark colors, poster browsing, and accessible playback controls.
@@ -36,7 +42,7 @@ The playback prototype has verified native video rendering, pause, duration, and
 
 ## Compatibility
 
-Media support depends on the LibVLC build and included codecs; no player supports every possible file. Stremio add-on compatibility does not automatically provide support for every returned source. Torrent-based streams require a separate streaming component and are outside the initial playback milestone.
+Media support depends on the LibVLC build and included codecs; no player supports every possible file. Stremio add-on compatibility does not automatically provide support for every returned source. The current Windows preview includes optional torrent playback; torrent sources are excluded from stream selection by default.
 
 ## Development
 
@@ -82,7 +88,7 @@ Local file history and installed add-on manifest URLs are stored in `%LOCALAPPDA
 - Navigation cancels stale requests. Provider failures leave healthy results available, and loading, empty, and retry states are shown separately.
 - Continue Watching shows local thumbnails or provider posters with saved progress. Streamed items ask for a new source before resuming, so expired playback links are not reused.
 
-Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, custom request headers, and favorites are planned work. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
+Browsing currently displays the first 100 titles per catalog; combined search is capped at 120 results. Pagination, required genre/date filters, and favorites remain planned work. Valid custom request headers are supported through the playback relay. Artwork requests use HTTPS and a bounded in-memory cache; missing images have a fallback.
 
 ## License
 
