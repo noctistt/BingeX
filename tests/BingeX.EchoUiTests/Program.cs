@@ -49,6 +49,14 @@ internal static class Program
                     var item=await Task.Run(()=>new EchoPackages(data).Import(args[0]));
                     await (Task)Call("RefreshEchoPackages")!;
                     Check(C<StackPanel>("EchoPackageItems").Children.Count==1,"Imported package must render.");
+                    Check(((string)Call("EchoPackageState",item)!).StartsWith("Installed"),"Installation must not imply activation.");
+                    Call("RecordEchoFailure",item,new EchoCompatibilityException("instantiate","VerifyError","fixture"));
+                    Check(((string)Call("EchoPackageState",item)!).StartsWith("Incompatible"),"Conversion errors must show incompatibility.");
+                    Call("RecordEchoFailure",item,new EchoCompatibilityException("initialize","request_failed","fixture"));
+                    Check(((string)Call("EchoPackageState",item)!).StartsWith("Request failed"),"Unknown initialization failure must not claim incompatibility.");
+                    Call("RecordEchoFailure",item,new OperationCanceledException());
+                    Check(((string)Call("EchoPackageState",item)!).StartsWith("Timed out"),"Deadline failures must offer retry.");
+                    Call("SetEchoPackageState",item,"Installed · not activated this session");
                     await (Task)Call("SetOnlineMode",true)!;Call("Page","Add-ons");Call("SelectAddonCategory",true);await Task.Delay(200);
                     Check(C<Border>("EchoPackagesPanel").IsEffectivelyVisible&&C<TextBox>("EchoLinkInput").IsEffectivelyVisible,"Music category must show link import.");
                     Check(!C<Expander>("EchoAdvanced").IsExpanded,"Manual setup must stay under Advanced by default.");

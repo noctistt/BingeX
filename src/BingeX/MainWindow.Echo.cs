@@ -10,6 +10,20 @@ namespace BingeX;
 public partial class MainWindow
 {
     private bool echoImporting;
+    // Session observations only: installing a package does not execute or verify it.
+    private readonly Dictionary<string,string> echoPackageStates=new();
+    private string EchoPackageState(EchoPackage package)=>echoPackageStates.GetValueOrDefault(package.Sha256,"Installed · not activated this session");
+    private void SetEchoPackageState(EchoPackage package,string state)=>echoPackageStates[package.Sha256]=state;
+    private void RecordEchoFailure(EchoPackage package,Exception error)
+    {
+        var state=error switch
+        {
+            EchoCompatibilityException {FailureType: not "request_failed"}=>"Incompatible with this desktop bridge",
+            OperationCanceledException=>"Timed out · activate to retry",
+            _=>"Request failed · activate to retry"
+        };
+        SetEchoPackageState(package,state);
+    }
     private async Task RefreshEchoPackages()
     {
         try
@@ -23,14 +37,14 @@ public partial class MainWindow
                 var row=new Grid{ColumnDefinitions=new("*,Auto,Auto"),Margin=new Thickness(0,4)};
                 var labels=new StackPanel{Spacing=4};
                 labels.Children.Add(new TextBlock{Text=package.Name+" · "+package.Version,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap});
-                labels.Children.Add(new TextBlock{Text=(package.Author.Length>0?package.Author+" · ":"")+(echoPackage?.Sha256==package.Sha256?"Active for this session":"Imported"),TextWrapping=TextWrapping.Wrap});
+                labels.Children.Add(new TextBlock{Text=(package.Author.Length>0?package.Author+" · ":"")+EchoPackageState(package),TextWrapping=TextWrapping.Wrap});
                 ToolTip.SetTip(labels,"Package fingerprint: "+package.Sha256);row.Children.Add(labels);
                 var activate=new Button{Content="Activate",Margin=new Thickness(8,0,0,0),VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(activate,1);activate.Click+=async(_,_)=>await ActivateEcho(package);row.Children.Add(activate);
                 var remove=new Button{Content="Remove",Margin=new Thickness(12,0,0,0),VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(remove,2);
                 remove.Click+=async(_,_)=>
                 {
                     if(echoImporting)return;
-                    try{if(echoPackage?.Sha256==package.Sha256)StopEcho();new EchoPackages(store.DataDirectory).Remove(package.Sha256);await RefreshEchoPackages();}
+                    try{if(echoPackage?.Sha256==package.Sha256)StopEcho();new EchoPackages(store.DataDirectory).Remove(package.Sha256);echoPackageStates.Remove(package.Sha256);await RefreshEchoPackages();}
                     catch{EchoPackageMessage.Text="Could not remove this extension file. Try again.";}
                 };
                 row.Children.Add(remove);EchoPackageItems.Children.Add(row);

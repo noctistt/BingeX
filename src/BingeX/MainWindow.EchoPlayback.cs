@@ -26,6 +26,7 @@ public partial class MainWindow
     {
         echoLinkWork.Cancel();
         echoEpoch++;echoWork.Cancel();echoWork.Dispose();echoWork=new();
+        if(echoPackage is {} previous)SetEchoPackageState(previous,"Installed · disconnected");
         var old=echoBridge;echoBridge=null;echoPackage=null;echoWorking=false;
         if(old!=null)_=old.DisposeAsync().AsTask();
         ClearEchoBrowser();EchoLoginForms.Children.Clear();EchoUsers.Children.Clear();EchoMusicTitle.Text="Online music catalogue";EchoSearchControls.IsVisible=false;EchoMusicPanel.IsVisible=onlineEnabled;EchoBusy.IsVisible=false;EchoPackageItems.IsEnabled=EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=true;EchoStatus.Text=echoRuntimeFile==null?"Music engine setup is missing. Open Manage extension / login to finish setup before browsing.":"No music provider active. Activate an installed provider in Add-ons → Music to see its catalogue.";
@@ -55,7 +56,8 @@ public partial class MainWindow
         if(!onlineEnabled||echoWorking)return;
         if(echoRuntimeFile==null){EchoAdvanced.IsExpanded=true;EchoStatus.Text="Music engine setup is required once before playback. Open Advanced to finish setup.";return;}
         if(EchoTrust.IsChecked!=true){EchoStatus.Text="Confirm that you trust the runtime and extension before activation.";return;}
-        StopEcho();var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoPackageItems.IsEnabled=false;EchoStatus.Text="Starting "+package.Name+"…";
+        StopEcho();SetEchoPackageState(package,"Starting…");var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoPackageItems.IsEnabled=false;EchoStatus.Text="Starting "+package.Name+"…";
+        await RefreshEchoPackages();
         EchoMusicBridge? candidate=null;
         try
         {
@@ -68,13 +70,14 @@ public partial class MainWindow
             EchoSearchButton.IsEnabled=candidate.Capabilities.Contains("SearchFeedClient");EchoHomeButton.IsEnabled=candidate.Capabilities.Contains("HomeFeedClient");
             if(candidate.Capabilities.Contains("CustomInput")){var forms=await candidate.CallAsync("loginForms",new{},token);token.ThrowIfCancellationRequested();RenderEchoForms(forms);}
             token.ThrowIfCancellationRequested();
+            SetEchoPackageState(package,candidate.Capabilities.Contains("CustomInput")?"Login required · session only":"Ready · playback not yet checked");
             if(candidate.Capabilities.Contains("CustomInput"))EchoStatus.Text="Provider active. Sign in below to load its music catalogue, then choose Open Music.";
             else await LoadEchoCatalogue(candidate,token);
             await RefreshEchoPackages();
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
-        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();EchoStatus.Text=package.Name+": "+error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
-        catch{if(epoch==echoEpoch){StopEcho();EchoStatus.Text="Could not activate this extension. Check runtime compatibility and try again.";}}
+        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=package.Name+": "+error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
+        catch(Exception error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=error is OperationCanceledException?"Activation timed out. The helper was stopped; activate to retry.":"Could not activate this extension. Check runtime compatibility and try again.";}}
         finally
         {
             if(epoch!=echoEpoch&&candidate!=null)await candidate.DisposeAsync();
@@ -84,11 +87,11 @@ public partial class MainWindow
     private async Task EchoRequest(Func<EchoMusicBridge,CancellationToken,Task> action,string message)
     {
         if(!onlineEnabled||echoWorking||echoBridge==null)return;
-        var owner=echoBridge;var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=false;EchoStatus.Text=message;
+        var owner=echoBridge;var requestPackage=echoPackage;var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=false;EchoStatus.Text=message;
         try{await action(owner,token);token.ThrowIfCancellationRequested();}
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
-        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();EchoStatus.Text=error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
-        catch{if(epoch==echoEpoch){StopEcho();EchoStatus.Text="This request failed or needs unsupported features. Activate the extension again to reconnect.";}}
+        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();if(requestPackage!=null)RecordEchoFailure(requestPackage,error);await RefreshEchoPackages();EchoStatus.Text=error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
+        catch(Exception error){if(epoch==echoEpoch){StopEcho();if(requestPackage!=null)RecordEchoFailure(requestPackage,error);await RefreshEchoPackages();EchoStatus.Text=error is OperationCanceledException?"The provider took too long to respond. The helper was stopped; activate to retry.":"This request failed. Activate the extension again to reconnect.";}}
         finally{if(epoch==echoEpoch){echoWorking=false;EchoBusy.IsVisible=false;EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=true;}}
     }
     private void RenderEchoForms(JsonElement forms)
@@ -129,6 +132,7 @@ public partial class MainWindow
     }
     private async Task LoadEchoCatalogue(EchoMusicBridge bridge,CancellationToken token)
     {
+        if(echoPackage!=null){SetEchoPackageState(echoPackage,"Ready · playback not yet checked");await RefreshEchoPackages();}
         EchoStatus.Text="Loading the provider's music catalogue…";
         if(bridge.Capabilities.Contains("HomeFeedClient")){var raw=await bridge.CallAsync("home",new{},token);await OpenEchoFeed(bridge,raw.Deserialize<EchoFeed>(new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!,token);}
         else if(bridge.Capabilities.Contains("SearchFeedClient"))await OpenEchoFeed(bridge,await bridge.SearchAsync("",token),token);
