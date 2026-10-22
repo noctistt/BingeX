@@ -17,6 +17,7 @@ public partial class MainWindow
     }
     private void PopulateAppSettings()
     {
+        PopulateLanguageDefaults();
         SettingsSeek.SelectedIndex=Array.IndexOf(new[]{5,10,15,30,60},preferences.SeekSeconds);
         SettingsResume.IsChecked=preferences.ResumePlayback; SettingsClickPause.IsChecked=preferences.ClickToPause;
         SettingsAnimation.IsChecked=preferences.StartupAnimation; SettingsAutoplay.IsChecked=preferences.AutoplayEpisodes;
@@ -32,6 +33,8 @@ public partial class MainWindow
     private void SaveAppSettings_Click(object? sender,RoutedEventArgs e)
     {
         preferences=preferences with{
+            PreferredAudioLanguage=(SettingsAudioLanguage.SelectedItem as LanguageChoice)?.Key ?? "",
+            PreferredSubtitleLanguage=(SettingsSubtitleLanguage.SelectedItem as LanguageChoice)?.Key ?? "",
             SeekSeconds=new[]{5,10,15,30,60}[Math.Clamp(SettingsSeek.SelectedIndex,0,4)],
             ResumePlayback=SettingsResume.IsChecked==true,ClickToPause=SettingsClickPause.IsChecked==true,
             StartupAnimation=SettingsAnimation.IsChecked==true,AutoplayEpisodes=SettingsAutoplay.IsChecked==true,
@@ -43,7 +46,7 @@ public partial class MainWindow
         VolumeBar.Value=desired.Volume; SpeedBox.SelectedIndex=desired.DefaultSpeedIndex;
         AutoplayEpisodesCheck.IsChecked=desired.AutoplayEpisodes; AutoNextSource.IsChecked=desired.AutoSwitchSources;
         LocalSort.SelectedIndex=desired.LocalLibrarySort; LocalGrouping.SelectedIndex=desired.LocalLibraryGrouping;
-        preferences=desired; store.SavePreferences(preferences); PopulateAppSettings(); SettingsSaved.Text="Settings saved.";
+        preferences=desired; store.SavePreferences(preferences); PopulateAppSettings(); SettingsSaved.Text="Settings saved. Language defaults apply to newly opened videos.";
         UpdateSeekLabels();
     }
     private void UpdateSeekLabels()

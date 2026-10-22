@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.25. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.26. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -297,3 +297,6 @@ Refined purple-and-mint app icon, matching sidebar branding and a brief non-bloc
 
 ### 0.13.25
 A dedicated Settings page controls seek interval, resume, click-to-pause, online episode autoplay, source recovery offers, playback speed/volume, text captions, library defaults and startup animation. Changes apply with Save settings; quick player controls remain available. The ? key (Shift+/ on a US keyboard) opens the shortcuts reference outside text-entry controls.
+
+### 0.13.26
+Settings includes preferred spoken audio and subtitle languages, source-default and subtitles-Off options. Saved video/show choices and manual track selection take priority. Defaults apply to newly opened media; embedded captions are tried before optional online captions for remote titles. Missing labelled tracks produce a fallback notice.

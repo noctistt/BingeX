@@ -159,6 +159,8 @@ public sealed partial class LibraryStore : IDisposable
             var preferences = JsonSerializer.Deserialize<PlayerPreferences>(command.ExecuteScalar() as string ?? "{}");
             return preferences == null ? new() : preferences with
             {
+                PreferredAudioLanguage = preferences.PreferredAudioLanguage ?? "",
+                PreferredSubtitleLanguage = preferences.PreferredSubtitleLanguage ?? "",
                 Volume = Math.Clamp(preferences.Volume, 0, 100),
                 SeekSeconds = new[]{5,10,15,30,60}.Contains(preferences.SeekSeconds) ? preferences.SeekSeconds : 10,
                 DefaultSpeedIndex = Math.Clamp(preferences.DefaultSpeedIndex,0,5),

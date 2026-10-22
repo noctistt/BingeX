@@ -23,7 +23,7 @@ public partial class MainWindow
     {
         get
         {
-            var language=sourceLanguageFilter.Length>0 ? (sourceLanguageFilter=="unknown" ? "" : sourceLanguageFilter) : availableSourceContext==null ? "" : store.ShowAudioPreference(availableSourceContext).Language;
+            var language=sourceLanguageFilter.Length>0 ? (sourceLanguageFilter=="unknown" ? "" : sourceLanguageFilter) : EffectiveAudioLanguage(availableSourceContext);
             return FilteredSources.Where(x=>language.Length==0 || SourceAudioInfo.Parse(x).Languages.Count==0 || SourceAudioInfo.Parse(x).Languages.Contains(language))
                 .OrderByDescending(x=>language.Length>0 && SourceAudioInfo.Parse(x).Languages.Contains(language));
         }

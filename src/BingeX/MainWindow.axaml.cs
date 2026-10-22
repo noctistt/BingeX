@@ -180,7 +180,7 @@ public partial class MainWindow : Window
         using var timing = diagnostics.Measure("stream-start-total");
         SaveProgress(); thumbnailWork.Cancel();
         var request = ++playbackRequest;
-        var preserve = string.Equals(path, currentPath, StringComparison.Ordinal);
+        var preserve = string.Equals(path, currentPath, StringComparison.Ordinal) && currentContext?.HistoryKey==context?.HistoryKey;
         playbackStarting = true;
         videoClickTimer.Stop(); videoPressPoint = null;
         Status("Opening " + title + "…");
@@ -208,11 +208,12 @@ public partial class MainWindow : Window
             if (context != null) store.SaveContext(context);
             resumeAt = preferences.ResumePlayback ? store.FindHistory(currentHistoryKey)?.Position ?? 0 : 0;
             ResetMediaControls(preserve);
+            if(preserve && useTextSubtitles)restoredSubtitleGeneration=mediaGeneration;
             if(switchingPosition>0){resumeAt=switchingPosition;sourceResumePending=true;}
             currentStreamSubtitles = streamSubtitles ?? [];
             pendingAudioSelection = store.AudioSelection(currentHistoryKey);
-            if(pendingAudioSelection==null && context!=null && store.ShowAudioPreference(context) is {Language.Length:>0} audioPreference)
-                pendingAudioSelection=new(-3,audioPreference.Label,audioPreference.Language);
+            if(pendingAudioSelection==null && EffectiveAudioLanguage(context) is {Length:>0} audioLanguage)
+                pendingAudioSelection=new(-3,"",audioLanguage);
             streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
             thumbnailAttempted = false;
             currentPath = path; currentTitle = title;

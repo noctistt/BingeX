@@ -15,6 +15,11 @@ internal static class AppSettingsChecks
         var store=(LibraryStore)Get("store")!; var saved=store.Preferences();
         Call("AppSettings_Click",null,new RoutedEventArgs());
         Require(Control<ScrollViewer>("AppSettingsPage").IsVisible && !Control<ScrollViewer>("LocalLibraryPage").IsVisible && !Control<ScrollViewer>("LibraryPage").IsVisible,"Settings is a separate page available offline.");
+        void PickLanguage(string name,string label)
+        {
+            var picker=Control<ComboBox>(name);picker.SelectedItem=picker.Items.Cast<object>().Single(x=>x.ToString()==label);
+        }
+        PickLanguage("SettingsAudioLanguage","Hindi"); PickLanguage("SettingsSubtitleLanguage","Off");
         Control<ComboBox>("SettingsSeek").SelectedIndex=3;
         Control<CheckBox>("SettingsResume").IsChecked=false; Control<CheckBox>("SettingsClickPause").IsChecked=false; Control<CheckBox>("SettingsAnimation").IsChecked=false;
         Control<ComboBox>("SettingsSubSize").SelectedIndex=2; Control<ComboBox>("SettingsSubColor").SelectedIndex=2; Control<CheckBox>("SettingsSubBackground").IsChecked=false;
@@ -25,8 +30,16 @@ internal static class AppSettingsChecks
         {
             var value=reopened.Preferences();
             Require(value.SeekSeconds==30 && !value.ResumePlayback && !value.ClickToPause && !value.StartupAnimation && value.Volume==65 && value.DefaultSpeedIndex==3 && !value.AutoSwitchSources,"Playback settings survive reopening.");
+            Require(value.PreferredAudioLanguage=="hindi" && value.PreferredSubtitleLanguage=="off","Global language defaults survive reopening.");
             Require(value.SubtitleSize==36 && value.SubtitleColor=="Mint" && !value.SubtitleBackground && value.LocalLibrarySort==1 && value.LocalLibraryGrouping==2,"Subtitle and library settings save together without proxy controls overwriting values.");
         }
+        var oldContext=Get("currentContext");
+        var languageContext=new MediaContext("global-language-fixture","series","Languages","","fixture","ep1");
+        typeof(MainWindow).GetField("currentContext",flags)!.SetValue(window,languageContext);
+        Require((string)Call("EffectiveAudioLanguage",languageContext)! =="hindi" && ((SubtitlePreference)Call("EffectiveSubtitlePreference")!).Mode=="off","New titles inherit global audio and subtitle defaults.");
+        store.SaveShowAudioPreference(languageContext,new("english","English"));store.SaveSubtitlePreference(languageContext,new("embedded","english"));
+        Require((string)Call("EffectiveAudioLanguage",languageContext)! =="english" && ((SubtitlePreference)Call("EffectiveSubtitlePreference")!).Language=="english","Saved show choices override global defaults.");
+        typeof(MainWindow).GetField("currentContext",flags)!.SetValue(window,oldContext);
         Require(Control<TextBlock>("SeekBackLabel").Text=="30" && Control<ComboBox>("SubtitleSizePicker").SelectedIndex==2 && Control<ComboBox>("LocalGrouping").SelectedIndex==2,"Live controls match saved settings.");
         Call("Page","Library");
         var typing=new KeyEventArgs{RoutedEvent=InputElement.KeyDownEvent,Key=Key.OemQuestion,KeyModifiers=KeyModifiers.Shift,Source=Control<TextBox>("LocalVideoSearch")};

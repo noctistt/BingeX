@@ -121,6 +121,7 @@ public partial class MainWindow
         videoPressPoint = null;
         mediaGeneration++;
         ResetOnlineSubtitles();
+        subtitleRestoreUntil=null;
         lastDuration = 0; lastPosition = 0; playbackEnded = false;
         playbackSnapshot = PlaybackSnapshot.Empty with { State = VLCState.Opening };
         playbackFailureHandled = false;
@@ -394,7 +395,7 @@ public partial class MainWindow
         if (DateTime.UtcNow > audioRestoreUntil)
         {
             pendingAudioSelection = null;
-            PlayerNotice("Saved audio track is unavailable. Using the available audio track.");
+            PlayerNotice("Preferred audio is unavailable or unlabelled. Using the available audio track.");
             return;
         }
         var id = pendingAudioSelection.Resolve(audio.Select(x => (x.Id, x.Name)));
@@ -443,6 +444,7 @@ public partial class MainWindow
                 var contents = await File.ReadAllTextAsync(path);
                 var document = await Task.Run(() => SubtitleDocument.Parse(contents));
                 if (NativePlaybackBusy || generation != mediaGeneration) return;
+                CancelOnlineSubtitles(); restoredSubtitleGeneration=mediaGeneration;
                 textSubtitles = document; textSubtitleSource="File"; textSubtitleName = Path.GetFileName(path); useTextSubtitles = true;
                 player.SetSpu(-1);
                 trackSignature = "";
@@ -452,6 +454,7 @@ public partial class MainWindow
             else
             {
                 if (!player.AddSlave(MediaSlaveType.Subtitle, new Uri(path).AbsoluteUri, true)) { PlayerNotice("This subtitle file could not be loaded."); return; }
+                CancelOnlineSubtitles(); restoredSubtitleGeneration=mediaGeneration;
                 useTextSubtitles = false;
                 trackSignature = "";
                 PlayerNotice("Subtitle file added. Select its track if it does not appear automatically.");

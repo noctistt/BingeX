@@ -84,7 +84,7 @@ public partial class MainWindow
         episodePreparationCancelled=false;
         var generation = mediaGeneration;
         var previous=activeSourceContext?.HistoryKey==currentContext?.HistoryKey ? activeSource : null;
-        var language=currentContext==null ? "" : store.ShowAudioPreference(currentContext).Language;
+        var language=EffectiveAudioLanguage(currentContext);
         nextEpisodePreferredProvider=previous?.Provider ?? "";
         try
         {

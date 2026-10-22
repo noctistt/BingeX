@@ -49,6 +49,20 @@ internal static class ExtensionSubtitleChecks
             if(!(bool)Get("useTextSubtitles")! || handler.Requests==beforeQuickRequests || window.FindControl<Border>("PlayerSettingsPanel")!.IsVisible || !window.FindControl<Border>("CaptionQuickPanel")!.IsVisible)
                 throw new Exception("Choosing online captions from CC must remain in the quick picker.");
             Call("CloseCaptionQuick_Click",null,new Avalonia.Interactivity.RoutedEventArgs());
+            var priorPreferences=(PlayerPreferences)Get("preferences")!;
+            var globalContext=new MediaContext("global-captions-fixture","series","Global captions","","fixture","ep2");
+            Set("currentContext",globalContext);Set("preferences",priorPreferences with{PreferredSubtitleLanguage="japanese"});
+            Set("currentStreamSubtitles",new SubtitleChoice[]{new("Extension","global-japanese","ja","Japanese","https://fixture.example/global-ja",new Dictionary<string,string>{{"Origin","https://provider.example"}})});
+            Set("useTextSubtitles",false);Set("textSubtitles",null);Set("restoredSubtitleGeneration",-1L);
+            var beforeDefault=handler.Requests;
+            Call("RestoreSubtitlePreference");
+            deadline=DateTime.UtcNow.AddSeconds(5);
+            while(DateTime.UtcNow<deadline && (!(bool)Get("useTextSubtitles")! || handler.Requests==beforeDefault))await Task.Delay(25);
+            if(!(bool)Get("useTextSubtitles")! || handler.Requests==beforeDefault)throw new Exception("Global subtitle language must select matching extension captions without a saved show preference.");
+            Set("preferences",priorPreferences with{PreferredSubtitleLanguage="off"});
+            Set("restoredSubtitleGeneration",-1L);Call("RestoreSubtitlePreference");
+            if((bool)Get("useTextSubtitles")!)throw new Exception("Global subtitles Off must disable captions on an unconfigured title.");
+            Set("preferences",priorPreferences);Set("currentContext",previousContext);
             await PlayerPolishChecks.Run(window,log);
             log("PASS: extension captions appear in CC picker and selecting one loads header-protected text subtitles");
         }

@@ -188,7 +188,7 @@ public partial class MainWindow
             OnlineSubtitleLanguage.IsVisible = result.Items.Count > 0;
             RenderOnlineSubtitles();
         }
-        catch (OperationCanceledException) { if (OwnsSubtitleRequest(token, generation)) OnlineSubtitleMessage.Text = "The subtitle request timed out. Try again."; }
+        catch (OperationCanceledException) { if (OwnsSubtitleRequest(token, generation)) { OnlineSubtitleMessage.Text = "The subtitle request timed out. Try again."; } }
         catch { if (SubtitleRequestCurrent(token, generation)) OnlineSubtitleMessage.Text = "Subtitle search failed. Check your connection and try again."; }
         finally { if (OwnsSubtitleRequest(token, generation)) OnlineSubtitleBusy.IsVisible = false; }
     }
@@ -246,12 +246,16 @@ public partial class MainWindow
                 PlayerOverlay.Focus();
             }
         }
-        catch (OperationCanceledException) { if (OwnsSubtitleRequest(token, generation)) OnlineSubtitleMessage.Text = "The subtitle request timed out. Try again."; }
+        catch (OperationCanceledException) { if (OwnsSubtitleRequest(token, generation)) { OnlineSubtitleMessage.Text = "The subtitle request timed out. Try again."; if(automatic)PlayerNotice("Preferred subtitles timed out. Use CC to retry."); } }
         catch (Exception error)
         {
-            if (SubtitleRequestCurrent(token, generation)) OnlineSubtitleMessage.Text = error is FormatException or ArgumentException
-                ? "This subtitle is not a readable SRT / VTT file. Try another result."
-                : "Could not download this subtitle. The provider may be unavailable or require access. Try another result.";
+            if (SubtitleRequestCurrent(token, generation))
+            {
+                OnlineSubtitleMessage.Text = error is FormatException or ArgumentException
+                    ? "This subtitle is not a readable SRT / VTT file. Try another result."
+                    : "Could not download this subtitle. The provider may be unavailable or require access. Try another result.";
+                if(automatic)PlayerNotice("Preferred subtitles could not be loaded. Use CC to choose another.");
+            }
         }
         finally { if (OwnsSubtitleRequest(token, generation)) OnlineSubtitleBusy.IsVisible = false; }
     }

@@ -2,6 +2,7 @@ namespace BingeX;
 public partial class MainWindow
 {
     private long restoredSubtitleGeneration=-1;
+    private DateTime? subtitleRestoreUntil;
     private void RememberSubtitlePreference(SubtitlePreference preference)
     {
         restoredSubtitleGeneration=mediaGeneration;
@@ -9,23 +10,39 @@ public partial class MainWindow
     }
     private void RestoreSubtitlePreference()
     {
-        if(restoredSubtitleGeneration==mediaGeneration || currentContext==null) return;
-        var preference=store.SubtitlePreference(currentContext);
+        if(restoredSubtitleGeneration==mediaGeneration) return;
+        var preference=EffectiveSubtitlePreference();
         if(preference==null) { restoredSubtitleGeneration=mediaGeneration; return; }
         if(preference.Mode=="off")
         {
             restoredSubtitleGeneration=mediaGeneration; useTextSubtitles=false;
             _=QueuePlayerCommand(native=>native.SetSpu(-1)); return;
         }
-        if(preference.Mode=="embedded")
+        if(preference.Mode is "embedded" or "preferred")
         {
             var match=playbackSnapshot.Subtitles.FirstOrDefault(x=>x.Name==preference.Label)
                 ?? playbackSnapshot.Subtitles.FirstOrDefault(x=>preference.Language.Length>0 && SubtitlePreference.EmbeddedLanguage(x.Name)==preference.Language);
-            if(match==null) return;
+            if(match==null)
+            {
+                if(preference.Mode=="preferred" && onlineEnabled && currentContext is {} extensionContext && currentStreamSubtitles.Any(preference.Matches))
+                {
+                    restoredSubtitleGeneration=mediaGeneration;
+                    _=RestoreOnlineSubtitle(preference,mediaGeneration,extensionContext);
+                    return;
+                }
+                subtitleRestoreUntil??=DateTime.UtcNow.AddSeconds(15);
+                if(playbackSnapshot.Spu>=0)_=QueuePlayerCommand(native=>native.SetSpu(-1));
+                if(DateTime.UtcNow<subtitleRestoreUntil)return;
+                restoredSubtitleGeneration=mediaGeneration;
+                if(preference.Mode=="preferred" && onlineEnabled && currentContext is {} context)
+                    _=RestoreOnlineSubtitle(preference,mediaGeneration,context);
+                else PlayerNotice("Your preferred subtitle language is unavailable. Use CC to choose another.");
+                return;
+            }
             restoredSubtitleGeneration=mediaGeneration; useTextSubtitles=false;
             _=QueuePlayerCommand(native=>native.SetSpu(match.Id)); return;
         }
-        if(preference.Mode=="online" && onlineEnabled)
+        if(preference.Mode=="online" && onlineEnabled && currentContext!=null)
         {
             restoredSubtitleGeneration=mediaGeneration;
             _=RestoreOnlineSubtitle(preference,mediaGeneration,currentContext);

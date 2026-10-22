@@ -16,7 +16,7 @@ public partial class MainWindow
         currentStreamAudioOptions = options ?? [];
         var saved = pendingAudioSelection;
         var language=saved?.Language ?? "";
-        if(language.Length==0 && saved==null && currentContext!=null)language=store.ShowAudioPreference(currentContext).Language;
+        if(language.Length==0 && saved==null)language=EffectiveAudioLanguage(currentContext);
         var languageMatch=currentStreamAudioOptions.FirstOrDefault(x=>language.Length>0 && SubtitlePreference.LanguageKey(x.Language)==language);
         var selected = currentStreamAudioOptions.FirstOrDefault(x => saved?.Id == -2 && x.Label == saved.Name)
             ?? languageMatch ?? currentStreamAudioOptions.FirstOrDefault();
