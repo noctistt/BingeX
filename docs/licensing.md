@@ -27,3 +27,8 @@ Source repository: https://github.com/noctistt/BingeX . Retain the source snapsh
 - New contributions must be offered under the project's GPL-3.0-or-later license and must not include code/assets the contributor lacks permission to license.
 
 Licensing the original project is complete; the native and optional-runtime distribution checks above remain open. This document does not certify a particular installer as fully compliant or determine jurisdiction-specific patent, service-contract, copyright or circumvention questions.
+
+
+## Echo helper research
+
+The experimental music helper is original source with a separate C# process transport. Its external Echo common-jvm SDK uses the custom Unabandon Public License; no SDK or compiled helper is embedded or auto-downloaded by BingeX. See echo-bridge.md for the license review and remaining combination/distribution questions. The NuGet inventory does not certify this optional Java runtime. Keep SDK/runtime bundling and automatic installation out of the app until that review is resolved.

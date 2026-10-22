@@ -344,3 +344,6 @@ Continue Watching excludes local audio files and music/audio contexts, including
 ### Music extension research
 
 A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. No Echo extension installer is available in the app yet. See [evidence, limits and adapter work](docs/echo-bridge.md).
+
+
+The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. These remain development components, without an Echo extension installer or bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).

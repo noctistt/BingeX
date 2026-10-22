@@ -3,8 +3,15 @@ internal static class Program
 {
     [STAThread]
     private static int Main(string[] args)=>Run(args).GetAwaiter().GetResult();
+    private static Task<int> DecodeOnSta(string path)
+    {
+        var done=new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread=new Thread(()=>{try{done.SetResult(Run([path]).GetAwaiter().GetResult());}catch(Exception error){done.SetException(error);}}){IsBackground=true};
+        if(OperatingSystem.IsWindows())thread.SetApartmentState(ApartmentState.STA);thread.Start();return done.Task;
+    }
     private static async Task<int> Run(string[] args)
     {
+if(args.FirstOrDefault()=="--bridge")return await BridgeChecks.Run(args,DecodeOnSta);
 // Decode only the synthetic loopback source emitted by tools/echo-probe/EchoProbe.java.
 if(args.Length!=1)return 2;
 var url=File.ReadAllText(args[0]);
