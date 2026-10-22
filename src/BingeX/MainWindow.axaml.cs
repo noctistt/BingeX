@@ -57,6 +57,7 @@ public partial class MainWindow : Window
         SetupEpisodeNavigation();
         SetupStreamScope();
         SetupAppSettings();
+        SetupLocalQueue();
         UpdateSeekLabels();
         RefreshHistory();
         Opened += (_, _) =>
@@ -147,6 +148,7 @@ public partial class MainWindow : Window
         LibraryPage.IsVisible = page == "Library";
         LocalLibraryPage.IsVisible = page == "My Library";
         UpdatePlayerLayout();
+        QueuePage.IsVisible=page=="Queue";QueueNav.Classes.Set("active",page=="Queue");
         AddonsPage.IsVisible = page == "Add-ons";
         AppSettingsPage.IsVisible=page=="Settings"; SettingsNav.Classes.Set("active",page=="Settings");
         if(page=="Settings"){PopulateAppSettings();_ = UpdateStorage(null);}
@@ -165,8 +167,10 @@ public partial class MainWindow : Window
 
     private async void Open_Click(object? sender, RoutedEventArgs e)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new() { Title = "Open media", AllowMultiple = false });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is { } path) Play(path, Path.GetFileName(path));
+        var files = await StorageProvider.OpenFilePickerAsync(new() { Title = "Open media (select several to queue)", AllowMultiple = true });
+        var paths=files.Select(x=>x.TryGetLocalPath()).OfType<string>().ToArray();
+        if(paths.Length>1)AddQueueFiles(paths,true);
+        else if(paths.FirstOrDefault() is {} path){if(QueueMedia(path))AddQueueFiles([path],true);else Play(path,Path.GetFileName(path));}
     }
 
     private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null)
@@ -218,6 +222,7 @@ public partial class MainWindow : Window
             streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
             thumbnailAttempted = false;
             currentPath = path; currentTitle = title;
+            localQueue.Select(context==null && uri.IsFile?path:null); UpdateQueueActions();
             currentRequestHeaders = requestHeaders;
             currentStreamAudio = streamAudio;
             PlayerEmpty.IsVisible = false;

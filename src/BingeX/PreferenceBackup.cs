@@ -5,7 +5,7 @@ public static class PreferenceBackup
 {
     public const int MaxBytes=65536;
     // Explicit allowlist: adding future profile data never automatically exports it.
-    private static readonly string[] fields=["Volume","SubtitleSize","SubtitleColor","SubtitleBackground","AutoplayEpisodes","SearchAllStreamProviders","IncludeTorrentSources","LocalLibrarySort","LocalLibraryGrouping","SeekSeconds","ResumePlayback","ClickToPause","StartupAnimation","DefaultSpeedIndex","AutoSwitchSources","PreferredAudioLanguage","PreferredSubtitleLanguage","AccentColor","CompactBrowsing","ReducedMotion"];
+    private static readonly string[] fields=["Volume","SubtitleSize","SubtitleColor","SubtitleBackground","AutoplayEpisodes","SearchAllStreamProviders","IncludeTorrentSources","LocalLibrarySort","LocalLibraryGrouping","SeekSeconds","ResumePlayback","ClickToPause","StartupAnimation","DefaultSpeedIndex","AutoSwitchSources","PreferredAudioLanguage","PreferredSubtitleLanguage","AccentColor","CompactBrowsing","ReducedMotion","AutoplayLocalQueue"];
     public static string Export(PlayerPreferences preferences)
     {
         var values=JsonSerializer.SerializeToElement(preferences);

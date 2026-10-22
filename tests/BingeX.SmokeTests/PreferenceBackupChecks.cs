@@ -11,7 +11,7 @@ internal static class PreferenceBackupChecks
         using(var json=JsonDocument.Parse(text))
         {
             var fields=json.RootElement.GetProperty("Preferences").EnumerateObject().Select(x=>x.Name).ToArray();
-            Check(fields.Length==20 && !fields.Any(x=>x.Contains("Url") || x.Contains("Path") || x.Contains("Token") || x.Contains("History")),"Backups contain only the explicit preference allowlist.");
+            Check(fields.Length==21 && !fields.Any(x=>x.Contains("Url") || x.Contains("Path") || x.Contains("Token") || x.Contains("History")),"Backups contain only the explicit preference allowlist.");
         }
         foreach(var invalid in new[]{"{}",text.Replace("BingeX.settings","Other.settings"),text.Replace("\"Version\": 1","\"Version\": 99"),text.Replace("\"Volume\": 65","\"Volume\": 999"),text.Replace("\"Volume\": 65","\"Volume\": \""+"loud"+"\""),text.Replace("\"Volume\": 65","\"SecretUrl\": \""+"private"+"\""),text.Replace("\"Volume\": 65","\"Volume\": 65, \""+"Volume"+"\": 10"),new string(' ',PreferenceBackup.MaxBytes+1)})
         {

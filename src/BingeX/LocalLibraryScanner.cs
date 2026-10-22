@@ -11,6 +11,7 @@ public static class LocalLibraryScanner
         ".wmv", ".flv", ".ogv", ".3gp", ".3g2", ".vob", ".m2v", ".m1v", ".divx", ".asf", ".rm",
         ".rmvb", ".mxf", ".f4v", ".qt", ".m2t", ".ogm", ".mpe", ".mpv"
     };
+    public static bool IsVideo(string path)=>Extensions.Contains(Path.GetExtension(path));
     public static string NormalizeFolder(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
     public static FolderScan Scan(string path, CancellationToken token)
     {

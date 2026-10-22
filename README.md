@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.29. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.30. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -309,3 +309,6 @@ Appearance settings offer Purple, Blue, Teal, Rose and Amber accents, comfortabl
 
 ### 0.13.29
 Settings can export saved preferences to a versioned JSON file, preview an import, or preview a reset before applying it. Backups explicitly exclude provider links, credentials, media paths and watch history. Online mode and saved per-show/track choices are not reset. Normal updates keep preferences; exporting first is an optional precaution.
+
+### 0.13.30
+A session-only local queue supports multiple files, recursive video-folder loading, reorder/remove/clear, previous/next actions and separately configurable autoplay. Folder entries use natural numeric ordering; automatic continuation skips missing files. Queue editing never deletes files or stops current playback. Online streams do not advance the local queue.

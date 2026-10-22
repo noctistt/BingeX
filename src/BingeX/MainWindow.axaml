@@ -5,17 +5,18 @@
         MinWidth="960" MinHeight="680" Background="#101018">
   <Grid x:Name="RootLayout" ColumnDefinitions="205,*" RowDefinitions="*,Auto">
     <Border x:Name="Sidebar" Background="#161620" Padding="22,30" Grid.RowSpan="2">
-      <StackPanel Spacing="16">
+      <StackPanel Spacing="12">
         <StackPanel Orientation="Horizontal" Spacing="9"><Image Source="/Assets/BingeX.png" Width="36" Height="36" /><TextBlock Text="BingeX" FontSize="27" FontWeight="Bold" Foreground="#D8C8FF" VerticalAlignment="Center" /></StackPanel>
-        <TextBlock Text="YOUR NEXT GREAT WATCH" FontSize="9" LetterSpacing="1" Classes="muted" Margin="0,0,0,28" />
+        <TextBlock Text="YOUR NEXT GREAT WATCH" FontSize="9" LetterSpacing="1" Classes="muted" Margin="0,0,0,20" />
         <Button x:Name="LibraryNav" Classes="nav active" Content="Home" Click="Library_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="LocalLibraryNav" Classes="nav" Content="My Library" Click="LocalLibrary_Click" HorizontalAlignment="Stretch" />
+        <Button x:Name="QueueNav" Classes="nav" Content="Queue" Click="QueuePage_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="PlayerNav" Classes="nav" Content="Player" Click="Player_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="AddonsNav" Classes="nav" Content="Add-ons" Click="Addons_Click" HorizontalAlignment="Stretch" />
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.29" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.30" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -188,6 +189,14 @@
           </Grid>
         </Grid>
       </ScrollViewer>
+      <ScrollViewer x:Name="QueuePage" Grid.Row="1" IsVisible="False" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14">
+        <TextBlock Text="Your local playback queue" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Text="Add files or videos from a folder and its subfolders. Reorder with the arrows. Removing or clearing items never deletes files or stops current playback. Queue contents are kept only for this app session." Classes="muted" TextWrapping="Wrap" />
+        <WrapPanel><Button Content="Add files…" Click="AddQueueFiles_Click" Classes="primary" Margin="0,0,10,0" /><Button Content="Add video folder…" Click="AddQueueFolder_Click" Margin="0,0,10,0" /><Button Content="Clear queue" Click="ClearQueue_Click" /></WrapPanel>
+        <CheckBox x:Name="QueueAutoplayCheck" Content="Automatically play the next local queue item" />
+        <ProgressBar x:Name="QueueFolderBusy" IsVisible="False" IsIndeterminate="True" Height="3" /><Button x:Name="QueueCancelScan" Content="Cancel folder scan" IsVisible="False" Click="CancelQueueScan_Click" HorizontalAlignment="Left" />
+        <TextBlock x:Name="QueueCount" Classes="muted" /><TextBlock x:Name="QueueMessage" TextWrapping="Wrap" Classes="muted" /><TextBlock x:Name="QueueEmpty" Text="The queue is empty. Add local files to get started." Classes="muted" /><StackPanel x:Name="QueueItems" Spacing="6" />
+      </StackPanel></ScrollViewer>
       <ScrollViewer x:Name="AppSettingsPage" Grid.Row="1" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="18" MaxWidth="820" HorizontalAlignment="Stretch">
           <TextBlock Text="Make BingeX yours" FontSize="24" FontWeight="SemiBold" />
@@ -195,7 +204,7 @@
             <TextBlock Text="Playback" FontSize="20" FontWeight="SemiBold" />
             <TextBlock Text="Seek interval (buttons and arrow keys)" /><ComboBox x:Name="SettingsSeek" Width="220"><ComboBoxItem Content="5 seconds" /><ComboBoxItem Content="10 seconds" /><ComboBoxItem Content="15 seconds" /><ComboBoxItem Content="30 seconds" /><ComboBoxItem Content="60 seconds" /></ComboBox>
             <CheckBox x:Name="SettingsResume" Content="Resume unfinished videos" /><CheckBox x:Name="SettingsClickPause" Content="Click video to pause or play" />
-            <CheckBox x:Name="SettingsAutoplay" Content="Autoplay next online episode" /><CheckBox x:Name="SettingsAutoSwitch" Content="Offer another source when playback fails" />
+            <CheckBox x:Name="SettingsAutoplay" Content="Autoplay next online episode" /><CheckBox x:Name="SettingsQueueAutoplay" Content="Autoplay next local queue item" /><CheckBox x:Name="SettingsAutoSwitch" Content="Offer another source when playback fails" />
             <TextBlock Text="Default playback speed" /><ComboBox x:Name="SettingsSpeed" Width="220"><ComboBoxItem Content="0.5×" /><ComboBoxItem Content="0.75×" /><ComboBoxItem Content="1×" /><ComboBoxItem Content="1.25×" /><ComboBoxItem Content="1.5×" /><ComboBoxItem Content="2×" /></ComboBox>
             <TextBlock Text="Volume" /><NumericUpDown x:Name="SettingsVolume" Minimum="0" Maximum="100" Increment="5" Width="220" />
           </StackPanel></Border>
@@ -297,6 +306,7 @@
                       <StackPanel Orientation="Horizontal" Spacing="7"><Path Width="18" Height="16" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 17,1 L 17,15 L 1,15 Z M 9,8 L 15,8 L 15,13 L 9,13 Z" /><TextBlock Text="Mini-player" /></StackPanel>
                     </Button>
                   </Grid>
+                  <WrapPanel x:Name="LocalQueueActions" IsVisible="False"><Button x:Name="QueuePreviousButton" Content="Previous item" Click="QueuePrevious_Click" Classes="playerAction" Margin="0,0,8,0" /><Button x:Name="QueueNextButton" Content="Next item" Click="QueueNext_Click" Classes="playerAction" Margin="0,0,8,0" /><Button x:Name="QueueOpenButton" Content="Queue" Click="QueuePage_Click" Classes="playerAction" /></WrapPanel>
                   <Button x:Name="ChooseSourceButton" Content="Choose another source" Click="ChooseAnotherSource_Click" IsVisible="False" Classes="playerAction" HorizontalAlignment="Left" />
                   <Border x:Name="EpisodeAutoplayPanel" IsVisible="False" Background="#E82B233C" CornerRadius="8" Padding="10">
                     <WrapPanel><TextBlock x:Name="EpisodeAutoplayText" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0" /><Button Content="Play now" Click="NextEpisode_Click" Margin="0,0,8,0" /><Button Content="Cancel" Click="CancelEpisodeAutoplay_Click" /></WrapPanel>

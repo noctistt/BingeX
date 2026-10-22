@@ -151,7 +151,7 @@ public partial class MainWindow
         var generation = mediaGeneration;
         Dispatcher.UIThread.Post(() =>
         {
-            if (playbackEnded || NativePlaybackBusy || generation != mediaGeneration || player == null || playbackSnapshot.State is VLCState.Playing or VLCState.Opening) return;
+            if (playbackEnded || playbackStarting || NativePlaybackBusy || generation != mediaGeneration || player == null || playbackSnapshot.State is VLCState.Playing or VLCState.Opening) return;
             if (lastDuration <= 0 && activeSource != null && !sourceStarted)
             {
                 if (TryScheduleNextSource("This source ended before video playback could start.")) return;
@@ -175,7 +175,7 @@ public partial class MainWindow
             updatingSeek = false;
             CaptionPanel.IsVisible = false;
             RevealPlayerControls();
-            ScheduleEpisodeAutoplay();
+            if(!ContinueLocalQueue())ScheduleEpisodeAutoplay();
         });
     }
     private void RevealPlayerControls()
@@ -197,6 +197,7 @@ public partial class MainWindow
         UpdatePlaybackWaiting();
         UpdateSourceRecovery();
         UpdateEpisodeActions();
+        UpdateQueueActions();
         if (NativePlaybackBusy || activePage != "Player" && !miniPlayer) return;
         if (DateTime.UtcNow >= noticeUntil) PlaybackNotice.IsVisible = false;
         var idle = DateTime.UtcNow - lastPlayerInteraction;
@@ -511,8 +512,9 @@ public partial class MainWindow
         e.Handled = true;
         var files = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().Select(x => x.TryGetLocalPath()).OfType<string>().Where(File.Exists).ToArray() ?? [];
         if (files.Length == 0) { Status("Drop a local media or subtitle file."); return; }
-        var media = files.FirstOrDefault(x => !IsSubtitleFile(x));
-        if (media != null) Play(media, Path.GetFileName(media));
+        var mediaFiles=files.Where(x=>!IsSubtitleFile(x)).ToArray();
+        if(mediaFiles.Length>1)AddQueueFiles(mediaFiles,true);
+        else if(mediaFiles.FirstOrDefault() is {} media){if(QueueMedia(media))AddQueueFiles([media],true);else Play(media,Path.GetFileName(media));}
         var subtitle = files.FirstOrDefault(IsSubtitleFile);
         if (subtitle != null) await LoadSubtitle(subtitle);
     }

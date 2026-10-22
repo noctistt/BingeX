@@ -22,7 +22,7 @@ public partial class MainWindow
         PopulateAppearance();
         SettingsSeek.SelectedIndex=Array.IndexOf(new[]{5,10,15,30,60},preferences.SeekSeconds);
         SettingsResume.IsChecked=preferences.ResumePlayback; SettingsClickPause.IsChecked=preferences.ClickToPause;
-        SettingsAnimation.IsChecked=preferences.StartupAnimation; SettingsAutoplay.IsChecked=preferences.AutoplayEpisodes;
+        SettingsAnimation.IsChecked=preferences.StartupAnimation; SettingsAutoplay.IsChecked=preferences.AutoplayEpisodes;SettingsQueueAutoplay.IsChecked=preferences.AutoplayLocalQueue;
         SettingsSpeed.SelectedIndex=preferences.DefaultSpeedIndex; SettingsVolume.Value=preferences.Volume;
         SettingsSubSize.SelectedIndex=Array.IndexOf(new[]{20,28,36,44},preferences.SubtitleSize);
         SettingsSubColor.SelectedIndex=Array.IndexOf(new[]{"White","Yellow","Mint"},preferences.SubtitleColor);
@@ -39,6 +39,7 @@ public partial class MainWindow
             PreferredAudioLanguage=(SettingsAudioLanguage.SelectedItem as LanguageChoice)?.Key ?? "",
             PreferredSubtitleLanguage=(SettingsSubtitleLanguage.SelectedItem as LanguageChoice)?.Key ?? "",
             SeekSeconds=new[]{5,10,15,30,60}[Math.Clamp(SettingsSeek.SelectedIndex,0,4)],
+            AutoplayLocalQueue=SettingsQueueAutoplay.IsChecked==true,
             ResumePlayback=SettingsResume.IsChecked==true,ClickToPause=SettingsClickPause.IsChecked==true,
             StartupAnimation=SettingsAnimation.IsChecked==true,AutoplayEpisodes=SettingsAutoplay.IsChecked==true,
             DefaultSpeedIndex=Math.Clamp(SettingsSpeed.SelectedIndex,0,5),Volume=(int)(SettingsVolume.Value??80),
@@ -53,6 +54,7 @@ public partial class MainWindow
         SubtitleSizePicker.SelectedIndex=SettingsSubSize.SelectedIndex; SubtitleColorPicker.SelectedIndex=SettingsSubColor.SelectedIndex; SubtitleBackgroundCheck.IsChecked=desired.SubtitleBackground;
         VolumeBar.Value=desired.Volume; SpeedBox.SelectedIndex=desired.DefaultSpeedIndex;
         IncludeTorrentSourcesCheck.IsChecked=desired.IncludeTorrentSources;SearchAllProvidersSwitch.IsChecked=desired.SearchAllStreamProviders;
+        QueueAutoplayCheck.IsChecked=desired.AutoplayLocalQueue;
         AutoplayEpisodesCheck.IsChecked=desired.AutoplayEpisodes; AutoNextSource.IsChecked=desired.AutoSwitchSources;
         LocalSort.SelectedIndex=desired.LocalLibrarySort; LocalGrouping.SelectedIndex=desired.LocalLibraryGrouping;
         preferences=desired; store.SavePreferences(preferences); PopulateAppSettings(); SettingsSaved.Text="Settings saved. Language defaults apply to newly opened videos.";
