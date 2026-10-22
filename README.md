@@ -88,7 +88,7 @@ Browsing currently displays the first 100 titles per catalog; combined search is
 
 ## License
 
-An open-source release is intended. The project license has not yet been selected. Third-party components retain their respective licenses. BingeX is an independent project and is not affiliated with or endorsed by VideoLAN, Stremio, Cloudstream or third-party providers. Compatibility names identify the software/protocols supported; their owners retain their trademarks.
+BingeX original work is licensed under **GPL-3.0-or-later**. See [LICENSE](LICENSE), [copyright and scope](COPYRIGHT.md), and [distribution requirements](docs/licensing.md). Third-party components retain their respective licenses. BingeX is an independent project and is not affiliated with or endorsed by VideoLAN, Stremio, Cloudstream or third-party providers. Compatibility names identify the software/protocols supported; their owners retain their trademarks.
 
 
 ## Windows preview package

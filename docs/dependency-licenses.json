@@ -1,0 +1,181 @@
+{
+  "reviewDate": "2026-10-22",
+  "scope": "Resolved NuGet metadata; constituent native/runtime files require separate review",
+  "packages": [
+    {
+      "package": "Avalonia.Angle.Windows.Natives/2.1.25547.20250602",
+      "licenseType": "file",
+      "license": "LICENSE"
+    },
+    {
+      "package": "Avalonia.BuildServices/11.3.2",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Desktop/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.FreeDesktop/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Native/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Remote.Protocol/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Skia/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Themes.Fluent/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.Win32/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia.X11/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Avalonia/11.3.22",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "HarfBuzzSharp.NativeAssets.Linux/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "HarfBuzzSharp.NativeAssets.Win32/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "HarfBuzzSharp/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "LibVLCSharp.Avalonia/3.10.2",
+      "licenseType": "expression",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "package": "LibVLCSharp/3.10.2",
+      "licenseType": "expression",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "package": "MicroCom.Runtime/0.11.0",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Microsoft.Data.Sqlite.Core/10.0.13",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Microsoft.Data.Sqlite/10.0.13",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Mono.Nat/3.0.0",
+      "licenseType": "file",
+      "license": "LICENSE.md"
+    },
+    {
+      "package": "MonoTorrent/3.0.2",
+      "licenseType": "file",
+      "license": "LICENSE"
+    },
+    {
+      "package": "ReusableTasks/4.0.0",
+      "licenseType": "file",
+      "license": "LICENSE.md"
+    },
+    {
+      "package": "SQLitePCLRaw.bundle_e_sqlite3/2.1.13",
+      "licenseType": "expression",
+      "license": "Apache-2.0"
+    },
+    {
+      "package": "SQLitePCLRaw.core/2.1.13",
+      "licenseType": "expression",
+      "license": "Apache-2.0"
+    },
+    {
+      "package": "SQLitePCLRaw.lib.e_sqlite3/2.1.13",
+      "licenseType": "expression",
+      "license": "Apache-2.0"
+    },
+    {
+      "package": "SQLitePCLRaw.provider.e_sqlite3/2.1.13",
+      "licenseType": "expression",
+      "license": "Apache-2.0"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.Linux/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.WebAssembly/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.Win32/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.macOS/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "Tmds.DBus.Protocol/0.21.3",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "VideoLAN.LibVLC.Windows/3.0.24",
+      "licenseType": "expression",
+      "license": "LGPL-2.1-or-later"
+    }
+  ]
+}

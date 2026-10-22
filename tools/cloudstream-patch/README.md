@@ -10,3 +10,5 @@ jar --create --file ../../src/BingeX/Assets/cloudstream-patch.jar -C <classes> .
 ```
 
 The committed JAR contains only these original classes, not ASM or upstream engine code. At runtime BingeX downloads the original engine and Java separately with SHA-256 checks, then runs the patcher with **only** the patch JAR and ASM JAR on its classpath (putting engine-core on the patcher's classpath locks that file on Windows). The resulting engine is kept in the optional runtime folder. Upstream GPL source/license links are written there. No extension is included in the installer.
+
+Original BingeX patch source: GPL-3.0-or-later; see ../../LICENSE and ../../COPYRIGHT.md. The source change preserves audio-track URL/header data in the upstream engine JSON output. Upstream and ASM retain their own licenses.
