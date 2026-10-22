@@ -44,28 +44,25 @@ public partial class MainWindow
         LocalFolderFilter.ItemsSource = choices;
         LocalFolderFilter.SelectedItem = choices.FirstOrDefault(x => string.Equals(x.Path, selected, StringComparison.OrdinalIgnoreCase)) ?? choices[0];
         changingLocalFolders = false;
-        MediaFolderItems.Children.Clear();
-        foreach (var folder in folders)
-        {
-            var row = new Grid { ColumnDefinitions = new("*,Auto") };
-            var path = new TextBlock { Text = folder, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-            ToolTip.SetTip(path, folder);
-            row.Children.Add(path);
-            var remove = new Button { Content = "Remove folder", FontSize = 11, Padding = new Thickness(10, 7) };
-            AutomationProperties.SetName(remove, "Remove library folder " + folder);
-            ToolTip.SetTip(remove, "Stop indexing this folder. Video files and watch history are kept.");
-            remove.Click += (_, _) =>
-            {
-                CancelLocalScan();
-                store.RemoveFolder(folder);
-                RefreshLocalFolders();
-                localDisplayLimit = 100;
-                RefreshLocalLibrary();
-                LocalScanMessage.Text = "Folder removed from My Library. Files and watch history were kept.";
-            };
-            Grid.SetColumn(remove, 1); row.Children.Add(remove);
-            MediaFolderItems.Children.Add(new Border { Background = Brush.Parse("#1E1B2A"), Padding = new Thickness(12), CornerRadius = new CornerRadius(10), Child = row });
-        }
+    }
+    private void RemoveLocalFolder(string folder)
+    {
+        CancelLocalScan();store.RemoveFolder(folder);RefreshLocalFolders();localDisplayLimit=100;RefreshLocalLibrary();
+        LocalScanMessage.Text="Folder removed from My Library. Files and watch history were kept.";
+    }
+    private void RemoveSelectedLocalFolder_Click(object? sender,RoutedEventArgs e)
+    {
+        if(LocalFolderFilter.SelectedItem is LocalFolderChoice {Path:{} folder})RemoveLocalFolder(folder);
+    }
+    private StackPanel LocalFolderHeader(string folder,int count)
+    {
+        var header=new StackPanel{Orientation=Orientation.Horizontal,Spacing=12};
+        var title=new TextBlock{Text=FolderName(folder)+$" · {count} video"+(count==1?"":"s"),FontSize=18,FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center};
+        ToolTip.SetTip(title,folder);header.Children.Add(title);
+        var remove=new Button{Content="Remove folder",FontSize=11,Padding=new Thickness(10,6),Tag=folder};
+        AutomationProperties.SetName(remove,"Remove library folder "+FolderName(folder));
+        ToolTip.SetTip(remove,"Remove "+folder+" from My Library, including indexed subfolders. Video files and watch history are kept.");
+        remove.Click+=(_,e)=>{e.Handled=true;RemoveLocalFolder(folder);};header.Children.Add(remove);return header;
     }
     private static string FolderName(string path)
     {
@@ -161,6 +158,8 @@ public partial class MainWindow
     {
         if (!localLibraryReady) return;
         var folder = (LocalFolderFilter.SelectedItem as LocalFolderChoice)?.Path;
+        RemoveSelectedLocalFolder.IsVisible=folder!=null;
+        ToolTip.SetTip(RemoveSelectedLocalFolder,folder==null?"Choose a folder to remove it from the library.":"Remove "+folder+" from My Library. Files and watch history are kept.");
         var query = LocalVideoSearch.Text?.Trim() ?? "";
         var videos = LocalVideoPresentation.Sort(store.LocalVideos(folder), LocalSort.SelectedIndex).Where(x => LocalVideoPresentation.Matches(x,query)).ToArray();
         LocalVideoCount.Text = $"{videos.Length} video{(videos.Length == 1 ? "" : "s")}" + (videos.Length > localDisplayLimit ? $" · showing {localDisplayLimit}" : "");
@@ -169,16 +168,34 @@ public partial class MainWindow
             : store.Folders().Count == 0 ? "Add your first folder to build your library." : "No videos indexed here yet. Add a video file and rescan.";
         LocalLoadMore.IsVisible = videos.Length > localDisplayLimit;
         LocalVideoItems.Children.Clear();
+        var folderPanels=new Dictionary<string,StackPanel>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in videos.Take(localDisplayLimit).Select(x=>x.Folder).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if(LocalGrouping.SelectedIndex==2)break;
+            var content=new StackPanel{Spacing=10};folderPanels[root]=content;
+            var key="root:"+root;
+            var section=new Expander{Header=LocalFolderHeader(root,videos.Count(x=>string.Equals(x.Folder,root,StringComparison.OrdinalIgnoreCase))),Content=content,IsExpanded=!collapsedLocalGroups.Contains(key),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
+            section.PropertyChanged+=(_,e)=>{if(e.Property.Name==nameof(Expander.IsExpanded)){if(section.IsExpanded)collapsedLocalGroups.Remove(key);else collapsedLocalGroups.Add(key);}};
+            LocalVideoItems.Children.Add(section);
+        }
+        if(query.Length==0 && LocalGrouping.SelectedIndex!=2)
+            foreach(var root in store.Folders().Where(x=>(folder==null || string.Equals(x,folder,StringComparison.OrdinalIgnoreCase)) && !videos.Any(v=>string.Equals(v.Folder,x,StringComparison.OrdinalIgnoreCase))))
+                LocalVideoItems.Children.Add(new Expander{Header=LocalFolderHeader(root,0),Content=new TextBlock{Text="No videos indexed here yet. Reconnect the drive or rescan.",TextWrapping=TextWrapping.Wrap},HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch});
         foreach (var group in LocalVideoPresentation.Groups(videos.Take(localDisplayLimit),LocalGrouping.SelectedIndex,LocalSort.SelectedIndex))
         {
             var tiles = new WrapPanel();
             if(LocalGrouping.SelectedIndex==2)LocalVideoItems.Children.Add(tiles);
             else
             {
+                var root=group.Videos[0].Folder;var host=folderPanels[root];
+                if(group.Name==FolderName(root))host.Children.Add(tiles);
+                else
+                {
                 var key=LocalGrouping.SelectedIndex+":"+group.Key;
                 var section=new Expander{Header=group.Name.Replace(Path.DirectorySeparatorChar,'/')+" · "+group.Videos.Count+" videos",Content=tiles,IsExpanded=!collapsedLocalGroups.Contains(key),HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
                 section.PropertyChanged+=(_,e)=>{if(e.Property.Name==nameof(Expander.IsExpanded)){if(section.IsExpanded)collapsedLocalGroups.Remove(key);else collapsedLocalGroups.Add(key);}};
-                LocalVideoItems.Children.Add(section);
+                host.Children.Add(section);
+                }
             }
             foreach (var video in group.Videos)
             {

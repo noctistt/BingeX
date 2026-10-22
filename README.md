@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.31. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.32. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -315,3 +315,6 @@ A session-only local queue supports multiple files, recursive video-folder loadi
 
 ### 0.13.31
 Queue lives in a collapsible panel inside My Library, with a button beside folder actions. The player Queue button opens the same panel. Long queues have bounded scrolling; the extra sidebar entry is removed. Queue editing and autoplay behaviour are unchanged.
+
+### 0.13.32
+My Library removes the separate full-path folder list. Registered folder headings in the video area now include Remove folder, with subfolder/series groups nested underneath. Full paths remain in tooltips. The folder filter also provides removal for All videos view and empty folders. Removal only unindexes the registered folder and its children; files and watch history are kept.
