@@ -1,6 +1,6 @@
 # Echo music extension feasibility probe
 
-Status (2026-10-22): BingeX 0.14.4 adds explicit activation, session login, paged music browsing and playback using a user-selected, separately prepared runtime profile. No SDK/runtime downloader or bundled Echo dependencies are included. Built-in OpenSubsonic support remains separate.
+Status (2026-10-22): BingeX 0.14.5 imports Echo repository, GitHub release and direct package links. Activation, session login, browsing and playback still use a separately prepared runtime profile, selected once under Advanced. No SDK/runtime downloader or bundled Echo dependencies are included. Built-in OpenSubsonic support remains separate.
 
 ## Examined artifacts
 
@@ -83,3 +83,13 @@ The Windows Echo UI test now runs the actual BingeX app against the documented O
 Build `tests/BingeX.EchoUiTests` in Release, set `BINGEX_DATA_DIRECTORY` to a new isolated `echo-ui-test-*` directory, and use `tools/echo-probe/fixture-probe.py --ui-runtime <prepared-profile>` with the extension path and `--project tests/BingeX.EchoUiTests`. The legacy probe arguments remain required but unused in UI mode. The fixture has a 180-second process watchdog and uses dummy account data, not a real user profile. UI evidence is saved only to that isolated directory.
 
 The SDK license compatibility question above remains open for distribution. This milestone uses explicitly supplied local dependencies and introduces no automatic downloads or bundled SDK/runtime files.
+
+## Link imports — 0.14.5
+
+The primary Add-ons > Music flow is now paste link, choose an extension and install, then activate. Supported inputs are HTTPS direct .eapk files, GitHub project/release/latest/tag pages, GitHub releases API links, Echo JSON repositories (arrays of name/updateUrl entries) and Echo-style shortcodes resolved through v.gd. The repository shape follows the upstream [AddViewModel](https://github.com/brahmkshatriya/echo/blob/f210820680cd5e7bdcb383e3daab3fa2c06b71e0/app/src/main/java/dev/brahmkshatriya/echo/ui/extensions/add/AddViewModel.kt). Repository links are read on demand; there are no provider presets, background updates or retained install URLs. Local-file import and runtime-profile controls are in a collapsed Advanced section.
+
+GitHub project and releases-list URLs resolve the latest published release; tag links retain the selected tag. Releases expose .eapk assets only. A repository entry must resolve to one .eapk asset; ambiguous releases need a direct asset link. GitHub-provided SHA-256 digests are checked when present. Downloads use HTTPS-only bounded redirects, a 90-second request timeout, 2 MiB metadata and 32 MiB package limits, no cookies or account credentials, temporary-file cleanup, and the existing manifest/hash importer. Importing code never executes it; activation remains explicit. Hosts and rate limits may prevent individual links from working. The importer validates package structure, not publisher identity.
+
+Tests use synthetic HTTPS handlers with the actual inspected fixture package: repository/release/direct-link resolution, GitHub tags, optional digests, downgrade rejection, cancellation, oversized responses and cleanup. The real Add-ons UI test also installs from a synthetic repository before running the existing activation/login/browsing/playback checks. No public music provider or real account is used.
+
+Link import does not remove the engine dependency. The inspected OpenSubsonic package contains no Echo common SDK classes, so a package-only runtime could not instantiate it. The working separate SDK/runtime path remains required and automatic SDK provisioning remains unresolved. No SDK-free fallback or automatic runtime installer is shipped in this milestone.

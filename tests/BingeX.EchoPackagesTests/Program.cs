@@ -42,7 +42,7 @@ try
     {var path=Path.Combine(root,"bad"+(index++)+".eapk");Package(path,content);Reject(()=>library.Import(path));}
     Check(library.List().Count==0&&!Directory.EnumerateFiles(Path.Combine(root,"echo","packages"),"*.tmp").Any(),"Failed import must leave no package or temporary file.");
     try{library.Remove("../outside");throw new Exception("Traversal accepted.");}catch(ArgumentException){}
-    if(args.Length>0){var item=library.Import(Path.GetFullPath(args[0]));Check(item.Name=="OpenSubsonic"&&item.EntryClass.EndsWith("OpenSubsonicExtension"),"Actual package metadata.");Check(library.List().Count==1,"Actual import persists.");}
+    if(args.Length>0){var item=library.Import(Path.GetFullPath(args[0]));Check(item.Name=="OpenSubsonic"&&item.EntryClass.EndsWith("OpenSubsonicExtension"),"Actual package metadata.");Check(library.List().Count==1,"Actual import persists.");await EchoLinkChecks.Run(Path.Combine(root,"links"),args[0]);}
     if(args.Length>1)
     {
         var profile=EchoRuntimeProfile.Load(Path.GetFullPath(args[1]),root);Check(profile.SdkHash.Length==64,"Prepared runtime must verify.");

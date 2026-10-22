@@ -8,6 +8,18 @@ using BingeX;
 
 internal static class Program
 {
+    private sealed class LinkFixture(byte[] package):System.Net.Http.HttpMessageHandler
+    {
+        protected override Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request,CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var response=new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            response.Content=request.RequestUri!.AbsolutePath=="/repo.json"?new System.Net.Http.StringContent("[{\"name\":\"Fixture music\",\"updateUrl\":\"https://api.github.com/repos/fixture/music/releases\"}]"):
+                request.RequestUri.Host=="api.github.com"?new System.Net.Http.StringContent("{\"assets\":[{\"name\":\"fixture.eapk\",\"browser_download_url\":\"https://files.example/fixture.eapk\"}]}"):
+                new System.Net.Http.ByteArrayContent(package);
+            return Task.FromResult(response);
+        }
+    }
     [STAThread]
     private static int Main(string[] args)
     {
@@ -38,8 +50,13 @@ internal static class Program
                     await (Task)Call("RefreshEchoPackages")!;
                     Check(C<StackPanel>("EchoPackageItems").Children.Count==1,"Imported package must render.");
                     await (Task)Call("SetOnlineMode",true)!;Call("Page","Add-ons");Call("SelectAddonCategory",true);await Task.Delay(200);
-                    Check(C<Border>("EchoPackagesPanel").IsEffectivelyVisible&&C<Button>("EchoImportButton").IsEffectivelyVisible,"Music category must show import.");
+                    Check(C<Border>("EchoPackagesPanel").IsEffectivelyVisible&&C<TextBox>("EchoLinkInput").IsEffectivelyVisible,"Music category must show link import.");
+                    Check(!C<Expander>("EchoAdvanced").IsExpanded,"Manual setup must stay under Advanced by default.");
                     Check(!C<StackPanel>("VideoAddonsSection").IsEffectivelyVisible,"Video addons must remain separate.");
+                    Set("echoLinksFactory",new Func<EchoLinks>(()=>new EchoLinks(new LinkFixture(File.ReadAllBytes(args[0])))));
+                    await (Task)Call("ReadEchoLink","https://repo.example/repo.json")!;
+                    Check(C<WrapPanel>("EchoLinkChoices").Children.Count==1,"Repository links must show install choices.");Click(C<WrapPanel>("EchoLinkChoices").Children.OfType<Button>().Single());await Wait(()=>!(bool)Get("echoImporting")!,"Link install did not finish.");
+                    Check(new EchoPackages(data).List().Count==1&&C<TextBox>("EchoLinkInput").Text=="","Link install must retain a validated package and clear the input.");
                     using(var image=new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)window.Bounds.Width,(int)window.Bounds.Height))){image.Render(window);image.Save(Path.Combine(data,"echo-addons.png"));}
                     Call("SelectAddonCategory",false);Check(!C<Border>("EchoPackagesPanel").IsEffectivelyVisible,"Video category must hide music packages.");
                     if(args.Length==3)
@@ -73,7 +90,7 @@ internal static class Program
                     await (Task)Call("SetOnlineMode",false)!;Check(new EchoPackages(data).List().Single().Sha256==item.Sha256,"Offline toggle must retain imported files.");
                     var row=(Grid)C<StackPanel>("EchoPackageItems").Children.Single();Click(row.Children.OfType<Button>().Single(x=>x.Content?.ToString()=="Remove"));
                     await Task.Delay(300);Check(new EchoPackages(data).List().Count==0&&C<StackPanel>("EchoPackageItems").Children.Count==0,"Remove must update disk and UI.");
-                    passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),args.Length==3?"PASS: actual extension activation, trust gating, custom session login, paged browsing, album navigation, native playback, history exclusion, cancellation/restart, offline retention and removal.":"PASS: real Add-ons/Music UI, import rendering, category separation, online toggle retention and removal.");
+                    passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),args.Length==3?"PASS: repository-link install, collapsed Advanced controls, actual extension activation, trust gating, custom session login, paged browsing, album navigation, native playback, history exclusion, cancellation/restart, offline retention and removal.":"PASS: real Add-ons/Music UI, repository-link install, import rendering, category separation, online toggle retention and removal.");
                 }
                 catch(Exception e){File.WriteAllText(Path.Combine(data,"result.txt"),"FAIL: "+e);}
                 finally{window.Close();}

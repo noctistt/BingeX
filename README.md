@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.5. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -355,3 +355,7 @@ Add-ons > Music imports user-selected Echo .eapk files, displays their names, ve
 ### 0.14.4 — Echo activation, browsing and playback
 
 Add-ons > Music can select a separately prepared runtime profile and activate a trusted imported Echo extension. Custom login forms keep credentials only for the session. Music displays provider tabs, paged results and albums with back navigation; tracks play through the existing player and private header relay without adding authenticated URLs to video history. Disconnect, runtime changes, Online mode off and app exit stop the helper and clear session handles. Runtime fingerprints are verified. No Echo SDK/runtime or provider package is bundled or downloaded automatically. One OpenSubsonic extension is verified against a synthetic server; arbitrary extension compatibility, browser login and music-extension autoplay are not guaranteed. See [local setup and limits](docs/echo-bridge.md#app-activation-and-listening--0144).
+
+### 0.14.5 — Paste-link music extension imports
+
+Add-ons > Music accepts Echo repository links, GitHub project/release links, direct .eapk links and Echo-style shortcodes. Choose a repository entry to download and validate its package; activation remains explicit. Local-file import and runtime controls now live under Advanced. Downloads have size limits, HTTPS-only redirects, cancellation and optional release digest checks. The separate music runtime still needs a one-time setup before playback; automatic engine provisioning is not included. See [supported links and limits](docs/echo-bridge.md#link-imports--0145).

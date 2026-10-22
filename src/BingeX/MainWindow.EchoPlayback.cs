@@ -24,6 +24,7 @@ public partial class MainWindow
     }
     private void StopEcho()
     {
+        echoLinkWork.Cancel();
         echoEpoch++;echoWork.Cancel();echoWork.Dispose();echoWork=new();
         var old=echoBridge;echoBridge=null;echoPackage=null;echoWorking=false;
         if(old!=null)_=old.DisposeAsync().AsTask();
@@ -50,7 +51,7 @@ public partial class MainWindow
     private async Task ActivateEcho(EchoPackage package)
     {
         if(!onlineEnabled||echoWorking)return;
-        if(echoRuntimeFile==null){EchoStatus.Text="Choose a prepared music runtime profile first.";return;}
+        if(echoRuntimeFile==null){EchoAdvanced.IsExpanded=true;EchoStatus.Text="Music engine setup is required once before playback. Open Advanced to finish setup.";return;}
         if(EchoTrust.IsChecked!=true){EchoStatus.Text="Confirm that you trust the runtime and extension before activation.";return;}
         StopEcho();var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoPackageItems.IsEnabled=false;EchoStatus.Text="Starting "+package.Name+"…";
         EchoMusicBridge? candidate=null;
