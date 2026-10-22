@@ -73,6 +73,7 @@ public partial class MainWindow : Window
                 player.EndReached += PlayerEnded;
                 VideoSurface.MediaPlayer = player;
                 timer.Tick += Tick;
+                SetupMusicNowBar();
                 timer.Start();
                 _ = RefreshCatalogs();
                 if (Program.StartupFile is { } path) Play(path, Path.GetFileName(path));
@@ -175,7 +176,7 @@ public partial class MainWindow : Window
         else if(paths.FirstOrDefault() is {} path){if(QueueMedia(path))AddQueueFiles([path],true);else Play(path,Path.GetFileName(path));}
     }
 
-    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null, bool skipHistory = false)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null, bool skipHistory = false, bool musicPlayback = false)
     {
         if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
@@ -200,7 +201,8 @@ public partial class MainWindow : Window
         PlayerLoading.IsVisible = true;
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title; MiniTitle.Text = title;
-        Page("Player");
+        currentIsMusic = musicPlayback || (uri.IsFile && MusicLibrary.IsAudio(path));
+        Page(currentIsMusic ? "Music" : "Player");
         try
         {
             if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
@@ -231,7 +233,7 @@ public partial class MainWindow : Window
             NowPlaying.Text = title; MiniTitle.Text = title;
             // Preserve navigation if the user went back while native stop ran.
             UpdatePlayerLayout();
-            if (!await WaitForPlayerLayoutAsync(request))
+            if (!currentIsMusic && !await WaitForPlayerLayoutAsync(request))
             {
                 if (!localClosing && request == playbackRequest)
                 {
@@ -243,7 +245,7 @@ public partial class MainWindow : Window
             }
             if (localClosing || request != playbackRequest) return;
             var native = player;
-            if (OperatingSystem.IsWindows() && native.Hwnd == IntPtr.Zero)
+            if (!currentIsMusic && OperatingSystem.IsWindows() && native.Hwnd == IntPtr.Zero)
             {
                 VideoSurface.MediaPlayer = null;
                 VideoSurface.MediaPlayer = native;
@@ -257,6 +259,7 @@ public partial class MainWindow : Window
             }
             var speed = new[] { .5f, .75f, 1f, 1.25f, 1.5f, 2f }[Math.Max(0, SpeedBox.SelectedIndex)];
             var extraAudio = externalAudioPath;
+            var audioOnly = currentIsMusic;
             var volume = preferences.Volume;
             var started = false;
             var failed = false;
@@ -271,6 +274,7 @@ public partial class MainWindow : Window
                         if (header.Key.Equals("Referer", StringComparison.OrdinalIgnoreCase)) media.AddOption(":http-referrer=" + header.Value);
                         if (header.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase)) media.AddOption(":http-user-agent=" + header.Value);
                     }
+                if (audioOnly) media.AddOption(":no-video");
                 if (extraAudio != null && File.Exists(extraAudio)) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(extraAudio));
                 else if (streamAudio != null) media.AddSlave(MediaSlaveType.Audio, 4, new Uri(streamAudio));
                 started = native.Play(media);
@@ -328,6 +332,7 @@ public partial class MainWindow : Window
 
     private void UpdatePlaybackUi()
     {
+        UpdateMusicNowBar();
         var snapshot = playbackSnapshot;
         if (snapshot.State == VLCState.Error) { HandlePlaybackFailure(); return; }
         if (snapshot.State == VLCState.Ended && !playbackEnded) { PlayerEnded(null, EventArgs.Empty); return; }
@@ -404,7 +409,7 @@ public partial class MainWindow : Window
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
-            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions, streamSubtitles: currentStreamSubtitles, skipHistory: currentHistoryKey==null);
+            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions, streamSubtitles: currentStreamSubtitles, skipHistory: currentHistoryKey==null, musicPlayback: currentIsMusic);
         }
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();

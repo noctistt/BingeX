@@ -207,7 +207,7 @@ public partial class MainWindow
         if(!onlineEnabled||musicServer==null||serverTrackIndex<0||serverTrackIndex>=serverTracks.Count||NativePlaybackBusy)return;
         var track=serverTracks[serverTrackIndex];musicCurrentUrl=musicServer.Stream(track.Id);
         // The player relay owns this authenticated URL only in memory. No history or audio-choice key contains it.
-        Play(musicCurrentUrl,track.Artist+" — "+track.Title,requestHeaders:new Dictionary<string,string>{{"Accept","audio/*"}},skipHistory:true);
+        Play(musicCurrentUrl,track.Artist+" — "+track.Title,requestHeaders:new Dictionary<string,string>{{"Accept","audio/*"}},skipHistory:true,musicPlayback:true);
     }
     private bool IsServerMusicPlaying=>musicCurrentUrl!=null&&currentPath==musicCurrentUrl&&musicServer!=null;
     private bool MoveServerMusic(int direction)

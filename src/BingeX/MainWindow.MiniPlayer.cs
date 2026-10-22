@@ -10,7 +10,8 @@ public partial class MainWindow
     private bool miniPlayer;
     private void UpdatePlayerLayout()
     {
-        miniPlayer = activePage != "Player" && currentPath != null;
+        miniPlayer = activePage != "Player" && currentPath != null && !currentIsMusic;
+        UpdateMusicNowBar();
         var visible = activePage == "Player" || miniPlayer;
         PlayerPage.Width = miniPlayer ? 360 : double.NaN;
         PlayerPage.Height = miniPlayer ? 244 : double.NaN;

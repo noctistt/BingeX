@@ -375,3 +375,7 @@ A proposed optional Android-hosted extension route has been investigated, with a
 ### Music extension status (0.14.8)
 
 Imported music extensions now show session status: installed, starting, login required, ready, disconnected, incompatible, or failed/timed out. Ready means the provider initialized; it does not guarantee every track plays. Failures remain visible beside the extension until retried or the app closes. No Android environment is installed or required; the existing desktop bridge remains in use.
+
+### Music browsing (0.14.9)
+
+Extension songs use compact play rows; albums, artists and playlists use wrapping cards with fallback music icons. Provider titles are preserved. The current bridge does not supply artwork, so no remote cover downloads are added. Local and connected music plus extension audio stay on Music when started, with a persistent bottom bar for pause/resume, position and shared volume while navigating. Audio starts independently of the native video window; video retains its existing mini-player. Extension compatibility is unchanged.

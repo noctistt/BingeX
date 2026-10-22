@@ -151,9 +151,28 @@ public partial class MainWindow
     private void RenderEchoItem(EchoItem item,int depth)
     {
         if(depth>4||EchoMusicItems.Children.Count>=1000)return;
-        if(item.Kind=="group"){EchoMusicItems.Children.Add(new TextBlock{Text=item.Title,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap});foreach(var child in item.Items??[])RenderEchoItem(child,depth+1);return;}
-        var button=new Button{Content=item.Title+" · "+item.Kind,HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch,HorizontalContentAlignment=Avalonia.Layout.HorizontalAlignment.Left};
+        if(item.Kind=="group"){var heading=new TextBlock{Text=item.Title,FontSize=18,Margin=new Thickness(0,18,0,10),FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};heading.Bind(WidthProperty,new Avalonia.Data.Binding("Bounds.Width"){Source=EchoMusicItems});EchoMusicItems.Children.Add(heading);foreach(var child in item.Items??[])RenderEchoItem(child,depth+1);return;}
+        var button=new Button{Content=item.Title+" · "+item.Kind,HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch,HorizontalContentAlignment=Avalonia.Layout.HorizontalAlignment.Stretch};
         button.IsEnabled=item.Kind is "album" or "track" or "category" or "artist" or "playlist";
+        var track=item.Kind=="track";
+        button.Margin=new Thickness(0,0,10,8);button.Padding=new Thickness(12);button.MinHeight=48;
+        if(track)button.Bind(WidthProperty,new Avalonia.Data.Binding("Bounds.Width"){Source=EchoMusicItems});else button.Width=184;
+        button.ContentTemplate=new Avalonia.Controls.Templates.FuncDataTemplate<string>((_,_)=>
+        {
+            if(track)
+            {
+                var row=new Grid{ColumnDefinitions=new("32,*")};
+                row.Children.Add(new TextBlock{Text="▶",FontSize=18,Foreground=Brush.Parse("#C4A5FF"),VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center});
+                var label=new TextBlock{Text=item.Title,TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold,VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center};Grid.SetColumn(label,1);row.Children.Add(label);return row;
+            }
+            var panel=new StackPanel{Spacing=8};
+            panel.Children.Add(new TextBlock{Text=track?"▶":item.Kind=="artist"?"♬":"♫",FontSize=track?18:36,Foreground=Brush.Parse("#C4A5FF")});
+            var title=new TextBlock{Text=item.Title,TextWrapping=TextWrapping.Wrap,MaxWidth=track?560:152,FontWeight=FontWeight.SemiBold};panel.Children.Add(title);
+            if(!track)panel.Children.Add(new TextBlock{Text=item.Kind,Foreground=Brush.Parse("#AAA0BC"),FontSize=12});
+            return panel;
+        });
+        Avalonia.Automation.AutomationProperties.SetName(button,(track?"Play ":"Open ")+item.Title);
+        ToolTip.SetTip(button,item.Title);
         button.Click+=async(_,_)=>await EchoRequest(async(bridge,token)=>
         {
             if(item.Kind=="album"){var raw=await bridge.CallAsync("album",new{handle=item.Handle},token);token.ThrowIfCancellationRequested();if(echoFeed!=null)echoNavigation.Push((echoFeed,echoTab));await OpenEchoFeed(bridge,raw.Deserialize<EchoFeed>(new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!,token,true);}
@@ -167,7 +186,7 @@ public partial class MainWindow
                 var sources=await bridge.ResolveAsync(variant.Handle,token);token.ThrowIfCancellationRequested();var source=sources.FirstOrDefault();
                 if(source==null){EchoStatus.Text="No playable audio source was returned.";return;}
                 var headers=new Dictionary<string,string>(source.Headers,StringComparer.OrdinalIgnoreCase);if(headers.Count==0)headers["Accept"]="audio/*";
-                Play(source.Url,item.Title,requestHeaders:headers,skipHistory:true);EchoStatus.Text="Playing "+item.Title;
+                Play(source.Url,item.Title,requestHeaders:headers,skipHistory:true,musicPlayback:true);EchoStatus.Text="Playing "+item.Title;
             }
         },"Loading "+item.Title+"…");
         EchoMusicItems.Children.Add(button);
