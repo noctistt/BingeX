@@ -6,7 +6,7 @@ public partial class MainWindow
 {
     private async Task AnimateStartupBrand()
     {
-        if(Program.StartupFile!=null || !preferences.StartupAnimation){StartupSplash.IsVisible=false;return;}
+        if(Program.StartupFile!=null || !preferences.StartupAnimation || preferences.ReducedMotion){StartupSplash.IsVisible=false;return;}
         StartupSplash.PointerPressed+=(_,e)=>{StartupSplash.IsVisible=false;e.Handled=true;};
         try
         {

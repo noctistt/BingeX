@@ -182,9 +182,9 @@ public partial class MainWindow
             }
             foreach (var video in group.Videos)
             {
-                var column = new StackPanel { Width = 210, Spacing = 8 };
-                var art = new Grid { Width = 210, Height = 118 };
-                art.Children.Add(new TextBlock { Text = "▶", FontSize = 30, Foreground = Brush.Parse("#B69AFF"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                var column = new StackPanel { Width = LocalCardWidth, Spacing = preferences.CompactBrowsing?6:8 };
+                var art = new Grid { Width = LocalCardWidth, Height = LocalCardWidth*118/210 };
+                art.Children.Add(new TextBlock { Text = "▶", FontSize = 30, Foreground = accentLightBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
                 var thumbnail = store.ThumbnailPath(video.Path);
                 if (File.Exists(thumbnail))
                 {
@@ -196,11 +196,11 @@ public partial class MainWindow
                 var unavailable = localAvailability.TryGetValue(video.Path, out var available) && !available;
                 if (unavailable) column.Children.Add(new TextBlock { Text = "Unavailable · reconnect drive or rescan", Foreground = Brush.Parse("#E7B779"), FontSize = 11, TextWrapping = TextWrapping.Wrap });
                 var history = store.FindHistory(video.Path);
-                if (history is { Duration: > 0 }) column.Children.Add(new ProgressBar { Minimum = 0, Maximum = history.Duration, Value = history.Position, Height = 3, Foreground = Brush.Parse("#B69AFF") });
+                if (history is { Duration: > 0 }) column.Children.Add(new ProgressBar { Minimum = 0, Maximum = history.Duration, Value = history.Position, Height = 3, Foreground = accentLightBrush });
                 column.Children.Add(new TextBlock { Text = video.Title, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 2, Height = 38, FontWeight = FontWeight.SemiBold });
                 var parent = Path.GetDirectoryName(video.RelativePath);
                 column.Children.Add(new TextBlock { Text = (string.IsNullOrEmpty(parent) ? FolderName(video.Folder) : parent) + " · " + FormatVideoSize(video.Size), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11, Foreground = Brush.Parse("#AAA0BA") });
-                var play = new Button { Tag=video.Path, Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, 16, 18), VerticalAlignment = VerticalAlignment.Top };
+                var play = new Button { Tag=video.Path, Content = column, Padding = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(0, 0, preferences.CompactBrowsing?10:16, preferences.CompactBrowsing?12:18), VerticalAlignment = VerticalAlignment.Top };
                 ToolTip.SetTip(play, video.Path);
                 AutomationProperties.SetName(play, "Play " + video.Title);
                 play.Click += (_, _) =>

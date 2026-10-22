@@ -19,6 +19,12 @@ internal static class AppSettingsChecks
         {
             var picker=Control<ComboBox>(name);picker.SelectedItem=picker.Items.Cast<object>().Single(x=>x.ToString()==label);
         }
+        var fixture=new TitleInfo("appearance-fixture","movie","Appearance fixture","","","","","","","fixture",[]);
+        Call("RenderPosters",new[]{fixture},CancellationToken.None);
+        var originalAccent=((Avalonia.Media.ISolidColorBrush)Get("accentPrimaryBrush")!).Color;
+        Control<ComboBox>("SettingsAccent").SelectedIndex=2;Control<ComboBox>("SettingsDensity").SelectedIndex=1;Control<CheckBox>("SettingsReducedMotion").IsChecked=true;
+        Require(((Avalonia.Media.ISolidColorBrush)Get("accentPrimaryBrush")!).Color==originalAccent && !store.Preferences().CompactBrowsing && Control<WrapPanel>("PosterGrid").Children.OfType<Button>().Single().Width==158,"Appearance preview must not mutate saved or live app preferences before Save.");
+        Require(((Avalonia.Media.ISolidColorBrush)Control<Button>("AppearancePreviewButton").Background!).Color==Avalonia.Media.Color.Parse("#087F73"),"Live preview uses the selected accent.");
         PickLanguage("SettingsAudioLanguage","Hindi"); PickLanguage("SettingsSubtitleLanguage","Off");
         Control<ComboBox>("SettingsSeek").SelectedIndex=3;
         Control<CheckBox>("SettingsResume").IsChecked=false; Control<CheckBox>("SettingsClickPause").IsChecked=false; Control<CheckBox>("SettingsAnimation").IsChecked=false;
@@ -30,9 +36,11 @@ internal static class AppSettingsChecks
         {
             var value=reopened.Preferences();
             Require(value.SeekSeconds==30 && !value.ResumePlayback && !value.ClickToPause && !value.StartupAnimation && value.Volume==65 && value.DefaultSpeedIndex==3 && !value.AutoSwitchSources,"Playback settings survive reopening.");
+            Require(value.AccentColor=="Teal" && value.CompactBrowsing && value.ReducedMotion,"Appearance choices survive reopening.");
             Require(value.PreferredAudioLanguage=="hindi" && value.PreferredSubtitleLanguage=="off","Global language defaults survive reopening.");
             Require(value.SubtitleSize==36 && value.SubtitleColor=="Mint" && !value.SubtitleBackground && value.LocalLibrarySort==1 && value.LocalLibraryGrouping==2,"Subtitle and library settings save together without proxy controls overwriting values.");
         }
+        Require(Control<WrapPanel>("PosterGrid").Children.OfType<Button>().Single().Width==132 && ((Avalonia.Media.ISolidColorBrush)Control<Button>("PlayButton").Background!).Color==Avalonia.Media.Color.Parse("#087F73"),"Saved density updates existing posters and the native-overlay player uses the saved accent.");
         var oldContext=Get("currentContext");
         var languageContext=new MediaContext("global-language-fixture","series","Languages","","fixture","ep1");
         typeof(MainWindow).GetField("currentContext",flags)!.SetValue(window,languageContext);

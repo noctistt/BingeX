@@ -155,7 +155,7 @@ public partial class MainWindow
             var column = new StackPanel { Spacing = 9, Width = 158 };
             var image = new Image { Stretch = Stretch.UniformToFill, Width = 158, Height = 232 };
             var art = new Grid();
-            art.Children.Add(new TextBlock { Text = "B X", FontSize = 32, Foreground = Brush.Parse("#B69AFF"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+            art.Children.Add(new TextBlock { Text = "B X", FontSize = 32, Foreground = accentLightBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
             art.Children.Add(image);
             column.Children.Add(new Border { Background = Brush.Parse("#282338"), CornerRadius = new CornerRadius(12), ClipToBounds = true, Child = art });
             column.Children.Add(new TextBlock { Text = title.Name, Height = 36, FontWeight = FontWeight.SemiBold, MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis });
@@ -168,6 +168,7 @@ public partial class MainWindow
             posterImages.Add((image, title.Poster));
             _ = artwork.Fill(image, title.Poster, posterWork.Token);
         }
+        ApplyPosterDensity();
     }
     private void ResumePosterArtwork()
     {
@@ -329,7 +330,7 @@ public partial class MainWindow
             var audioInfo=SourceAudioInfo.Parse(stream);
             column.Children.Add(new TextBlock{Text=audioInfo.Label+(audioInfo.Languages.Count>0 ? " · Audio: "+string.Join(", ",audioInfo.Languages.Select(x=>System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(x))) : ""),FontSize=11,Foreground=Brush.Parse("#C7B8E5"),TextWrapping=TextWrapping.Wrap});
             var summary = SourceSelection.Summary(stream);
-            if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = Brush.Parse("#B69AFF") });
+            if (summary.Length > 0) column.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = accentLightBrush });
             if (stream.Description.Length > 0) column.Children.Add(new TextBlock { Text = stream.Description, TextWrapping = TextWrapping.Wrap, Foreground = Brush.Parse("#BBB4CE") });
             column.Children.Add(new TextBlock { Text = stream.UnsupportedReason ?? (stream.Torrent != null ? "▶ Stream torrent" : "▶ Play this source"), FontSize = 12, Foreground = Brush.Parse(stream.UnsupportedReason == null ? "#B69AFF" : "#D2AB7E") });
             var button = new Button { Tag = SourceSelection.Key(stream), Content = column, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, IsEnabled = stream.UnsupportedReason == null };
@@ -365,10 +366,10 @@ public partial class MainWindow
             var column = new StackPanel { Width = 246, Spacing = 8 };
             var image = new Image { Width = 246, Height = 130, Stretch = Stretch.UniformToFill };
             var art = new Grid();
-            art.Children.Add(new TextBlock { Text = "▶", FontSize = 28, Foreground = Brush.Parse("#B69AFF"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+            art.Children.Add(new TextBlock { Text = "▶", FontSize = 28, Foreground = accentLightBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
             art.Children.Add(image);
             column.Children.Add(new Border { Background = Brush.Parse("#282338"), CornerRadius = new CornerRadius(10), ClipToBounds = true, Child = art });
-            column.Children.Add(new ProgressBar { Minimum = 0, Maximum = Math.Max(1, media.Duration), Value = media.Position, Height = 3, Foreground = Brush.Parse("#A78BFA") });
+            column.Children.Add(new ProgressBar { Minimum = 0, Maximum = Math.Max(1, media.Duration), Value = media.Position, Height = 3, Foreground = accentLightBrush });
             column.Children.Add(new TextBlock { Text = media.Title, MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = FontWeight.SemiBold });
             column.Children.Add(new TextBlock { Text = Clock(media.Position) + " / " + Clock(media.Duration), FontSize = 11, Foreground = Brush.Parse("#9E9BAE") });
             var button = new Button { Content = column, Padding = new Thickness(0), Background = Brushes.Transparent };

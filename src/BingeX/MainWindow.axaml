@@ -15,7 +15,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.27" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.28" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -76,7 +76,7 @@
             <Button Grid.Column="2" Content="Clear" Click="ClearSearch_Click" Margin="10,0,0,0" />
           </Grid>
           <StackPanel x:Name="BrowseBusy" IsVisible="False" Spacing="8">
-            <ProgressBar IsIndeterminate="True" Height="3" Foreground="#A78BFA" />
+            <ProgressBar IsIndeterminate="True" Height="3" Foreground="{DynamicResource AccentLight}" />
             <TextBlock x:Name="BrowseLoadingText" Text="Loading your catalogs…" Classes="muted" />
           </StackPanel>
           <TextBlock x:Name="BrowseMessage" Text="Connect a catalog to discover movies and series. Local playback is always available." Classes="muted" TextWrapping="Wrap" />
@@ -95,7 +95,7 @@
             </StackPanel>
           </Border>
           <StackPanel x:Name="MediaFolderItems" Spacing="8" />
-          <ProgressBar x:Name="LocalScanBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="#B69AFF" />
+          <ProgressBar x:Name="LocalScanBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="{DynamicResource AccentLight}" />
           <TextBlock x:Name="LocalScanMessage" Foreground="#BFB5D1" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto,Auto">
             <TextBox x:Name="LocalVideoSearch" Watermark="Search your videos…" TextChanged="LocalVideoSearchChanged" AutomationProperties.Name="Search local videos" />
@@ -122,10 +122,10 @@
           <Border CornerRadius="18" Background="#1D1B2D" Padding="18">
             <Grid ColumnDefinitions="110,*">
               <Border Background="#302742" CornerRadius="10" ClipToBounds="True" Width="110" Height="165" VerticalAlignment="Top">
-                <Grid><TextBlock Text="B X" Foreground="#A78BFA" FontSize="42" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image x:Name="DetailPoster" Stretch="UniformToFill" /></Grid>
+                <Grid><TextBlock Text="B X" Foreground="{DynamicResource AccentLight}" FontSize="42" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image x:Name="DetailPoster" Stretch="UniformToFill" /></Grid>
               </Border>
               <StackPanel Grid.Column="1" Margin="24,0,0,0" Spacing="12">
-                <TextBlock x:Name="DetailKind" Text="MOVIE" Foreground="#B69AFF" LetterSpacing="2" FontSize="11" />
+                <TextBlock x:Name="DetailKind" Text="MOVIE" Foreground="{DynamicResource AccentLight}" LetterSpacing="2" FontSize="11" />
                 <TextBlock x:Name="DetailTitle" FontSize="26" FontWeight="Bold" TextWrapping="Wrap" />
                 <TextBlock x:Name="DetailFacts" Foreground="#D2CBDD" TextWrapping="Wrap" />
                 <TextBlock x:Name="DetailGenres" Classes="muted" TextWrapping="Wrap" />
@@ -161,7 +161,7 @@
                   </StackPanel>
                 </Border>
           <StackPanel x:Name="DetailBusy" IsVisible="False" Spacing="8">
-            <ProgressBar IsIndeterminate="True" Height="3" Foreground="#A78BFA" />
+            <ProgressBar IsIndeterminate="True" Height="3" Foreground="{DynamicResource AccentLight}" />
             <TextBlock x:Name="DetailLoadingText" Text="Loading title…" Classes="muted" />
           </StackPanel>
           <TextBlock x:Name="DetailMessage" Classes="muted" TextWrapping="Wrap" />
@@ -215,7 +215,15 @@
             <TextBlock Text="Sort by" /><ComboBox x:Name="SettingsLibrarySort" Width="220"><ComboBoxItem Content="Name" /><ComboBoxItem Content="Recently added" /><ComboBoxItem Content="Last watched" /></ComboBox>
             <TextBlock Text="Group by" /><ComboBox x:Name="SettingsLibraryGrouping" Width="220"><ComboBoxItem Content="Folder" /><ComboBoxItem Content="Series and season" /><ComboBoxItem Content="All videos" /></ComboBox>
           </StackPanel></Border>
-          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10"><TextBlock Text="Appearance" FontSize="20" FontWeight="SemiBold" /><CheckBox x:Name="SettingsAnimation" Content="Show startup logo animation" /><TextBlock Text="Applies on the next launch. Opening a video directly always skips the animation." Classes="muted" TextWrapping="Wrap" /></StackPanel></Border>
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10">
+            <TextBlock Text="Appearance" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Accent colour" /><ComboBox x:Name="SettingsAccent" Width="240" AutomationProperties.Name="Accent colour"><ComboBoxItem Content="Purple" /><ComboBoxItem Content="Blue" /><ComboBoxItem Content="Teal" /><ComboBoxItem Content="Rose" /><ComboBoxItem Content="Amber" /></ComboBox>
+            <TextBlock Text="Browsing spacing" /><ComboBox x:Name="SettingsDensity" Width="240" AutomationProperties.Name="Browsing spacing"><ComboBoxItem Content="Comfortable" /><ComboBoxItem Content="Compact" /></ComboBox>
+            <CheckBox x:Name="SettingsReducedMotion" Content="Reduce decorative animation" /><TextBlock Text="Skips the startup fade. Loading indicators remain active so you can see when BingeX is working." Classes="muted" TextWrapping="Wrap" />
+            <CheckBox x:Name="SettingsAnimation" Content="Show startup logo animation" /><TextBlock Text="Animation changes apply on the next launch. Direct video launches always skip the startup animation." Classes="muted" TextWrapping="Wrap" />
+            <Border x:Name="AppearancePreview" CornerRadius="12" Padding="22"><StackPanel Spacing="10"><TextBlock x:Name="AppearancePreviewTitle" Text="Your next great watch" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="AppearancePreviewDescription" TextWrapping="Wrap" /><Button x:Name="AppearancePreviewButton" Content="Preview accent" Foreground="White" HorizontalAlignment="Left" IsHitTestVisible="False" Focusable="False" /></StackPanel></Border>
+            <TextBlock Text="Preview only until Save settings. Accent colours apply to controls and highlights; artwork and video colours are unchanged." Classes="muted" TextWrapping="Wrap" />
+          </StackPanel></Border>
           <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10">
             <TextBlock Text="Storage" FontSize="20" FontWeight="SemiBold" />
             <TextBlock Text="Torrent cache" FontWeight="SemiBold" /><TextBlock x:Name="TorrentStorageUsage" Text="Not measured yet" Classes="muted" />
@@ -240,7 +248,7 @@
                 <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="12" Margin="24" MaxWidth="560">
                   <TextBlock x:Name="PlayerLoadingTitle" Text="Opening video…" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
                   <TextBlock x:Name="PlayerLoadingDetail" Foreground="#DED7EA" TextAlignment="Center" TextWrapping="Wrap" />
-                  <ProgressBar IsIndeterminate="True" Width="160" Height="3" Foreground="#B69AFF" Margin="0,6" />
+                  <ProgressBar IsIndeterminate="True" Width="160" Height="3" Foreground="{DynamicResource AccentLight}" Margin="0,6" />
                   <TextBlock x:Name="PlayerLoadingHint" Text="Preparing playback" FontSize="12" Foreground="#A8A1B8" TextAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
               </Border>
@@ -263,7 +271,7 @@
                 <TextBlock x:Name="PlaybackNoticeText" TextWrapping="Wrap" />
               </Border>
               <Border x:Name="PlaybackWaiting" IsVisible="False" Background="#DF161620" CornerRadius="12" Padding="20,14" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                <StackPanel Spacing="10"><TextBlock x:Name="PlaybackWaitingLabel" Text="Buffering…" HorizontalAlignment="Center" /><ProgressBar IsIndeterminate="True" Width="140" Height="3" Foreground="#B69AFF" /></StackPanel>
+                <StackPanel Spacing="10"><TextBlock x:Name="PlaybackWaitingLabel" Text="Buffering…" HorizontalAlignment="Center" /><ProgressBar IsIndeterminate="True" Width="140" Height="3" Foreground="{DynamicResource AccentLight}" /></StackPanel>
               </Border>
               <Border x:Name="PlayerRecovery" IsVisible="False" Background="#F0201A30" CornerRadius="10" Padding="16" Margin="16,68,16,0" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="520">
                 <StackPanel Spacing="8"><TextBlock x:Name="PlayerRecoveryTitle" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock x:Name="PlayerRecoveryDetail" TextWrapping="Wrap" /><Button Content="Choose another source" Click="ChooseAnotherSource_Click" Classes="primary" HorizontalAlignment="Left" /></StackPanel>
@@ -406,7 +414,7 @@
                         <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="Episode" FontSize="11" /><NumericUpDown x:Name="SubtitleEpisode" ValueChanged="SubtitleSearchEpisodeChanged" Minimum="1" Maximum="9999" Value="1" FormatString="0" AutomationProperties.Name="Subtitle episode" /></StackPanel>
                       </Grid>
                       <Button Content="Search titles" Click="SearchSubtitleTitles_Click" Classes="primary" HorizontalAlignment="Stretch" />
-                      <ProgressBar x:Name="OnlineSubtitleBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="#B69AFF" />
+                      <ProgressBar x:Name="OnlineSubtitleBusy" IsVisible="False" IsIndeterminate="True" Height="3" Foreground="{DynamicResource AccentLight}" />
                       <TextBlock x:Name="OnlineSubtitleMessage" Foreground="#CFC5DF" TextWrapping="Wrap" FontSize="12" />
                       <StackPanel x:Name="SubtitleTitleResults" Spacing="8" />
                       <ComboBox x:Name="OnlineSubtitleLanguage" IsVisible="False" HorizontalAlignment="Stretch" SelectionChanged="OnlineSubtitleLanguageChanged" AutomationProperties.Name="Subtitle language" />

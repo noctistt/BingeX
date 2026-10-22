@@ -1,6 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="BingeX.App" RequestedThemeVariant="Dark">
+  <Application.Resources><SolidColorBrush x:Key="AccentPrimary" Color="#8B5CF6" /><SolidColorBrush x:Key="AccentLight" Color="#B69AFF" /><SolidColorBrush x:Key="AccentSoft" Color="#302445" /></Application.Resources>
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window"><Setter Property="FontFamily" Value="Segoe UI" /></Style>
@@ -9,27 +10,27 @@
       <Setter Property="Padding" Value="16,10" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
-    <Style Selector="Button.primary"><Setter Property="Background" Value="#8B5CF6" /><Setter Property="Foreground" Value="White" /></Style>
+    <Style Selector="Button.primary"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /><Setter Property="Foreground" Value="White" /></Style>
     <Style Selector="Button.poster:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#252035" /></Style>
     <Style Selector="Button.nav"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#A9A3BC" /><Setter Property="HorizontalContentAlignment" Value="Left" /></Style>
-    <Style Selector="Button.nav.active"><Setter Property="Background" Value="#302445" /><Setter Property="Foreground" Value="#D5C5FF" /></Style>
+    <Style Selector="Button.nav.active"><Setter Property="Background" Value="{DynamicResource AccentSoft}" /><Setter Property="Foreground" Value="{DynamicResource AccentLight}" /></Style>
     <Style Selector="Button.playerIcon">
       <Setter Property="Width" Value="42" /><Setter Property="Height" Value="42" /><Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="8" /><Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="Button.playerIcon.primary"><Setter Property="Background" Value="#8B5CF6" /></Style>
+    <Style Selector="Button.playerIcon.primary"><Setter Property="Background" Value="{DynamicResource AccentPrimary}" /></Style>
     <Style Selector="Button.playerIcon:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#554365" /></Style>
     <Style Selector="Button.playerAction">
       <Setter Property="Background" Value="#402A2939" /><Setter Property="Foreground" Value="#E2DCEC" />
       <Setter Property="BorderBrush" Value="#54494F65" /><Setter Property="BorderThickness" Value="1" />
       <Setter Property="Padding" Value="12,8" /><Setter Property="FontSize" Value="12" /><Setter Property="CornerRadius" Value="10" />
     </Style>
-    <Style Selector="Button.playerAction.active"><Setter Property="Background" Value="#493463" /><Setter Property="BorderBrush" Value="#A78BFA" /></Style>
-    <Style Selector="Slider.playerSlider"><Setter Property="Foreground" Value="#B69AFF" /><Setter Property="MinHeight" Value="24" /></Style>
-    <Style Selector="Slider.playerSlider /template/ Thumb"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /><Setter Property="Background" Value="#B69AFF" /></Style>
-    <Style Selector="Slider.playerSlider:pointerover /template/ Thumb, Slider.playerSlider:pressed /template/ Thumb"><Setter Property="Background" Value="#D5C5FF" /></Style>
-    <Style Selector="Slider.playerSlider:pointerover /template/ RepeatButton#PART_DecreaseButton, Slider.playerSlider:pressed /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="#B69AFF" /></Style>
+    <Style Selector="Button.playerAction.active"><Setter Property="Background" Value="{DynamicResource AccentSoft}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentLight}" /></Style>
+    <Style Selector="Slider.playerSlider"><Setter Property="Foreground" Value="{DynamicResource AccentLight}" /><Setter Property="MinHeight" Value="24" /></Style>
+    <Style Selector="Slider.playerSlider /template/ Thumb"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
+    <Style Selector="Slider.playerSlider:pointerover /template/ Thumb, Slider.playerSlider:pressed /template/ Thumb"><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
+    <Style Selector="Slider.playerSlider:pointerover /template/ RepeatButton#PART_DecreaseButton, Slider.playerSlider:pressed /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
     <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#999BAF" /></Style>
   </Application.Styles>
 </Application>

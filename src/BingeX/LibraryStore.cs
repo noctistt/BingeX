@@ -159,6 +159,7 @@ public sealed partial class LibraryStore : IDisposable
             var preferences = JsonSerializer.Deserialize<PlayerPreferences>(command.ExecuteScalar() as string ?? "{}");
             return preferences == null ? new() : preferences with
             {
+                AccentColor = new[]{"Purple","Blue","Teal","Rose","Amber"}.Contains(preferences.AccentColor) ? preferences.AccentColor : "Purple",
                 PreferredAudioLanguage = preferences.PreferredAudioLanguage ?? "",
                 PreferredSubtitleLanguage = preferences.PreferredSubtitleLanguage ?? "",
                 Volume = Math.Clamp(preferences.Volume, 0, 100),
