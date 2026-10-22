@@ -19,7 +19,7 @@ public partial class MainWindow
             if(e.Property.Name!=nameof(SearchAllProvidersSwitch.IsChecked))return;
             preferences=preferences with{SearchAllStreamProviders=SearchAllProvidersSwitch.IsChecked==true};
             store.SavePreferences(preferences);
-            if(selectedContext?.Id.StartsWith("cs:")==true && (selectedContext.EpisodeId!=null || selectedTitle?.Episodes.Count==0)) await FindStreams();
+            if(activePage=="Details" && selectedContext?.Id.StartsWith("cs:")==true && (selectedContext.EpisodeId!=null || selectedTitle?.Episodes.Count==0)) await FindStreams();
         };
     }
 }

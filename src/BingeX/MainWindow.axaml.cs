@@ -124,6 +124,7 @@ public partial class MainWindow : Window
     private void Page(string page)
     {
         if (!onlineEnabled && page is "Details" or "Add-ons") page = "Library";
+        if(page!="Settings")CancelSettingsPreview();
         if (page != "Player") CancelEpisodeAutoplay();
         if (page != "Details") EpisodePreparingPanel.IsVisible=false;
         using var timing = diagnostics.Measure("page-layout");

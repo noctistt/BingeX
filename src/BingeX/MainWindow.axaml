@@ -15,7 +15,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.13.28" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.13.29" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -235,6 +235,14 @@
             <TextBlock Text="Cleanup acts immediately. Your videos, watch history, settings and installed providers are kept. Sizes sum file lengths; sparse torrent files may use less physical disk space." Classes="muted" TextWrapping="Wrap" />
             <ProgressBar x:Name="StorageBusy" IsVisible="False" IsIndeterminate="True" Height="3" />
             <TextBlock x:Name="StorageMessage" Classes="muted" TextWrapping="Wrap" /><Button x:Name="RefreshStorageButton" Content="Refresh storage sizes" Click="RefreshStorage_Click" HorizontalAlignment="Left" />
+          </StackPanel></Border>
+          <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="10">
+            <TextBlock Text="Settings backup and restore" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Normal app updates keep your preferences. A settings backup is optional, but useful before updating, experimenting or moving to another installation." Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="Exports saved preferences only—choose Save settings first if you have pending edits. Provider links, tokens, watch history, media-folder paths and saved show/track choices are excluded. Online mode is unchanged by import or reset." Classes="muted" TextWrapping="Wrap" />
+            <WrapPanel><Button Content="Export settings…" Click="ExportSettings_Click" Margin="0,0,10,8" /><Button Content="Import settings…" Click="ImportSettings_Click" Margin="0,0,10,8" /><Button Content="Reset preferences…" Click="ResetSettings_Click" Margin="0,0,0,8" /></WrapPanel>
+            <TextBlock x:Name="BackupMessage" TextWrapping="Wrap" Classes="muted" />
+            <Border x:Name="BackupPreview" IsVisible="False" Background="#171420" CornerRadius="10" Padding="14"><StackPanel Spacing="10"><TextBlock x:Name="BackupPreviewTitle" FontWeight="SemiBold" /><TextBlock x:Name="BackupPreviewChanges" TextWrapping="Wrap" /><WrapPanel><Button x:Name="ApplySettingsBackupButton" Content="Apply preferences" Classes="primary" Click="ApplySettingsBackup_Click" Margin="0,0,10,0" /><Button Content="Cancel" Click="CancelSettingsPreview_Click" /></WrapPanel></StackPanel></Border>
           </StackPanel></Border>
           <WrapPanel><Button Content="Save settings" Classes="primary" Click="SaveAppSettings_Click" Margin="0,0,12,0" /><TextBlock x:Name="SettingsSaved" VerticalAlignment="Center" TextWrapping="Wrap" Classes="muted" /></WrapPanel>
           <Expander x:Name="ShortcutsSection" Header="Keyboard shortcuts (?)" HorizontalAlignment="Stretch"><TextBlock x:Name="ShortcutList" TextWrapping="Wrap" LineHeight="26" Margin="12" /></Expander>

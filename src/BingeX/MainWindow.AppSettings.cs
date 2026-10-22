@@ -44,9 +44,15 @@ public partial class MainWindow
             DefaultSpeedIndex=Math.Clamp(SettingsSpeed.SelectedIndex,0,5),Volume=(int)(SettingsVolume.Value??80),
             SubtitleSize=new[]{20,28,36,44}[Math.Clamp(SettingsSubSize.SelectedIndex,0,3)],SubtitleColor=new[]{"White","Yellow","Mint"}[Math.Clamp(SettingsSubColor.SelectedIndex,0,2)],SubtitleBackground=SettingsSubBackground.IsChecked==true,
             LocalLibrarySort=Math.Clamp(SettingsLibrarySort.SelectedIndex,0,2),LocalLibraryGrouping=Math.Clamp(SettingsLibraryGrouping.SelectedIndex,0,2),AutoSwitchSources=SettingsAutoSwitch.IsChecked==true};
-        var desired=preferences;
+        ApplyPlayerPreferences(preferences);
+    }
+    private void ApplyPlayerPreferences(PlayerPreferences desired)
+    {
+        preferences=desired;
+        PopulateAppSettings();
         SubtitleSizePicker.SelectedIndex=SettingsSubSize.SelectedIndex; SubtitleColorPicker.SelectedIndex=SettingsSubColor.SelectedIndex; SubtitleBackgroundCheck.IsChecked=desired.SubtitleBackground;
         VolumeBar.Value=desired.Volume; SpeedBox.SelectedIndex=desired.DefaultSpeedIndex;
+        IncludeTorrentSourcesCheck.IsChecked=desired.IncludeTorrentSources;SearchAllProvidersSwitch.IsChecked=desired.SearchAllStreamProviders;
         AutoplayEpisodesCheck.IsChecked=desired.AutoplayEpisodes; AutoNextSource.IsChecked=desired.AutoSwitchSources;
         LocalSort.SelectedIndex=desired.LocalLibrarySort; LocalGrouping.SelectedIndex=desired.LocalLibraryGrouping;
         preferences=desired; store.SavePreferences(preferences); PopulateAppSettings(); SettingsSaved.Text="Settings saved. Language defaults apply to newly opened videos.";
