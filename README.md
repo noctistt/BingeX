@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -343,7 +343,11 @@ Continue Watching excludes local audio files and music/audio contexts, including
 
 ### Music extension research
 
-A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. No Echo extension installer is available in the app yet. See [evidence, limits and adapter work](docs/echo-bridge.md).
+A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. Add-ons > Music can now import local .eapk files for storage and removal; extension playback is not connected to the UI yet. See [evidence, limits and adapter work](docs/echo-bridge.md).
 
 
-The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. These remain development components, without an Echo extension installer or bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
+The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. The app now has a metadata-only package importer, while this helper remains separate without bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
+
+### 0.14.3 — Music extension package management
+
+Add-ons > Music imports user-selected Echo .eapk files, displays their names, versions and authors, and removes stored copies. Import reads bounded Android manifest metadata without executing extension code or following provider links. Reimporting the same file is idempotent; imported files persist across restarts and Online mode changes. Removing one keeps the user's original file. Imported extensions are explicitly marked inactive: runtime setup, login and listening UI are still pending. No Echo SDK, Java runtime or provider package is included.

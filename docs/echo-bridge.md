@@ -1,6 +1,6 @@
 # Echo music extension feasibility probe
 
-Status (2026-10-22): development-only proof of a single extension running on Windows. No music-extension installer, runtime downloader or production app bridge has been added. BingeX remains 0.14.2. OpenSubsonic support in the app is separate from this experiment.
+Status (2026-10-22): BingeX 0.14.3 includes metadata-only local music-extension package import/removal. The persistent helper remains development-only; there is no runtime downloader or extension playback UI. Built-in OpenSubsonic support remains separate.
 
 ## Examined artifacts
 
@@ -57,3 +57,11 @@ Run `tools/echo-helper/run-integration.ps1` with the same JavaPath, EngineDirect
 The pinned SDK POM and Echo's [license text](https://github.com/brahmkshatriya/echo/blob/f210820680cd5e7bdcb383e3daab3fa2c06b71e0/LICENSE.md) identify a custom Unabandon Public License. It incorporates GPLv3 and adds public, unrestricted source availability requirements for distributed derivatives. That is a distinct grant, not ordinary GPL-3.0-or-later, and not the unrelated Universal Permissive License. BingeX's publicly available original source helps with public availability but does not by itself establish compatibility of a combined distribution. GNU's [modified-license guidance](https://www.gnu.org/licenses/gpl-faq.en.html#ModifyGPL) explains why modified GPL terms need separate compatibility consideration; that general guidance is not a ruling about this SDK.
 
 No permission request has been sent, no upstream license has been altered and no combined-runtime distribution has been cleared. Before bundling the SDK/runtime or adding automatic downloads, obtain a compatibility assessment or an appropriate upstream clarification/alternative grant, and inventory the exact runtime JARs and corresponding sources. The separate process is a technical boundary, not a guarantee that licensing obligations disappear. Development with explicitly supplied runtime files remains available for this fixture-tested helper.
+
+## Package importer milestone — 0.14.3
+
+Add-ons > Music now imports local .eapk packages without running them. The original bounded reader handles UTF-8 and UTF-16 Android binary XML, requires Echo music feature metadata plus ID/name/version/entry class, and rejects duplicate or malformed metadata. Packages are copied once to temporary storage, inspected and hashed there, then moved under a SHA-256 filename in echo/packages. No package paths, provider URLs or executable classes are loaded from metadata. Originals are retained on removal. This is package storage, not signature authentication or activation.
+
+Reproduction: run tests/BingeX.EchoPackagesTests with an optional path to the documented OpenSubsonic package. Synthetic tests cover string encodings, metadata, persistence, duplicate import, malformed manifests, non-music packages, traversal rejection and cleanup. The separate Windows tests/BingeX.EchoUiTests requires BINGEX_DATA_DIRECTORY pointing to an isolated echo-ui-test-* directory and the inspected package path as its argument; it checks the actual rendered Add-ons page, category separation, offline retention and removal. No user profile or real account is used.
+
+No SDK/runtime distribution decision has changed. Imported files show playback setup pending; the next step is explicit runtime provisioning and connecting provider browsing and playback.
