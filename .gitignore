@@ -448,3 +448,6 @@ FodyWeavers.xsd
 music-library.json
 music-library.json.tmp
 music-art/
+
+# User-supplied Echo extension packages
+*.eapk

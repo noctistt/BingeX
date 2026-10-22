@@ -339,3 +339,8 @@ Music now has a dedicated sidebar page for local albums, tracks and browsing a c
 ### 0.14.2 — Video history and provider categories
 
 Continue Watching excludes local audio files and music/audio contexts, including previously saved entries, while retaining their saved progress. Add-ons has Video and Music filter buttons: Stremio and Cloudstream management appear only under Video, while music-server connections appear only under Music. Switching filters preserves installed providers, connection state and playback. The Music page's manage-connections action selects the Music filter automatically.
+
+
+### Music extension research
+
+A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. No Echo extension installer is available in the app yet. See [evidence, limits and adapter work](docs/echo-bridge.md).
