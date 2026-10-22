@@ -367,3 +367,7 @@ Online Music now keeps a visible catalogue/setup section even before a provider 
 ### 0.14.7 — Download feedback and music compatibility
 
 Music extension downloads show received bytes, can be cancelled and time out when the response body stalls. Artist and playlist catalogue entries now open their feeds/tracks. The app embeds only its original compiled helper code so host updates work with an existing verified runtime profile; the Echo SDK, Java and engine remain separately supplied. Conversion/interface failures have specific safe diagnostics instead of generic retry advice. ArtistGrid live metadata browsing was verified from its artist list to an album feed; that does not establish playback. Current Deezer/Spotify/Saavn/ASMR One packages still have reproduced desktop conversion failures, and YouTube Music initialization is not yet compatible.
+
+### Android helper investigation
+
+A proposed optional Android-hosted extension route has been investigated, with a read-only Windows prerequisite checker. It would run extensions on ART instead of converting DEX to JVM bytecode, but needs a full Android environment and measured resource/compatibility tests. No Android helper or emulator integration is available yet. See [findings and proof-of-concept gates](docs/echo-android-helper.md).
