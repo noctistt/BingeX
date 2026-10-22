@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.1. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.2. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -334,3 +334,8 @@ The metadata reader uses TagLibSharp 2.3.0 under LGPL-2.1-only; its source, pack
 ### 0.14.1 — Separate music and connection management
 
 Music now has a dedicated sidebar page for local albums, tracks and browsing a connected music server. My Library keeps video folders and the shared playback queue. Navidrome/OpenSubsonic address, login and disconnect controls live in Add-ons, alongside the other connection types. Music links to that setup and Add-ons links back to Music. Online mode still gates server features; local music remains available offline. Existing music folders, preferences and playback sessions are preserved.
+
+
+### 0.14.2 — Video history and provider categories
+
+Continue Watching excludes local audio files and music/audio contexts, including previously saved entries, while retaining their saved progress. Add-ons has Video and Music filter buttons: Stremio and Cloudstream management appear only under Video, while music-server connections appear only under Music. Switching filters preserves installed providers, connection state and playback. The Music page's manage-connections action selects the Music filter automatically.

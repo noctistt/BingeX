@@ -16,7 +16,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.14.1" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.14.2" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -489,7 +489,9 @@
       </Grid>
       <ScrollViewer x:Name="AddonsPage" Grid.Row="1" IsVisible="False">
         <StackPanel Spacing="16">
-          <Expander x:Name="MusicServerPanel" Header="Music connections · Navidrome / OpenSubsonic" IsExpanded="False" IsVisible="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+          <WrapPanel><Button x:Name="VideoAddonsFilter" Content="Video" Classes="primary" Click="VideoAddonsFilter_Click" Margin="0,0,10,0" /><Button x:Name="MusicAddonsFilter" Content="Music" Click="MusicAddonsFilter_Click" /></WrapPanel>
+          <StackPanel x:Name="MusicAddonsSection" IsVisible="False" Spacing="16">
+            <Expander x:Name="MusicServerPanel" Header="Music connections · Navidrome / OpenSubsonic" IsExpanded="False" IsVisible="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
               <StackPanel Spacing="12" Margin="0,12,0,0">
                 <TextBlock Text="Navidrome / OpenSubsonic. Use your own server account. Login is kept only until disconnect or app exit; it is excluded from history and settings backups." Classes="muted" TextWrapping="Wrap" />
                 <TextBox x:Name="MusicServerAddress" Watermark="https://music.example.com/ (include any server subpath)" AutomationProperties.Name="Music server address" />
@@ -502,6 +504,8 @@
                 <Button Content="Open Music" Click="LibraryMusic_Click" HorizontalAlignment="Left" />
               </StackPanel>
             </Expander>
+          </StackPanel>
+          <StackPanel x:Name="VideoAddonsSection" Spacing="16">
 
           <TextBlock Text="Connect your catalogs" FontSize="24" FontWeight="SemiBold" />
           <TextBlock Text="Install an existing Stremio add-on using its HTTPS manifest URL. Configure add-ons on their provider’s website first." TextWrapping="Wrap" Classes="muted" />
@@ -533,6 +537,7 @@
           <Border Background="#252036" CornerRadius="12" Padding="18">
             <TextBlock Text="Catalogs help you discover titles. Playback needs a compatible stream provider. A catalog connection alone does not supply playable videos." TextWrapping="Wrap" Foreground="#C8BFDC" />
           </Border>
+        </StackPanel>
         </StackPanel>
       </ScrollViewer>
     </Grid>

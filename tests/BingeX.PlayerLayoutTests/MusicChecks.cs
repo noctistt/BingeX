@@ -35,6 +35,10 @@ internal static class MusicChecks
             Check(SHA256.HashData(File.ReadAllBytes(first)).SequenceEqual(original),"Music indexing must not write source media.");
             Check(new MusicLibrary(store.DataDirectory).Tracks.Count(x=>x.Folder==root)==2,"Music index survives reopening.");
             using(var cancelled=new CancellationTokenSource()){cancelled.Cancel();var rejected=false;try{music.Scan(root,cancelled.Token);}catch(OperationCanceledException){rejected=true;}Check(rejected,"Music scan cancellation is honored.");}
+            var videoHistory=Path.Combine(root,"history-video.mkv");
+            store.Save(new(first,"Music history fixture",5000,20000));store.Save(new(videoHistory,"Video history fixture",5000,20000));Call("RefreshHistory");
+            Check(Control<StackPanel>("HistoryItems").Children.Count==1 && store.FindHistory(first)!=null,"Existing music is hidden from Continue Watching without deleting saved progress or hiding video history.");
+            store.RemoveHistory(first);store.RemoveHistory(videoHistory);Call("RefreshHistory");
             Call("LibraryMusic_Click",null,new RoutedEventArgs());
             Check(Control<ScrollViewer>("MusicPage").IsVisible&&!Control<ScrollViewer>("LocalLibraryPage").IsVisible&&!Control<Expander>("MusicServerPanel").IsVisible,"Music has its own offline sidebar page and hides server entry points.");
             await Task.Delay(100);
@@ -56,6 +60,10 @@ internal static class MusicChecks
             Check(Control<TextBox>("MusicServerPassword").Text==""&&Control<WrapPanel>("ServerAlbumItems").Children.Count==1,"Server login clears the password control and displays albums.");
             Call("ManageMusicConnections_Click",null,new RoutedEventArgs());
             Check(Control<ScrollViewer>("AddonsPage").IsVisible && Control<Expander>("MusicServerPanel").IsEffectivelyVisible && !Control<ScrollViewer>("MusicPage").IsVisible,"Music setup belongs to Add-ons.");
+            Check(Control<StackPanel>("MusicAddonsSection").IsVisible&&!Control<StackPanel>("VideoAddonsSection").IsVisible&&!Control<StackPanel>("AddonItems").IsEffectivelyVisible,"Music filter must hide installed video providers and extensions.");
+            var connected=Get("musicServer");Call("VideoAddonsFilter_Click",null,new RoutedEventArgs());
+            Check(Control<StackPanel>("VideoAddonsSection").IsVisible&&!Control<Expander>("MusicServerPanel").IsEffectivelyVisible&&ReferenceEquals(connected,Get("musicServer")),"Video filter hides music setup without disconnecting it.");
+            Call("MusicAddonsFilter_Click",null,new RoutedEventArgs());
             Call("LibraryMusic_Click",null,new RoutedEventArgs());await Task.Delay(100);
             Check(Control<ScrollViewer>("MusicPage").IsVisible && Control<StackPanel>("MusicServerBrowser").IsEffectivelyVisible && !Control<TextBox>("MusicServerPassword").IsEffectivelyVisible,"Music browses connected albums without exposing setup fields.");
             var owner=(SubsonicMusic)Get("musicServer")!;
@@ -74,7 +82,7 @@ internal static class MusicChecks
         finally
         {
             if(Get("currentPath")!=null){Call("CloseMiniPlayer_Click",null,new RoutedEventArgs());await Wait(()=>Get("currentPath")==null,"Music test cleanup failed.");}
-            Call("DisconnectMusicServer");await (Task)Call("SetOnlineMode",false)!;music.Remove(root);queue.Clear();store.RemoveHistory(first);store.RemoveHistory(second);
+            Call("SelectAddonCategory",false);Call("DisconnectMusicServer");await (Task)Call("SetOnlineMode",false)!;music.Remove(root);queue.Clear();store.RemoveHistory(first);store.RemoveHistory(second);
             Control<CheckBox>("QueueAutoplayCheck").IsChecked=saved.AutoplayLocalQueue;store.SavePreferences(saved);Set("preferences",saved);Call("RenderLocalQueue");foreach(var entry in originalState)Set(entry.Key,entry.Value);Call("Page","Library");
         }
         log("PASS: music tags/quality, read-only scan, persistence/cancellation, album tabs/search/order, real local/server audio decoding, next/replay, token-auth relay, credential-free history and online-mode cleanup.");

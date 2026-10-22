@@ -7,6 +7,18 @@ using Avalonia.Platform.Storage;
 namespace BingeX;
 public partial class MainWindow
 {
+    private static bool IsMusicHistory(RecentMedia media,MediaContext? context)
+    {
+        if(context?.Type is "music" or "audio")return true;
+        return context==null && Uri.TryCreate(media.Path,UriKind.Absolute,out var uri) && uri.IsFile && MusicLibrary.IsAudio(uri.LocalPath);
+    }
+    private void SelectAddonCategory(bool music)
+    {
+        MusicAddonsSection.IsVisible=music;VideoAddonsSection.IsVisible=!music;
+        MusicAddonsFilter.Classes.Set("primary",music);VideoAddonsFilter.Classes.Set("primary",!music);
+    }
+    private void VideoAddonsFilter_Click(object? sender,RoutedEventArgs e)=>SelectAddonCategory(false);
+    private void MusicAddonsFilter_Click(object? sender,RoutedEventArgs e)=>SelectAddonCategory(true);
     private MusicLibrary? musicLibrary;
     private readonly Avalonia.Threading.DispatcherTimer musicSearchTimer=new(){Interval=TimeSpan.FromMilliseconds(200)};
     private CancellationTokenSource musicScanWork=new(),musicServerWork=new();
@@ -32,7 +44,7 @@ public partial class MainWindow
     private void LibraryMusic_Click(object? sender,RoutedEventArgs e)=>Page("Music");
     private void ManageMusicConnections_Click(object? sender,RoutedEventArgs e)
     {
-        if(!onlineEnabled)return;Page("Add-ons");MusicServerPanel.IsExpanded=true;
+        if(!onlineEnabled)return;Page("Add-ons");SelectAddonCategory(true);MusicServerPanel.IsExpanded=true;
         Avalonia.Threading.Dispatcher.UIThread.Post(()=>MusicServerPanel.BringIntoView(),Avalonia.Threading.DispatcherPriority.Loaded);
     }
     private static string AlbumKey(MusicTrack x)=>x.Folder+"|"+x.AlbumArtist+"|"+x.Album;

@@ -356,7 +356,7 @@ public partial class MainWindow
     {
         HistoryItems.Children.Clear();
         Avalonia.Threading.Dispatcher.UIThread.Post(UpdateHistoryArrows, Avalonia.Threading.DispatcherPriority.Loaded);
-        var history = store.History().Where(x => PlaybackPolicy.IsIncomplete(x.Position, x.Duration) &&
+        var history = store.History().Where(x => !IsMusicHistory(x,store.Context(x.Path)) && PlaybackPolicy.IsIncomplete(x.Position, x.Duration) &&
             (onlineEnabled || IsLocalHistory(x, store.Context(x.Path)))).ToArray();
         EmptyHistory.IsVisible = history.Length == 0;
         HistorySection.IsVisible = !onlineEnabled || history.Length > 0 || ConnectedAddons().Count == 0;
