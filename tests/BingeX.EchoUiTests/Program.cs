@@ -71,6 +71,8 @@ internal static class Program
                         fields[0].Text=args[2];fields[1].Text="fixture";fields[2].Text="probe-password";Click(form.Children.OfType<Button>().Single());
                         await Wait(()=>!(bool)Get("echoWorking")!,"Login did not finish.");Check(Get("echoBridge")!=null&&fields.All(x=>string.IsNullOrEmpty(x.Text)),"Login must succeed and clear input controls.");
                         Check(C<ScrollViewer>("MusicPage").IsVisible&&C<StackPanel>("EchoMusicItems").Children.Count>0,"Successful login must automatically open the provider catalogue.");
+                        Click(C<StackPanel>("EchoMusicItems").Children.OfType<Button>().First(x=>x.Content?.ToString()?.EndsWith(" · artist")==true));await Wait(()=>!(bool)Get("echoWorking")!,"Artist catalogue did not open.");Check(Get("echoBridge")!=null&&C<StackPanel>("EchoMusicItems").Children.OfType<Button>().Any(),"Artist feed must contain playable/browsable items.");Call("BackEcho_Click",null,new RoutedEventArgs());await Wait(()=>!(bool)Get("echoWorking")!,"Artist back navigation did not finish.");
+                        Click(C<StackPanel>("EchoMusicItems").Children.OfType<Button>().First(x=>x.Content?.ToString()?.EndsWith(" · playlist")==true));await Wait(()=>!(bool)Get("echoWorking")!,"Playlist did not open.");Check(Get("echoBridge")!=null&&C<StackPanel>("EchoMusicItems").Children.OfType<Button>().Single().Content?.ToString()?.Contains("Playlist tone")==true,"Playlist tracks must be browsable.");Call("BackEcho_Click",null,new RoutedEventArgs());await Wait(()=>!(bool)Get("echoWorking")!,"Playlist back navigation did not finish.");
                         Call("Page","Music");C<TextBox>("EchoQuery").Text="";Call("SearchEcho_Click",null,new RoutedEventArgs());
                         await Wait(()=>!(bool)Get("echoWorking")!,"Search did not finish.");Check(Get("echoBridge")!=null,"Search failed.");
                         Click(C<WrapPanel>("EchoTabs").Children.OfType<Button>().Single(x=>x.Content?.ToString()=="Tracks"));await Wait(()=>!(bool)Get("echoWorking")!,"Track tab did not load.");
@@ -93,7 +95,7 @@ internal static class Program
                     await Task.Delay(300);Check(new EchoPackages(data).List().Count==0&&C<StackPanel>("EchoPackageItems").Children.Count==0,"Remove must update disk and UI.");
                     passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),args.Length==3?"PASS: repository-link install, collapsed Advanced controls, actual extension activation, trust gating, custom session login, paged browsing, album navigation, native playback, history exclusion, cancellation/restart, offline retention and removal.":"PASS: real Add-ons/Music UI, repository-link install, import rendering, category separation, online toggle retention and removal.");
                 }
-                catch(Exception e){File.WriteAllText(Path.Combine(data,"result.txt"),"FAIL: "+e);}
+                catch(Exception e){File.WriteAllText(Path.Combine(data,"result.txt"),"FAIL: "+e+"\nMusic status: "+C<TextBlock>("EchoStatus").Text);}
                 finally{window.Close();}
             });
         });

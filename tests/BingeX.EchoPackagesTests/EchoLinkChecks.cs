@@ -5,6 +5,13 @@ using System.Text;
 using BingeX;
 internal static class EchoLinkChecks
 {
+    private sealed class StalledBody:Stream
+    {
+        public override bool CanRead=>true;public override bool CanSeek=>false;public override bool CanWrite=>false;
+        public override long Length=>throw new NotSupportedException();public override long Position{get=>throw new NotSupportedException();set=>throw new NotSupportedException();}
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer,CancellationToken token=default){await Task.Delay(Timeout.Infinite,token);return 0;}
+        public override int Read(byte[] buffer,int offset,int count)=>throw new NotSupportedException();public override void Flush(){}public override long Seek(long offset,SeekOrigin origin)=>throw new NotSupportedException();public override void SetLength(long value)=>throw new NotSupportedException();public override void Write(byte[] buffer,int offset,int count)=>throw new NotSupportedException();
+    }
     private sealed class Fixture(Func<HttpRequestMessage,HttpResponseMessage> handle):HttpMessageHandler
     {protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token){token.ThrowIfCancellationRequested();return Task.FromResult(handle(request));}}
     public static async Task Run(string root,string package)
@@ -33,6 +40,8 @@ internal static class EchoLinkChecks
         bool unavailable=false;try{await links.Install(new("missing","https://files.example/missing.eapk"),root);}catch(EchoInstallException error){unavailable=error.Message.Contains("404")&&!error.Message.Contains("files.example");}Check(unavailable,"Unavailable releases must explain the failure without exposing private URLs.");
         using var oversized=new EchoLinks(new Fixture(_=>{var content=new ByteArrayContent([1]);content.Headers.ContentLength=33*1024*1024;return new(HttpStatusCode.OK){Content=content};}));
         await Reject(()=>oversized.Install(new("large","https://files.example/large.eapk"),root));
+        using var stalled=new EchoLinks(new Fixture(_=>new(HttpStatusCode.OK){Content=new StreamContent(new StalledBody())}),TimeSpan.FromMilliseconds(100));
+        var elapsed=System.Diagnostics.Stopwatch.StartNew();await Reject(()=>stalled.Install(new("stalled","https://files.example/stalled.eapk"),root));Check(elapsed.Elapsed<TimeSpan.FromSeconds(3),"A stalled response body must time out after headers have arrived.");
         using var cancelled=new CancellationTokenSource();cancelled.Cancel();bool stopped=false;try{await links.Install(choices[0],root,cancelled.Token);}catch(OperationCanceledException){stopped=true;}Check(stopped,"Cancellation must stop downloads.");
         Check(!Directory.EnumerateFiles(Path.Combine(root,"echo","downloads")).Any(),"Failed and cancelled downloads must leave no temporary files.");
         Console.WriteLine("PASS: Echo repository links, GitHub project/tag/release resolution, direct package download, fingerprints, HTTPS redirects, cancellation and bounded cleanup.");

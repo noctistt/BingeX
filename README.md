@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.6. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.7. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -363,3 +363,7 @@ Add-ons > Music accepts Echo repository links, GitHub project/release links, dir
 ### 0.14.6 — Music catalogue and setup feedback
 
 Online Music now keeps a visible catalogue/setup section even before a provider is active. Add-ons shows the music engine status prominently. Successful activation or account login loads the provider's home catalogue automatically (or blank-query search when no home feed exists) and opens Music. Empty sections suggest a song/album/artist search. Repository entries marked lyrics, tracker or misc are excluded from music installation choices. Install buttons show installing/installed/retry states, while missing releases, host errors, rate limits and checksum failures get specific messages. This does not provide a built-in music catalogue or remove the separate engine setup requirement; live provider compatibility still varies.
+
+### 0.14.7 — Download feedback and music compatibility
+
+Music extension downloads show received bytes, can be cancelled and time out when the response body stalls. Artist and playlist catalogue entries now open their feeds/tracks. The app embeds only its original compiled helper code so host updates work with an existing verified runtime profile; the Echo SDK, Java and engine remain separately supplied. Conversion/interface failures have specific safe diagnostics instead of generic retry advice. ArtistGrid live metadata browsing was verified from its artist list to an album feed; that does not establish playback. Current Deezer/Spotify/Saavn/ASMR One packages still have reproduced desktop conversion failures, and YouTube Music initialization is not yet compatible.

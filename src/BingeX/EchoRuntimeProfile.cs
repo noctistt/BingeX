@@ -23,6 +23,6 @@ public sealed record EchoRuntimeProfile(int Version,string Java,string Classes,s
         var required=new[]{java,sdk,Path.Combine(classes,"EchoMusicHelper.class"),Path.Combine(engine,"engine-jvm.jar")}
             .Concat(Directory.EnumerateFiles(classes,"EchoMusicHelper*.class")).Concat(Directory.EnumerateFiles(engine,"*.jar"));
         if(required.Any(x=>!fingerprints.ContainsKey(x)))throw new InvalidDataException("Music runtime contains unverified components.");
-        return(new(java,classes,sdk,engine,Path.Combine(dataDirectory,"echo","cache")),fingerprints[sdk]);
+        return(new(java,EchoHelperCode.Prepare(dataDirectory)??classes,sdk,engine,Path.Combine(dataDirectory,"echo","cache")),fingerprints[sdk]);
     }
 }

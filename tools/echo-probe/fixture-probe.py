@@ -24,9 +24,17 @@ class Fixture(http.server.BaseHTTPRequestHandler):
   elif u.path.endswith('/getAlbumList2'):
    counts['home']+=1;self.send_json({'subsonic-response':{'status':'ok','albumList2':{'album':[{'id':'album','name':'Fixture album','songCount':1}]}}})
   elif u.path.endswith('/getArtists'):
-   self.send_json({'subsonic-response':{'status':'ok','artists':{'index':[]}}})
+   self.send_json({'subsonic-response':{'status':'ok','artists':{'index':[{'name':'F','artist':[{'id':'artist','name':'Fixture artist','albumCount':1}]}]}}})
+  elif u.path.endswith('/getArtist'):
+   self.send_json({'subsonic-response':{'status':'ok','artist':{'id':'artist','name':'Fixture artist','album':[{'id':'album','name':'Fixture album','songCount':1}]}}})
+  elif u.path.endswith('/getArtistInfo2'):
+   self.send_json({'subsonic-response':{'status':'ok','artistInfo2':{}}})
+  elif u.path.endswith('/getTopSongs'):
+   self.send_json({'subsonic-response':{'status':'ok','topSongs':{'song':[{'id':'artist-track','isDir':False,'title':'Artist tone','duration':20,'contentType':'audio/wav'}]}}})
   elif u.path.endswith('/getPlaylists'):
-   self.send_json({'subsonic-response':{'status':'ok','playlists':{'playlist':[]}}})
+   self.send_json({'subsonic-response':{'status':'ok','playlists':{'playlist':[{'id':'playlist','name':'Fixture playlist','songCount':1}]}}})
+  elif u.path.endswith('/getPlaylist'):
+   self.send_json({'subsonic-response':{'status':'ok','playlist':{'id':'playlist','name':'Fixture playlist','entry':[{'id':'playlist-track','isDir':False,'title':'Playlist tone','duration':20,'contentType':'audio/wav'}]}}})
   elif u.path.endswith('/search3'):
    counts['search']+=1
    if get('query')=='slow':time.sleep(3)

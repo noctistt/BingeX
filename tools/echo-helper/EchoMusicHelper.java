@@ -138,7 +138,7 @@ public final class EchoMusicHelper {
     Map<String,Object> item(Object raw)throws Exception {
         Object value=raw;if(raw.getClass().getSimpleName().equals("Item"))value=call(raw,"getMedia");
         String type=value.getClass().getSimpleName();
-        if(type.equals("Track")||type.equals("Album"))return Map.of("kind",type.toLowerCase(Locale.ROOT),"handle",hold(type.toLowerCase(Locale.ROOT),value),"title",text(value,"getTitle"));
+        if(Set.of("Track","Album","Artist","Playlist").contains(type))return Map.of("kind",type.toLowerCase(Locale.ROOT),"handle",hold(type.toLowerCase(Locale.ROOT),value),"title",text(value,"getTitle"));
         if(type.equals("Category")){Object nested=call(value,"getFeed");return Map.of("kind","category","title",text(value,"getTitle"),"feed",nested==null?"":hold("feed",nested));}
         // Lists are expanded into display children; unknown shelves remain labelled instead of executing UI callbacks.
         if(Arrays.stream(value.getClass().getMethods()).anyMatch(x->x.getName().equals("getList"))){List<Object> children=new ArrayList<>();for(Object child:list(call(value,"getList"))){if(children.size()>=100)break;children.add(item(child));}return Map.of("kind","group","title",text(value,"getTitle"),"items",children);}
@@ -190,6 +190,8 @@ public final class EchoMusicHelper {
             case "search"->feed(suspend(extension,"loadSearchFeed",input(p,"query")));
             case "page"->page(p);
             case "album"->{Object album=suspend(extension,"loadAlbum",get(input(p,"handle"),"album"));yield feed(suspend(extension,"loadTracks",album));}
+            case "artist"->{Object artist=suspend(extension,"loadArtist",get(input(p,"handle"),"artist"));yield feed(suspend(extension,"loadFeed",artist));}
+            case "playlist"->{Object playlist=suspend(extension,"loadPlaylist",get(input(p,"handle"),"playlist"));yield feed(suspend(extension,"loadTracks",playlist));}
             case "variants"->variants(input(p,"handle"));
             case "resolve"->resolve(input(p,"handle"));
             default->throw new UnsupportedOperationException();

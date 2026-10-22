@@ -2,5 +2,5 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
   <ItemGroup><Compile Include="../../src/BingeX/EchoPackages.cs" Link="EchoPackages.cs" /><Compile Include="../../src/BingeX/EchoRuntimeProfile.cs" Link="EchoRuntimeProfile.cs" /><Compile Include="RuntimeStub.cs" /></ItemGroup>
   <PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
-  <ItemGroup><Compile Include="Program.cs" /><Compile Include="EchoLinkChecks.cs" /><Compile Include="../../src/BingeX/EchoLinks.cs" Link="EchoLinks.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="Program.cs" /><Compile Include="EchoLinkChecks.cs" /><Compile Include="../../src/BingeX/EchoLinks.cs" Link="EchoLinks.cs" /><Compile Include="../../src/BingeX/EchoHelperCode.cs" Link="EchoHelperCode.cs" /></ItemGroup>
 </Project>

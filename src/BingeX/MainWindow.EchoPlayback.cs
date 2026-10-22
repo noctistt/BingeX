@@ -73,6 +73,7 @@ public partial class MainWindow
             await RefreshEchoPackages();
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
+        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();EchoStatus.Text=package.Name+": "+error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
         catch{if(epoch==echoEpoch){StopEcho();EchoStatus.Text="Could not activate this extension. Check runtime compatibility and try again.";}}
         finally
         {
@@ -86,6 +87,7 @@ public partial class MainWindow
         var owner=echoBridge;var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=false;EchoStatus.Text=message;
         try{await action(owner,token);token.ThrowIfCancellationRequested();}
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
+        catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();EchoStatus.Text=error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
         catch{if(epoch==echoEpoch){StopEcho();EchoStatus.Text="This request failed or needs unsupported features. Activate the extension again to reconnect.";}}
         finally{if(epoch==echoEpoch){echoWorking=false;EchoBusy.IsVisible=false;EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=true;}}
     }
@@ -147,10 +149,11 @@ public partial class MainWindow
         if(depth>4||EchoMusicItems.Children.Count>=1000)return;
         if(item.Kind=="group"){EchoMusicItems.Children.Add(new TextBlock{Text=item.Title,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap});foreach(var child in item.Items??[])RenderEchoItem(child,depth+1);return;}
         var button=new Button{Content=item.Title+" · "+item.Kind,HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch,HorizontalContentAlignment=Avalonia.Layout.HorizontalAlignment.Left};
-        button.IsEnabled=item.Kind is "album" or "track" or "category";
+        button.IsEnabled=item.Kind is "album" or "track" or "category" or "artist" or "playlist";
         button.Click+=async(_,_)=>await EchoRequest(async(bridge,token)=>
         {
             if(item.Kind=="album"){var raw=await bridge.CallAsync("album",new{handle=item.Handle},token);token.ThrowIfCancellationRequested();if(echoFeed!=null)echoNavigation.Push((echoFeed,echoTab));await OpenEchoFeed(bridge,raw.Deserialize<EchoFeed>(new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!,token,true);}
+            else if(item.Kind is "artist" or "playlist"){var raw=await bridge.CallAsync(item.Kind,new{handle=item.Handle},token);token.ThrowIfCancellationRequested();if(echoFeed!=null)echoNavigation.Push((echoFeed,echoTab));await OpenEchoFeed(bridge,raw.Deserialize<EchoFeed>(new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!,token,true);}
             else if(item.Kind=="category"&&item.Feed is {Length:>0}){if(echoFeed!=null)echoNavigation.Push((echoFeed,echoTab));await OpenEchoFeed(bridge,new(item.Feed,[]),token,true);}
             else if(item.Kind=="track")
             {

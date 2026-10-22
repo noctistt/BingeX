@@ -7,15 +7,18 @@ namespace BingeX;
 
 public sealed record EchoLinkChoice(string Name,string Url,string? Sha256=null);
 public sealed class EchoInstallException(string message):IOException(message);
+public sealed record EchoDownloadProgress(long Bytes,long? Total);
 
 /// <summary>Explicit user-selected links only. Download never activates extension code.</summary>
 public sealed class EchoLinks:IDisposable
 {
     private readonly HttpClient http;
-    public EchoLinks(HttpMessageHandler? handler=null)
+    private readonly TimeSpan idleTimeout;
+    public EchoLinks(HttpMessageHandler? handler=null,TimeSpan? idleTimeout=null)
     {
+        this.idleTimeout=idleTimeout??TimeSpan.FromSeconds(20);
         http=new(handler??new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false});http.Timeout=TimeSpan.FromSeconds(90);
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("BingeX/0.14.5");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("BingeX/0.14.7");
     }
     public static Uri Normalize(string value)
     {
@@ -50,14 +53,20 @@ public sealed class EchoLinks:IDisposable
         }
         throw new IOException("Too many extension link redirects.");
     }
-    private static async Task Copy(HttpContent content,Stream target,int limit,CancellationToken token)
+    private async Task Copy(HttpContent content,Stream target,int limit,CancellationToken token,IProgress<EchoDownloadProgress>? progress=null)
     {
         if(content.Headers.ContentLength>limit)throw new InvalidDataException("Extension response is too large.");
         using var stream=await content.ReadAsStreamAsync(token);var block=new byte[65536];int total=0,count;
-        while((count=await stream.ReadAsync(block,token))>0){total+=count;if(total>limit)throw new InvalidDataException("Extension response is too large.");await target.WriteAsync(block.AsMemory(0,count),token);}
+        while(true)
+        {
+            using var idle=CancellationTokenSource.CreateLinkedTokenSource(token);idle.CancelAfter(idleTimeout);
+            try{count=await stream.ReadAsync(block,idle.Token);}catch(OperationCanceledException)when(!token.IsCancellationRequested){throw new EchoInstallException("The download stopped receiving data. Try again or choose another source.");}
+            if(count==0)break;total+=count;if(total>limit)throw new InvalidDataException("Extension response is too large.");await target.WriteAsync(block.AsMemory(0,count),token);progress?.Report(new(total,content.Headers.ContentLength));
+        }
     }
     public async Task<IReadOnlyList<EchoLinkChoice>> Read(string value,CancellationToken token=default)
     {
+        using var deadline=CancellationTokenSource.CreateLinkedTokenSource(token);deadline.CancelAfter(TimeSpan.FromSeconds(90));token=deadline.Token;
         var uri=Normalize(value);
         if(uri.AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))return [new("Extension file",uri.AbsoluteUri)];
         using var response=await Open(uri,token);using var memory=new MemoryStream();await Copy(response.Content,memory,2*1024*1024,token);
@@ -87,8 +96,9 @@ public sealed class EchoLinks:IDisposable
         if(choices.Count==0)throw new EchoInstallException("No supported music extension files were found in this release or repository.");return choices;
     }
     private static string Text(JsonElement row,string key)=>row.ValueKind==JsonValueKind.Object&&row.TryGetProperty(key,out var item)&&item.ValueKind==JsonValueKind.String?item.GetString()??"":"";
-    public async Task<EchoPackage> Install(EchoLinkChoice choice,string dataDirectory,CancellationToken token=default)
+    public async Task<EchoPackage> Install(EchoLinkChoice choice,string dataDirectory,CancellationToken token=default,IProgress<EchoDownloadProgress>? progress=null)
     {
+        using var deadline=CancellationTokenSource.CreateLinkedTokenSource(token);deadline.CancelAfter(TimeSpan.FromMinutes(3));token=deadline.Token;
         var uri=Normalize(choice.Url);
         if(!uri.AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))
         {
@@ -99,7 +109,7 @@ public sealed class EchoLinks:IDisposable
         var directory=Path.Combine(dataDirectory,"echo","downloads");Directory.CreateDirectory(directory);var temporary=Path.Combine(directory,Guid.NewGuid()+".download");
         try
         {
-            using(var response=await Open(uri,token))await using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None,65536,true))await Copy(response.Content,output,32*1024*1024,token);
+            using(var response=await Open(uri,token))await using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None,65536,true))await Copy(response.Content,output,32*1024*1024,token,progress);
             if(choice.Sha256 is {} expected)
             {
                 if(expected.Length!=64||!expected.All(Uri.IsHexDigit))throw new InvalidDataException("Invalid release fingerprint.");

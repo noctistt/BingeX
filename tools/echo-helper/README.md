@@ -1,6 +1,6 @@
 # Echo music helper (development)
 
-Original BingeX code, GPL-3.0-or-later. No upstream SDK, engine, compiler, converted extension or runtime is included. This helper executes explicitly selected trusted extension code with the user's permissions; it is not a security sandbox.
+Original BingeX code, GPL-3.0-or-later. No upstream SDK, engine, compiler, converted extension or runtime is included. BingeX 0.14.7 embeds its own compiled helper classes only. This helper executes explicitly selected trusted extension code with the user's permissions; it is not a security sandbox.
 
 Use run-integration.ps1 to compile and test with the documented OpenSubsonic .eapk and synthetic local server. Supply the trusted Java executable, cs3_engine runtime directory, Echo common-jvm 1.0.0 SDK JAR, ECJ 3.38.0 compiler, extension file and a scratch WorkDirectory. Optional DotnetPath/PythonPath select local tools. See ../../docs/echo-bridge.md for exact upstream revisions, hashes and the license review. The runner does not download anything except ordinary .NET restore dependencies.
 
@@ -21,3 +21,5 @@ Never log resolve results, login data or request bodies, and never persist authe
 ## Local app setup
 
 `prepare-runtime.ps1` takes the same explicit JavaPath, EngineDirectory, SdkJar and CompilerJar inputs plus a new OutputDirectory. It compiles original helper classes and creates a machine-specific echo-runtime.json referencing those files and SHA-256 fingerprints. It does not download or copy upstream dependencies. Select the profile in Add-ons > Music, import an .eapk, confirm trust and activate. Login, when required, is session-only. Keep all referenced folders in place; do not distribute this profile as a self-contained runtime.
+
+`build-code.ps1` rebuilds Assets/echo-helper.zip from original Java source using the explicitly supplied JavaPath, EngineDirectory, CompilerJar, new WorkDirectory and OutputZip. No Echo SDK is needed for compiling this reflection-based helper. Only EchoMusicHelper*.class files are archived. The app verifies the supplied runtime profile, then uses its embedded helper version, allowing host-protocol updates without making users select a new profile. SDK, Java and engine dependencies remain external.

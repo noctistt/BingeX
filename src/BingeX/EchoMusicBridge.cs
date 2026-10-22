@@ -13,6 +13,8 @@ public sealed record EchoItem(string Kind,string? Handle,string Title,string? Fe
 public sealed record EchoPage(IReadOnlyList<EchoItem> Items,string Next);
 public sealed record EchoVariant(string Handle,string Title,int Quality);
 public sealed record EchoSource(string Url,IReadOnlyDictionary<string,string> Headers,string Type,bool Live);
+public sealed class EchoCompatibilityException(string stage,string failureType,string message):NotSupportedException(message)
+{public string Stage{get;}=stage;public string FailureType{get;}=failureType;}
 
 /// <summary>Development-only Echo transport. No runtime discovery, downloads or provider presets.</summary>
 public sealed class EchoMusicBridge:IAsyncDisposable
@@ -63,7 +65,19 @@ public sealed class EchoMusicBridge:IAsyncDisposable
             await process.StandardInput.WriteLineAsync(message.AsMemory(),deadline.Token);await process.StandardInput.FlushAsync(deadline.Token);
             using var response=JsonDocument.Parse(await ReadLine(deadline.Token),new JsonDocumentOptions{MaxDepth=32});var root=response.RootElement;
             if(!root.TryGetProperty("id",out var responseId)||!responseId.TryGetInt32(out var received)||received!=id)throw new IOException("Echo helper protocol mismatch.");
-            if(root.TryGetProperty("error",out var error))throw new NotSupportedException(error.TryGetProperty("code",out var code)&&code.GetString()=="unsupported"?"This extension requires unsupported Echo features.":"The Echo extension request failed.");
+            if(root.TryGetProperty("error",out var error))
+            {
+                string Read(string key)=>error.TryGetProperty(key,out var value)&&value.ValueKind==JsonValueKind.String?value.GetString()??"":"";
+                var type=Read("type");var stage=Read("stage");
+                if(!new[]{"validate_package","validate_sdk","convert","instantiate","inject_settings","initialize","select_extension","dispatch"}.Contains(stage))stage="request";
+                var explanation=type switch{
+                    "VerifyError" or "ClassFormatError"=>"This extension's Android code is not compatible with the current desktop converter. Reinstalling it will not resolve that conversion error.",
+                    "ClassNotFoundException" or "NoClassDefFoundError"=>"This extension needs runtime classes that the current music engine does not provide.",
+                    "NoSuchMethodError" or "AbstractMethodError"=>"This extension targets a different Echo interface version.",
+                    "UnsupportedOperationException"=>"This request needs an Echo feature BingeX does not support yet.",
+                    _=>stage is "instantiate" or "initialize" or "inject_settings"?"This extension could not initialize in the desktop music engine.":"The music provider request failed. It may require login or unsupported features."};
+                throw new EchoCompatibilityException(stage,new[]{"VerifyError","ClassFormatError","ClassNotFoundException","NoClassDefFoundError","NoSuchMethodError","AbstractMethodError","UnsupportedOperationException"}.Contains(type)?type:"request_failed",explanation);
+            }
             return root.GetProperty("result").Clone();
         }
         catch{Stop();throw;}

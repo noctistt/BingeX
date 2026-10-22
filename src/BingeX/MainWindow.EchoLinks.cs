@@ -6,19 +6,21 @@ public partial class MainWindow
 {
     private CancellationTokenSource echoLinkWork=new();
     private Func<EchoLinks> echoLinksFactory=()=>new EchoLinks();
+    private void CancelEchoDownload_Click(object? sender,RoutedEventArgs e)=>echoLinkWork.Cancel();
+    private IProgress<EchoDownloadProgress> EchoDownloadStatus(CancellationToken token)=>new Progress<EchoDownloadProgress>(value=>{if(!localClosing&&echoImporting&&EchoDownloadActions.IsVisible&&!token.IsCancellationRequested)EchoPackageMessage.Text=$"Downloading {value.Bytes/1048576d:0.00} MB"+(value.Total is >0?$" / {value.Total/1048576d:0.00} MB":"")+"…";});
     private async void AddEchoLink_Click(object? sender,RoutedEventArgs e)=>await ReadEchoLink(EchoLinkInput.Text??"");
     private async Task ReadEchoLink(string link)
     {
         if(!onlineEnabled||echoImporting)return;
         echoLinkWork.Cancel();echoLinkWork.Dispose();echoLinkWork=new();var token=echoLinkWork.Token;
-        echoImporting=true;EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;EchoLinkChoices.Children.Clear();EchoLinkChoices.IsEnabled=false;EchoPackageMessage.Text="Reading music extension link…";
+        echoImporting=true;EchoDownloadActions.IsVisible=true;EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;EchoLinkChoices.Children.Clear();EchoLinkChoices.IsEnabled=false;EchoPackageMessage.Text="Reading music extension link…";
         try
         {
             using var links=echoLinksFactory();var choices=await links.Read(link,token);token.ThrowIfCancellationRequested();if(localClosing)return;
             EchoLinkChoices.Children.Clear();
             if(choices.Count==1&&new Uri(choices[0].Url).AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))
             {
-                await links.Install(choices[0],store.DataDirectory,token);token.ThrowIfCancellationRequested();EchoLinkInput.Text="";await RefreshEchoPackages();EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";
+                await links.Install(choices[0],store.DataDirectory,token,EchoDownloadStatus(token));token.ThrowIfCancellationRequested();EchoLinkInput.Text="";await RefreshEchoPackages();EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";
             }
             else
             {
@@ -30,23 +32,23 @@ public partial class MainWindow
         catch(EchoInstallException error){if(!localClosing)EchoPackageMessage.Text=error.Message;}
         catch(OperationCanceledException){if(!localClosing)EchoPackageMessage.Text="The extension host took too long to respond. Try again.";}
         catch{if(!localClosing)EchoPackageMessage.Text="Could not read this link. Use an HTTPS Echo repository, GitHub release or direct .eapk link. The host may also be unavailable or rate limited.";}
-        finally{echoImporting=false;if(!localClosing){EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;EchoLinkChoices.IsEnabled=true;}}
+        finally{echoImporting=false;if(!localClosing){EchoDownloadActions.IsVisible=false;EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;EchoLinkChoices.IsEnabled=true;}}
     }
     private async Task InstallEchoChoice(EchoLinkChoice choice,Button? clicked=null)
     {
         if(!onlineEnabled||echoImporting)return;
         echoLinkWork.Cancel();echoLinkWork.Dispose();echoLinkWork=new();var token=echoLinkWork.Token;echoImporting=true;EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;
-        EchoPackageMessage.Text="Downloading and checking extension…";
+        EchoDownloadActions.IsVisible=true;EchoPackageMessage.Text="Downloading and checking extension…";
         if(clicked!=null)clicked.Content="Installing "+choice.Name+"…";bool installed=false;
         try
         {
-            using var links=echoLinksFactory();await links.Install(choice,store.DataDirectory,token);token.ThrowIfCancellationRequested();if(localClosing)return;
+            using var links=echoLinksFactory();await links.Install(choice,store.DataDirectory,token,EchoDownloadStatus(token));token.ThrowIfCancellationRequested();if(localClosing)return;
             await RefreshEchoPackages();EchoLinkInput.Text="";EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";installed=true;
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){if(!localClosing)EchoPackageMessage.Text="Link import cancelled.";}
         catch(EchoInstallException error){if(!localClosing)EchoPackageMessage.Text=error.Message;}
         catch(OperationCanceledException){if(!localClosing)EchoPackageMessage.Text="The extension host took too long to respond. Try again.";}
         catch{if(!localClosing)EchoPackageMessage.Text="Could not install this extension. Check that the release has one compatible .eapk file, or paste its direct download link.";}
-        finally{echoImporting=false;if(!localClosing){EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;if(clicked!=null){clicked.Content=(installed?"Installed ":"Retry ")+choice.Name;clicked.IsEnabled=!installed;ToolTip.SetTip(clicked,EchoPackageMessage.Text);}}}
+        finally{echoImporting=false;if(!localClosing){EchoDownloadActions.IsVisible=false;EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;if(clicked!=null){clicked.Content=(installed?"Installed ":"Retry ")+choice.Name;clicked.IsEnabled=!installed;ToolTip.SetTip(clicked,EchoPackageMessage.Text);}}}
     }
 }
