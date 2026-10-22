@@ -20,7 +20,7 @@ public final class EchoMusicHelper {
     static final Gson JSON=new Gson();
     // Android packages can carry desugared SDK default methods. Keep that SDK ABI together.
     static final class ExtensionLoader extends URLClassLoader {
-        ExtensionLoader(URL url){super(new URL[]{url},EchoMusicHelper.class.getClassLoader());}
+        ExtensionLoader(URL url,URL resources){super(new URL[]{url,resources},EchoMusicHelper.class.getClassLoader());}
         protected synchronized Class<?> loadClass(String name,boolean resolve)throws ClassNotFoundException {
             if(name.startsWith("dev.brahmkshatriya.echo.common.")){
                 Class<?> found=findLoadedClass(name);
@@ -84,9 +84,13 @@ public final class EchoMusicHelper {
     // DEX invoke-super to an external JVM default interface must use an InterfaceMethodref.
     // The converter cannot infer interfaces omitted by an extension's compileOnly SDK.
     Path fixExternalInterfaces(Path input)throws Exception {
-        Path output=input.resolveSibling("echo-contract-v1.jar");if(Files.exists(output))return output;
+        Path output=input.resolveSibling("echo-contract-v2.jar");if(Files.exists(output))return output;
         Path temporary=input.resolveSibling("echo-contract-"+UUID.randomUUID()+".tmp");
         try(JarFile jar=new JarFile(input.toFile());JarOutputStream out=new JarOutputStream(Files.newOutputStream(temporary))){
+            Map<String,Boolean> localTypes=new HashMap<>();
+            for(JarEntry entry:Collections.list(jar.entries()))if(entry.getName().endsWith(".class")){
+                try(InputStream in=jar.getInputStream(entry)){ClassReader type=new ClassReader(in);localTypes.put(type.getClassName(),(type.getAccess()&Opcodes.ACC_INTERFACE)!=0);}
+            }
             for(JarEntry entry:Collections.list(jar.entries())){
                 byte[] bytes=jar.getInputStream(entry).readAllBytes();
                 if(entry.getName().endsWith(".class")){
@@ -96,7 +100,7 @@ public final class EchoMusicHelper {
                             return new MethodVisitor(Opcodes.ASM9,super.visitMethod(access,name,descriptor,signature,exceptions)){
                                 public void visitMethodInsn(int opcode,String owner,String method,String desc,boolean isInterface){
                                     if(opcode==Opcodes.INVOKESPECIAL||opcode==Opcodes.INVOKESTATIC||opcode==Opcodes.INVOKEINTERFACE)
-                                        try{isInterface=Class.forName(owner.replace('/','.'),false,EchoMusicHelper.class.getClassLoader()).isInterface();}catch(ClassNotFoundException absent){}
+                                        if(localTypes.containsKey(owner))isInterface=localTypes.get(owner);else try{isInterface=Class.forName(owner.replace('/','.'),false,EchoMusicHelper.class.getClassLoader()).isInterface();}catch(ClassNotFoundException absent){}
                                     super.visitMethodInsn(opcode,owner,method,desc,isInterface);
                                 }
                             };
@@ -118,7 +122,9 @@ public final class EchoMusicHelper {
         Class<?> converter=Class.forName("dev.akash.cs3engine.jvm.Dex2Jar");
         Object converted=converter.getMethod("convert",File.class,File.class).invoke(converter.getField("INSTANCE").get(null),file.toFile(),target.toFile());
         if(Boolean.TRUE.equals(call(converted,"getIncomplete")))throw new UnsupportedOperationException();
-        phase="instantiate";loader=new ExtensionLoader(fixExternalInterfaces(((File)call(converted,"getJar")).toPath()).toUri().toURL());
+        phase="instantiate";loader=new ExtensionLoader(fixExternalInterfaces(((File)call(converted,"getJar")).toPath()).toUri().toURL(),file.toUri().toURL());
+        // Conversion produces classes only; service registrations/resources stay in the verified package.
+        Thread.currentThread().setContextClassLoader(loader);
         extension=Class.forName(entry,true,loader).getConstructor().newInstance();
         phase="inject_settings";Class<?> settingsType=Class.forName("dev.brahmkshatriya.echo.common.settings.Settings",true,loader);
         Object proxy=java.lang.reflect.Proxy.newProxyInstance(settingsType.getClassLoader(),new Class<?>[]{settingsType},(obj,method,args)->{
