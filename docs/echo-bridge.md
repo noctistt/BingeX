@@ -1,6 +1,6 @@
 # Echo music extension feasibility probe
 
-Status (2026-10-22): BingeX 0.14.3 includes metadata-only local music-extension package import/removal. The persistent helper remains development-only; there is no runtime downloader or extension playback UI. Built-in OpenSubsonic support remains separate.
+Status (2026-10-22): BingeX 0.14.4 adds explicit activation, session login, paged music browsing and playback using a user-selected, separately prepared runtime profile. No SDK/runtime downloader or bundled Echo dependencies are included. Built-in OpenSubsonic support remains separate.
 
 ## Examined artifacts
 
@@ -65,3 +65,21 @@ Add-ons > Music now imports local .eapk packages without running them. The origi
 Reproduction: run tests/BingeX.EchoPackagesTests with an optional path to the documented OpenSubsonic package. Synthetic tests cover string encodings, metadata, persistence, duplicate import, malformed manifests, non-music packages, traversal rejection and cleanup. The separate Windows tests/BingeX.EchoUiTests requires BINGEX_DATA_DIRECTORY pointing to an isolated echo-ui-test-* directory and the inspected package path as its argument; it checks the actual rendered Add-ons page, category separation, offline retention and removal. No user profile or real account is used.
 
 No SDK/runtime distribution decision has changed. Imported files show playback setup pending; the next step is explicit runtime provisioning and connecting provider browsing and playback.
+
+## App activation and listening — 0.14.4
+
+Add-ons > Music now accepts a separately prepared `echo-runtime.json`, verifies its recorded SHA-256 fingerprints and provides explicit trust/Activate controls for imported extensions. The helper is started only on activation. One extension is active per session; changing the runtime, disconnecting, removing the active package, disabling Online mode or closing the app terminates that helper and clears login inputs and opaque browsing handles. Current player playback may continue through its existing in-memory relay after disconnect. Imported packages remain stored when Online mode is disabled. No extension is automatically activated after restart.
+
+The Music page hosts extension search/home feeds, provider tabs, paged tracks, albums, nested categories and back navigation to parent results. A selected track resolves the highest reported quality variant and first supported HTTP source into the existing native player. Headers are retained; empty-header sources also use the private relay. Authenticated URLs and login details stay in memory, and extension playback bypasses history and saved audio-selection keys. Custom text-input login forms support multiple returned users. Password/API-key fields are masked and all inputs are cleared upon submission. Browser/WebView login, playlists, lyrics, artwork, arbitrary settings widgets, source selection and extension queues/autoplay are not implemented. Local/server music queues remain separate.
+
+### Preparing a local runtime
+
+Run `tools/echo-helper/prepare-runtime.ps1` with explicitly selected `JavaPath`, `EngineDirectory`, `SdkJar`, `CompilerJar` and a new `OutputDirectory`. It compiles original BingeX Java helper source using the supplied compiler and writes `echo-runtime.json` containing absolute references and hashes for Java, SDK, helper classes and engine JARs. It does not download or copy upstream dependencies. Keep the referenced folders intact. This profile is machine-specific, has no credentials, and is not a distributable runtime bundle. Select that file in Add-ons > Music, confirm trust, and activate an imported extension. Account details are entered only if that extension requires them. The runtime location is remembered outside settings backups; credentials and active sessions are not.
+
+### App integration evidence
+
+The Windows Echo UI test now runs the actual BingeX app against the documented OpenSubsonic extension and synthetic loopback server: explicit trust gating, activation, actual custom login controls, cleared/masked credentials, 50-track first page plus continuation, album/back navigation, resolved audio playing through LibVLC, exclusion from video history, cancellation while a slow provider request is running, clean reactivation, offline retention and removal. Package tests additionally reject a changed runtime fingerprint. This is one tested extension/fixture, not a guarantee for arbitrary Echo packages or live providers. Home feed support is wired but not covered by this fixture.
+
+Build `tests/BingeX.EchoUiTests` in Release, set `BINGEX_DATA_DIRECTORY` to a new isolated `echo-ui-test-*` directory, and use `tools/echo-probe/fixture-probe.py --ui-runtime <prepared-profile>` with the extension path and `--project tests/BingeX.EchoUiTests`. The legacy probe arguments remain required but unused in UI mode. The fixture has a 180-second process watchdog and uses dummy account data, not a real user profile. UI evidence is saved only to that isolated directory.
+
+The SDK license compatibility question above remains open for distribution. This milestone uses explicitly supplied local dependencies and introduces no automatic downloads or bundled SDK/runtime files.

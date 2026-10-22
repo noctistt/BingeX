@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.3. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.4. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -343,11 +343,15 @@ Continue Watching excludes local audio files and music/audio contexts, including
 
 ### Music extension research
 
-A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. Add-ons > Music can now import local .eapk files for storage and removal; extension playback is not connected to the UI yet. See [evidence, limits and adapter work](docs/echo-bridge.md).
+A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. Add-ons > Music can import local .eapk files and activate them using a separately supplied music runtime. See [evidence, limits and adapter work](docs/echo-bridge.md).
 
 
-The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. The app now has a metadata-only package importer, while this helper remains separate without bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
+The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. The app now connects this helper to explicit activation, session login, browsing and playback without bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
 
 ### 0.14.3 — Music extension package management
 
 Add-ons > Music imports user-selected Echo .eapk files, displays their names, versions and authors, and removes stored copies. Import reads bounded Android manifest metadata without executing extension code or following provider links. Reimporting the same file is idempotent; imported files persist across restarts and Online mode changes. Removing one keeps the user's original file. Imported extensions are explicitly marked inactive: runtime setup, login and listening UI are still pending. No Echo SDK, Java runtime or provider package is included.
+
+### 0.14.4 — Echo activation, browsing and playback
+
+Add-ons > Music can select a separately prepared runtime profile and activate a trusted imported Echo extension. Custom login forms keep credentials only for the session. Music displays provider tabs, paged results and albums with back navigation; tracks play through the existing player and private header relay without adding authenticated URLs to video history. Disconnect, runtime changes, Online mode off and app exit stop the helper and clear session handles. Runtime fingerprints are verified. No Echo SDK/runtime or provider package is bundled or downloaded automatically. One OpenSubsonic extension is verified against a synthetic server; arbitrary extension compatibility, browser login and music-extension autoplay are not guaranteed. See [local setup and limits](docs/echo-bridge.md#app-activation-and-listening--0144).

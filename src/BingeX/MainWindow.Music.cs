@@ -41,6 +41,7 @@ public partial class MainWindow
         MusicMessage.Text=musicLibrary.Tracks.Length>0?$"{musicLibrary.Tracks.Length} tracks indexed. Add folders or rescan to update your collection.":"Add a music folder to get started.";
         RenderMusic();ApplyMusicOnlineMode();
         _ = RefreshEchoPackages();
+        SetupEcho();
     }
     private void LibraryMusic_Click(object? sender,RoutedEventArgs e)=>Page("Music");
     private void ManageMusicConnections_Click(object? sender,RoutedEventArgs e)
@@ -127,6 +128,7 @@ public partial class MainWindow
     {
         MusicServerPanel.IsVisible=onlineEnabled;MusicManageConnections.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
         EchoPackagesPanel.IsVisible=onlineEnabled;
+        if(!onlineEnabled)StopEcho();
         if(!onlineEnabled)DisconnectMusicServer();
     }
     private CancellationToken BeginMusicServerRequest()
