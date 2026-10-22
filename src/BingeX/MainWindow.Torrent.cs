@@ -115,18 +115,7 @@ public partial class MainWindow
         PlayerNotice("Torrent stopped. Choose another source to continue.");
         RefreshHistory();
     }
-    private async void ClearVideoCache_Click(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var root = Path.GetFullPath(Path.Combine(store.DataDirectory, "torrent-cache-v1"));
-            var removed = await Task.Run(() => !Directory.Exists(root) ? 0 : Directory.EnumerateDirectories(root)
-                .Where(x => TorrentCache.IsOwned(Path.GetFileName(x))).Count(x => TorrentCache.Delete(root, x)));
-            if (!localClosing) Status($"Cleared {removed} unused video cache(s). The active video is kept.");
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        { if (!localClosing) Status("The video cache could not be cleared. Check that its folder is accessible."); }
-    }
+    private async void ClearVideoCache_Click(object? sender, RoutedEventArgs e)=>await UpdateStorage(false);
     private void StopTorrentPlayback()
     {
         torrentRevision++;

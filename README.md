@@ -4,7 +4,7 @@ A modern desktop media player with local playback, a visual media library, and S
 
 ## Status
 
-Early development preview 0.13.26. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.13.27. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -300,3 +300,6 @@ A dedicated Settings page controls seek interval, resume, click-to-pause, online
 
 ### 0.13.26
 Settings includes preferred spoken audio and subtitle languages, source-default and subtitles-Off options. Saved video/show choices and manual track selection take priority. Defaults apply to newly opened media; embedded captions are tried before optional online captions for remote titles. Missing labelled tracks produce a fallback notice.
+
+### 0.13.27
+Settings → Storage measures torrent caches and generated thumbnails separately, with immediate cleanup and refresh actions. Locked torrent caches and the active local thumbnail are retained. Totals sum file lengths, not physical allocation for sparse files; incomplete measurements are labelled. Media files, history and providers are not removed.

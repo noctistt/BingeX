@@ -148,7 +148,7 @@ public partial class MainWindow : Window
         UpdatePlayerLayout();
         AddonsPage.IsVisible = page == "Add-ons";
         AppSettingsPage.IsVisible=page=="Settings"; SettingsNav.Classes.Set("active",page=="Settings");
-        if(page=="Settings")PopulateAppSettings();
+        if(page=="Settings"){PopulateAppSettings();_ = UpdateStorage(null);}
         if (page == "Player") RevealPlayerControls();
         if (page == "My Library") RefreshLocalLibrary();
         PageTitle.Text = page == "Library" ? "Home" : page == "Details" ? "Discover" : page;

@@ -131,6 +131,7 @@ try
     Console.WriteLine("PASS: persistent history, parameterized titles, add-on persistence/removal, configured episode URLs, manifest scheme validation.");
     Console.WriteLine("PASS: remote episode resume, search encoding, provider scope filtering, catalog capabilities, episode ordering, source compatibility, partial failures, cancellation.");
     SourceSelectionChecks.Run();
+    StorageChecks.Run(directory);
     LocalLibraryChecks.Run(Path.Combine(directory, "local-library"));
     PlaybackWaitChecks.Run();
     await NativePlaybackQueueChecks.Run();
