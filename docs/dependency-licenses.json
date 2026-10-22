@@ -168,6 +168,11 @@
       "license": "MIT"
     },
     {
+      "package": "TagLibSharp/2.3.0",
+      "licenseType": "expression",
+      "license": "LGPL-2.1-only"
+    },
+    {
       "package": "Tmds.DBus.Protocol/0.21.3",
       "licenseType": "expression",
       "license": "MIT"

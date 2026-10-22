@@ -58,6 +58,7 @@ public partial class MainWindow : Window
         SetupStreamScope();
         SetupAppSettings();
         SetupLocalQueue();
+        SetupMusic();
         UpdateSeekLabels();
         RefreshHistory();
         Opened += (_, _) =>
@@ -172,7 +173,7 @@ public partial class MainWindow : Window
         else if(paths.FirstOrDefault() is {} path){if(QueueMedia(path))AddQueueFiles([path],true);else Play(path,Path.GetFileName(path));}
     }
 
-    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null)
+    private async void Play(string path, string title, MediaContext? context = null, StreamMediaInput? input = null, string? playbackUrl = null, IReadOnlyDictionary<string, string>? requestHeaders = null, string? streamAudio = null, IReadOnlyList<StreamAudioOption>? streamAudioOptions = null, IReadOnlyList<SubtitleChoice>? streamSubtitles = null, bool skipHistory = false)
     {
         if (localClosing) return;
         if (input == null && Path.GetExtension(path).Equals(".torrent", StringComparison.OrdinalIgnoreCase) && File.Exists(path)) { StartTorrentFile(path); return; }
@@ -203,19 +204,19 @@ public partial class MainWindow : Window
             if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }
             await StopNativePlayerAsync();
             if (localClosing || request != playbackRequest) return;
-            suppressCurrentHistory = false;
+            suppressCurrentHistory = skipHistory;
             currentContext = context;
             playingEpisodeTitle = context != null && selectedTitle?.Id == context.Id && selectedTitle.Type == context.Type
                 ? selectedTitle : context != null && playingEpisodeTitle?.Id == context.Id ? playingEpisodeTitle : null;
             UpdateEpisodeActions();
-            currentHistoryKey = context?.HistoryKey ?? path;
+            currentHistoryKey = skipHistory ? null : context?.HistoryKey ?? path;
             if (context != null) store.SaveContext(context);
-            resumeAt = preferences.ResumePlayback ? store.FindHistory(currentHistoryKey)?.Position ?? 0 : 0;
+            resumeAt = preferences.ResumePlayback && currentHistoryKey!=null ? store.FindHistory(currentHistoryKey)?.Position ?? 0 : 0;
             ResetMediaControls(preserve);
             if(preserve && useTextSubtitles)restoredSubtitleGeneration=mediaGeneration;
             if(switchingPosition>0){resumeAt=switchingPosition;sourceResumePending=true;}
             currentStreamSubtitles = streamSubtitles ?? [];
-            pendingAudioSelection = store.AudioSelection(currentHistoryKey);
+            pendingAudioSelection = currentHistoryKey==null?null:store.AudioSelection(currentHistoryKey);
             if(pendingAudioSelection==null && EffectiveAudioLanguage(context) is {Length:>0} audioLanguage)
                 pendingAudioSelection=new(-3,"",audioLanguage);
             streamAudio = SetupStreamAudio(streamAudioOptions, streamAudio);
@@ -401,7 +402,7 @@ public partial class MainWindow : Window
         if (playbackEnded || playbackSnapshot.State is VLCState.Ended or VLCState.Stopped or VLCState.Error)
         {
             if (lastTorrentChoice != null && lastTorrentContext != null && currentPath.StartsWith("binge-torrent:")) StartTorrent(lastTorrentChoice, lastTorrentContext);
-            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions, streamSubtitles: currentStreamSubtitles);
+            else Play(currentPath, currentTitle, currentContext, requestHeaders: currentRequestHeaders, streamAudio: currentStreamAudio, streamAudioOptions: currentStreamAudioOptions, streamSubtitles: currentStreamSubtitles, skipHistory: currentHistoryKey==null);
         }
         else { var native = player; await nativePlayback.Enqueue(native.Pause); }
         RevealPlayerControls();

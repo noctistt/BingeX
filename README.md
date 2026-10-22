@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.13.32. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.0. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -320,3 +320,12 @@ Queue lives in a collapsible panel inside My Library, with a button beside folde
 
 ### 0.13.32
 My Library removes the separate full-path folder list. Registered folder headings in the video area now include Remove folder, with subfolder/series groups nested underneath. Full paths remain in tooltips. The folder filter also provides removal for All videos view and empty folders. Removal only unindexes the registered folder and its children; files and watch history are kept.
+
+
+### 0.14.0 — Music library and personal music servers
+
+My Library has Videos and Music tabs. Add a music folder to index tags, embedded cover art, album/artist, disc/track order and audio properties without changing files. Local music supports the existing session queue, next/previous controls and optional autoplay. Search is debounced; album and track rendering uses Show more. Embedded artwork is limited to 2 MiB per image and a 256 MiB extracted-art cache. Music folders and the index persist separately from video folders; removal keeps source files. Failed or incomplete scans preserve previously indexed tracks. Rescan is manual.
+
+With Online mode enabled, Music can connect to a user-configured Navidrome/OpenSubsonic server, browse/search albums with pagination and play tracks through the private header relay. Username/password and authenticated URLs remain session-only; no streamed music URLs are saved to history or audio-track preferences, including on replay. HTTPS is required except loopback or explicitly allowed HTTP. API redirects are rejected. Streams request format=raw and no bitrate limit, but the server ultimately determines delivery. Quality values are file metadata or server-reported values, not proof of lossless or bit-perfect output. Gapless output, remote artwork, server playlist editing, music downloads and Echo-extension compatibility are not implemented. Disconnect/Online off closes the browser session and prevents new browsing or track selection; a currently playing track may continue until stopped or changed.
+
+The metadata reader uses TagLibSharp 2.3.0 under LGPL-2.1-only; its source, package manifest and license notices accompany the existing dependency inventory. Native regression covers tagged local WAV indexing, non-destructive scan/removal, persistence/cancellation, album order/search, real local and token-authenticated server audio decoding, next/replay, online-mode cleanup and credential-free history against a local fixture. A real user's Navidrome installation has not been tested.

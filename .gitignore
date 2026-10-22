@@ -443,3 +443,8 @@ FodyWeavers.xsd
 /outputs/
 /work/
 /local-data/
+
+# Personal music index and extracted artwork
+music-library.json
+music-library.json.tmp
+music-art/

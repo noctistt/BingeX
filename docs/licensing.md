@@ -4,11 +4,13 @@ BingeX original work is GPL-3.0-or-later. LICENSE contains the unmodified GPLv3 
 
 ## Review performed (2026-10-22)
 
-The resolved NuGet metadata was inspected for all packages in the current project.assets.json. The declared expressions are MIT, Apache-2.0 and LGPL-2.1-or-later, or package-specific license files. MonoTorrent 3.0.2, Mono.Nat 3.0.0 and ReusableTasks 4.0.0 include MIT texts. The full package/version inventory is dependency-licenses.json. Entries with file-based licenses require retaining the supplied texts; an inventory is evidence of metadata, not a legal certification of every constituent file.
+The resolved NuGet metadata was inspected for all packages in the current project.assets.json. The declared expressions are MIT, Apache-2.0, LGPL-2.1-only and LGPL-2.1-or-later, or package-specific license files. MonoTorrent 3.0.2, Mono.Nat 3.0.0 and ReusableTasks 4.0.0 include MIT texts. The full package/version inventory is dependency-licenses.json. Entries with file-based licenses require retaining the supplied texts; an inventory is evidence of metadata, not a legal certification of every constituent file.
 
 VideoLAN.LibVLC.Windows 3.0.24 and LibVLCSharp 3.10.2 declare LGPL-2.1-or-later. Native VLC modules and codec dependencies may have additional terms. Verify the exact shipped module set, third-party notices, complete corresponding source and build configuration; a link to the VLC repository alone is not proof that these obligations are fulfilled. In particular, do not assume GPL-2.0-only code can form a combined work with GPLv3 code. Remove incompatible components or obtain an appropriate license if that review finds any.
 
 The pinned local SkyStream checkout f5523ae07d729b579be30976df8783a0b98c4559 contains GPLv3 texts at its root and packages/cs3_engine/LICENSE. BingeX's original patch changes its audio-track JSON mapping. Its source and build commands are in tools/cloudstream-patch. The engine has many constituent JARs; a separate per-JAR license/source inventory remains necessary before redistributing a prepared runtime. User-selected extensions require their own review. Temurin's legal directory must remain intact; use the exact source/version corresponding to the download lockfile.
+
+TagLibSharp 2.3.0 was added for read-only music metadata. Its package declares LGPL-2.1-only; source: https://github.com/mono/taglib-sharp/tree/TaglibSharp-2.3.0.0 . Its shared DLL remains replaceable, and packaging includes its COPYING text. BingeX never calls Save on user music files.
 
 ## What packaging supplies
 

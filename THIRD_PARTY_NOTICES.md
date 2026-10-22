@@ -2,6 +2,7 @@
 
 BingeX uses these independently maintained projects. Their licenses apply to their respective components; BingeX original work is GPL-3.0-or-later (see LICENSE and COPYRIGHT.md).
 
+- TagLibSharp 2.3.0: LGPL-2.1-only — https://github.com/mono/taglib-sharp/tree/TaglibSharp-2.3.0.0
 - MonoTorrent 3.0.2: MIT — https://github.com/alanmcgovern/monotorrent/tree/release-v3.0.2
 - Mono.Nat: MIT — https://github.com/alanmcgovern/Mono.Nat
 - ReusableTasks: MIT — https://github.com/alanmcgovern/ReusableTasks

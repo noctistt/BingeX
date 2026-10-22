@@ -17,11 +17,11 @@ public partial class MainWindow
         Closed+=(_,_)=>queueFolderWork.Cancel();
         RenderLocalQueue();
     }
-    private static bool QueueMedia(string path)=>LocalLibraryScanner.IsVideo(path) || new[]{".mp3",".flac",".wav",".m4a",".aac",".ogg",".opus",".wma"}.Contains(Path.GetExtension(path).ToLowerInvariant());
+    private static bool QueueMedia(string path)=>LocalLibraryScanner.IsVideo(path) || MusicLibrary.IsAudio(path);
     private void QueuePage_Click(object? sender,RoutedEventArgs e)
     {
         var collapse=activePage=="My Library" && ReferenceEquals(sender,LibraryQueueButton) && QueuePanel.IsExpanded;
-        Page("My Library"); RenderLocalQueue();QueuePanel.IsExpanded=!collapse;
+        Page("My Library"); ShowMusic(false); RenderLocalQueue();QueuePanel.IsExpanded=!collapse;
         if(!collapse)Avalonia.Threading.Dispatcher.UIThread.Post(()=>QueuePanel.BringIntoView(),Avalonia.Threading.DispatcherPriority.Loaded);
     }
     private void RenderLocalQueue()
@@ -51,17 +51,18 @@ public partial class MainWindow
     private void UpdateQueueActions()
     {
         var active=currentContext==null && currentPath!=null && localQueue.IsCurrent(currentPath);
-        LocalQueueActions.IsVisible=localQueue.Items.Count>0;
+        LocalQueueActions.IsVisible=localQueue.Items.Count>0 || IsServerMusicPlaying;
         QueueOpenButton.Content=LibraryQueueButton.Content=$"Queue ({localQueue.Items.Count})";
         QueuePanel.Header=$"Playback queue ({localQueue.Items.Count})";
-        QueuePreviousButton.IsEnabled=active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>0;
-        QueueNextButton.IsEnabled=active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>=0 && localQueue.CurrentIndex<localQueue.Items.Count-1;
+        QueuePreviousButton.IsEnabled=IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex>0 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>0;
+        QueueNextButton.IsEnabled=IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex<serverTracks.Count-1 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>=0 && localQueue.CurrentIndex<localQueue.Items.Count-1;
     }
     private bool PlayQueueItem(string path)
     {
         if(NativePlaybackBusy || playbackStarting)return false;
         if(!File.Exists(path)){QueueMessage.Text="This queue item is missing. Choose another item or reconnect its drive.";Status(QueueMessage.Text);return false;}
-        localQueue.Select(path);Play(path,Path.GetFileNameWithoutExtension(path));RenderLocalQueue();return true;
+        var song=musicLibrary?.Tracks.FirstOrDefault(x=>string.Equals(x.Path,path,StringComparison.OrdinalIgnoreCase));
+        localQueue.Select(path);Play(path,song==null?Path.GetFileNameWithoutExtension(path):song.Artist+" — "+song.Title);RenderLocalQueue();return true;
     }
     private bool MoveQueue(int direction)
     {
@@ -70,9 +71,10 @@ public partial class MainWindow
         if(next!=null)return PlayQueueItem(next);
         Status("No available "+(direction>0?"next":"previous")+" queue item. Missing files are skipped.");return false;
     }
-    private void QueuePrevious_Click(object? sender,RoutedEventArgs e)=>MoveQueue(-1);
-    private void QueueNext_Click(object? sender,RoutedEventArgs e)=>MoveQueue(1);
-    private bool ContinueLocalQueue()=>preferences.AutoplayLocalQueue && MoveQueue(1);
+    private void QueuePrevious_Click(object? sender,RoutedEventArgs e)=>MoveQueueOrMusic(-1);
+    private void QueueNext_Click(object? sender,RoutedEventArgs e)=>MoveQueueOrMusic(1);
+    private bool MoveQueueOrMusic(int direction)=>IsServerMusicPlaying?MoveServerMusic(direction):MoveQueue(direction);
+    private bool ContinueLocalQueue()=>preferences.AutoplayLocalQueue && MoveQueueOrMusic(1);
     private void AddQueueFiles(IEnumerable<string> paths,bool playFirst)
     {
         var files=paths.Where(x=>File.Exists(x) && QueueMedia(x)).ToArray();

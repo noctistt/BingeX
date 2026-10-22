@@ -13,6 +13,7 @@ internal static class DiscoverChecks
         await StorageSettingsChecks.Run(window,log);
         AppSettingsChecks.Run(window,log);
         LocalQueueUiChecks.Run(window,log);
+        await MusicChecks.Run(window,log);
         await OnlineModeChecks.Run(window, log);
         await ProgressiveLoadingChecks.Run(window, log);
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;

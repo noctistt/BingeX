@@ -51,6 +51,7 @@ public partial class MainWindow
     }
     private void ApplyOnlineMode()
     {
+        ApplyMusicOnlineMode();
         AddonsNav.IsVisible = onlineEnabled;
         DiscoverSection.IsVisible = onlineEnabled;
         ConnectCatalogButton.IsVisible = onlineEnabled;

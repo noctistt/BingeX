@@ -1,3 +1,4 @@
+using Avalonia.LogicalTree;
 using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -17,7 +18,7 @@ internal static class LocalQueueUiChecks
         try
         {
             Call("AddQueueFiles",new[]{path,path},false);Call("QueuePage_Click",null,new RoutedEventArgs());
-            Check(Control<ScrollViewer>("LocalLibraryPage").IsVisible && Control<Expander>("QueuePanel").IsExpanded && ((StackPanel)Control<ScrollViewer>("LocalLibraryPage").Content!).Children.Contains(Control<Expander>("QueuePanel")) && !Control<ScrollViewer>("AppSettingsPage").IsVisible && queue.Items.Count==1 && Get("currentPath")==null,"Queue opens inside My Library while adding files does not start playback.");
+            Check(Control<ScrollViewer>("LocalLibraryPage").IsVisible && Control<Expander>("QueuePanel").IsExpanded && Control<ScrollViewer>("LocalLibraryPage").GetLogicalDescendants().Contains(Control<Expander>("QueuePanel")) && !Control<ScrollViewer>("AppSettingsPage").IsVisible && queue.Items.Count==1 && Get("currentPath")==null,"Queue opens inside My Library while adding files does not start playback.");
             Call("QueuePage_Click",Control<Button>("LibraryQueueButton"),new RoutedEventArgs());
             Check(!Control<Expander>("QueuePanel").IsExpanded && queue.Items.Count==1,"Library queue button collapses the panel without clearing it.");
             Call("Page","Player"); Call("QueuePage_Click",Control<Button>("QueueOpenButton"),new RoutedEventArgs());
