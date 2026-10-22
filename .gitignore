@@ -428,3 +428,18 @@ FodyWeavers.xsd
 #*.lscache
 
 /artifacts/
+
+# Local profiles, credentials, downloaded extensions and development output
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.cs3
+*.torrent
+/outputs/
+/work/
+/local-data/

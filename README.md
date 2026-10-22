@@ -1,6 +1,8 @@
 # BingeX
 
-A modern desktop media player with local playback, a visual media library, and Stremio add-on support.
+A desktop media player for local files and network streams, powered by LibVLC, with a visual library and optional Stremio add-on and Cloudstream extension compatibility.
+
+BingeX is an independent personal development project. No media catalog, streaming extension, media files, or service credentials are bundled. Online features are disabled by default; users choose and configure third-party providers. See [project scope and distribution](docs/project-scope.md) for built-in endpoints, privacy and licensing limits.
 
 ## Status
 
@@ -36,7 +38,7 @@ The playback prototype has verified native video rendering, pause, duration, and
 
 ## Compatibility
 
-Media support depends on the LibVLC build and included codecs; no player supports every possible file. Stremio add-on compatibility does not automatically provide support for every returned source. Torrent-based streams require a separate streaming component and are outside the initial playback milestone.
+Media support depends on the LibVLC build and included codecs; no player supports every possible file. Stremio add-on compatibility does not automatically provide support for every returned source. Optional BitTorrent playback uses MonoTorrent and is disabled by default in source searches. Provider availability, media rights, authentication and compatibility remain independent of the player.
 
 ## Development
 
@@ -86,7 +88,7 @@ Browsing currently displays the first 100 titles per catalog; combined search is
 
 ## License
 
-An open-source release is intended. The project license has not yet been selected. Third-party components retain their respective licenses. BingeX is an independent project and is not affiliated with VideoLAN or Stremio.
+An open-source release is intended. The project license has not yet been selected. Third-party components retain their respective licenses. BingeX is an independent project and is not affiliated with or endorsed by VideoLAN, Stremio, Cloudstream or third-party providers. Compatibility names identify the software/protocols supported; their owners retain their trademarks.
 
 
 ## Windows preview package

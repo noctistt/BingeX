@@ -6,7 +6,7 @@ internal static class SourceSelectionChecks
     private static void Check(bool value, string message) { if (!value) throw new Exception(message); }
     public static void Run()
     {
-        using var provider = JsonDocument.Parse("""{"infoHash":"abcdef0123456789abcdef0123456789abcdef01","name":"Torrentio 1080p","description":"👤 123 💾 2.5 GB","behaviorHints":{"videoSize":2500000000}}""");
+        using var provider = JsonDocument.Parse("""{"infoHash":"abcdef0123456789abcdef0123456789abcdef01","name":"Fixture 1080p","description":"👤 123 💾 2.5 GB","behaviorHints":{"videoSize":2500000000}}""");
         var parsed = MediaLibrary.ParseStream("Fixture", provider.RootElement);
         Check(parsed.Evidence == new SourceEvidence(2500000000, 123, 1080), "Standard file size and provider seed/quality hints must be extracted without inventing missing values.");
         using var unknown = JsonDocument.Parse("""{"url":"https://example.com/video"}""");

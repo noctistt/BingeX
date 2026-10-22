@@ -31,21 +31,6 @@ public static class AddonHealth
         HttpRequestException => "Connection failed. The provider or your network may be unavailable.",
         _ => "The provider could not be checked."
     };
-    // Matches public hostnames only. Never pass configured paths, queries or tokens to the directory.
-    public static Uri CommunityPage(InstalledAddon addon)
-    {
-        if (!Uri.TryCreate(addon.ManifestUrl, UriKind.Absolute, out var uri)) return new("https://stremio-addons.net/addons");
-        var slug = uri.Host.ToLowerInvariant() switch
-        {
-            "torrentio.strem.fun" => "torrentio",
-            "comet.elfhosted.com" => "comet",
-            "mediafusion.elfhosted.com" => "mediafusion-elfhosted",
-            "mediafusionfortheweebs.midnightignite.me" => "mediafusion-fortheweebs",
-            "aiostreams.elfhosted.com" => "aiostreams",
-            "yastream.tamthai.de" => "yastream",
-            "pengu.uk" or "www.pengu.uk" => "penguplay",
-            _ => null
-        };
-        return new("https://stremio-addons.net/addons" + (slug == null ? "" : "/" + slug));
-    }
+    // Use the general directory without transmitting any configured URL or provider identity.
+    public static Uri CommunityPage(InstalledAddon addon) => new("https://stremio-addons.net/addons");
 }

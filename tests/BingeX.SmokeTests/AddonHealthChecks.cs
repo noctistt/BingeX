@@ -34,8 +34,8 @@ internal static class AddonHealthChecks
             try { await AddonHealth.CheckManifest(client, addon, token.Token); } catch (OperationCanceledException) { canceled = true; }
             if (!canceled) throw new Exception("Canceled checks must not report a provider outage.");
         }
-        var known = AddonHealth.CommunityPage(addon with { ManifestUrl = "https://torrentio.strem.fun/private-token/manifest.json?key=secret" });
-        if (known.AbsoluteUri != "https://stremio-addons.net/addons/torrentio" || AddonHealth.CommunityPage(addon).AbsoluteUri != "https://stremio-addons.net/addons")
+        var known = AddonHealth.CommunityPage(addon with { ManifestUrl = "https://provider.example/private-token/manifest.json?key=secret" });
+        if (known.AbsoluteUri != "https://stremio-addons.net/addons" || AddonHealth.CommunityPage(addon).AbsoluteUri != "https://stremio-addons.net/addons")
             throw new Exception("Community links must strip all private configuration and avoid guessing unknown listings.");
         foreach (var (code, body, failed, expected) in new[]
         {
