@@ -27,6 +27,11 @@ static void Package(string path,byte[] manifest,bool dex=true)
     if(dex){using var stream=zip.CreateEntry("classes.dex").Open();stream.Write("fixture-not-executable"u8);}
 }
 static void Reject(Action action){try{action();}catch(InvalidDataException){return;}throw new Exception("Malformed package was accepted.");}
+if(args.FirstOrDefault()=="--inspect")
+{
+    foreach(var path in args.Skip(1))try{var item=EchoPackages.Inspect(path);Console.WriteLine($"{Path.GetFileName(path)}: {item.Name} / {item.Version}");}catch(Exception error){Console.WriteLine($"{Path.GetFileName(path)}: {error.GetType().Name}: {error.Message}");}
+    return;
+}
 var root=Path.Combine(Path.GetTempPath(),"BingeX-echo-packages-"+Guid.NewGuid());Directory.CreateDirectory(root);
 try
 {

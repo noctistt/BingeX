@@ -1,6 +1,6 @@
 # Echo music extension feasibility probe
 
-Status (2026-10-22): BingeX 0.14.5 imports Echo repository, GitHub release and direct package links. Activation, session login, browsing and playback still use a separately prepared runtime profile, selected once under Advanced. No SDK/runtime downloader or bundled Echo dependencies are included. Built-in OpenSubsonic support remains separate.
+Status (2026-10-22): BingeX 0.14.6 imports music extension links and automatically opens provider catalogues after activation/login. Setup and inactive-provider states remain visible in Music. Browsing/playback still require a separately prepared runtime profile, selected once under Advanced. No SDK/runtime downloader or bundled Echo dependencies are included. Built-in OpenSubsonic support remains separate.
 
 ## Examined artifacts
 
@@ -93,3 +93,11 @@ GitHub project and releases-list URLs resolve the latest published release; tag 
 Tests use synthetic HTTPS handlers with the actual inspected fixture package: repository/release/direct-link resolution, GitHub tags, optional digests, downgrade rejection, cancellation, oversized responses and cleanup. The real Add-ons UI test also installs from a synthetic repository before running the existing activation/login/browsing/playback checks. No public music provider or real account is used.
 
 Link import does not remove the engine dependency. The inspected OpenSubsonic package contains no Echo common SDK classes, so a package-only runtime could not instantiate it. The working separate SDK/runtime path remains required and automatic SDK provisioning remains unresolved. No SDK-free fallback or automatic runtime installer is shipped in this milestone.
+
+## Catalogue and setup feedback — 0.14.6
+
+The online Music page retains a provider-catalogue section when no extension is active, explaining setup/activation rather than presenting a blank area. Add-ons > Music shows engine setup status outside Advanced. Activation of a public provider, or successful custom account selection, automatically loads HomeFeedClient when available, falls back to blank-query SearchFeedClient otherwise, and navigates to Music. No catalogue results and missing supported browse/search capabilities have explicit messages. No built-in catalogue has been added.
+
+Repository choices exclude entries explicitly marked as non-music (lyrics/tracker/misc); older entries without type remain readable. Install controls display progress and installed/retry states. Safe host-status errors distinguish rate limiting, missing files, HTTP refusal, ambiguous releases and checksum failures without exposing request URLs. Generic failures still need extension-specific investigation.
+
+The UI fixture now supplies synthetic OpenSubsonic home endpoints and verifies automatic catalogue opening after login, followed by search, paging, album navigation and playback. Package inspection of the current YouTube Music, Radio Browser and Deezer downloads succeeded; those inspections do not verify their activation or live catalogues. No user account/profile was read. Tests also cover repository type filtering and sanitized missing-release feedback. The one-time external runtime setup and distribution review remain unchanged.

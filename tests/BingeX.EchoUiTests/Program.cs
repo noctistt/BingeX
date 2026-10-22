@@ -70,6 +70,7 @@ internal static class Program
                         Check(fields.Length==3&&fields[2].PasswordChar=='●',"Actual custom login form must mask the password.");
                         fields[0].Text=args[2];fields[1].Text="fixture";fields[2].Text="probe-password";Click(form.Children.OfType<Button>().Single());
                         await Wait(()=>!(bool)Get("echoWorking")!,"Login did not finish.");Check(Get("echoBridge")!=null&&fields.All(x=>string.IsNullOrEmpty(x.Text)),"Login must succeed and clear input controls.");
+                        Check(C<ScrollViewer>("MusicPage").IsVisible&&C<StackPanel>("EchoMusicItems").Children.Count>0,"Successful login must automatically open the provider catalogue.");
                         Call("Page","Music");C<TextBox>("EchoQuery").Text="";Call("SearchEcho_Click",null,new RoutedEventArgs());
                         await Wait(()=>!(bool)Get("echoWorking")!,"Search did not finish.");Check(Get("echoBridge")!=null,"Search failed.");
                         Click(C<WrapPanel>("EchoTabs").Children.OfType<Button>().Single(x=>x.Content?.ToString()=="Tracks"));await Wait(()=>!(bool)Get("echoWorking")!,"Track tab did not load.");

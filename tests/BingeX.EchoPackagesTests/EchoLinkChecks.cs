@@ -20,8 +20,9 @@ internal static class EchoLinkChecks
         {
             var url=request.RequestUri!;
             if(url.Host=="api.github.com")return new(HttpStatusCode.OK){Content=new StringContent("{\"assets\":[{\"name\":\"music.eapk\",\"browser_download_url\":\"https://files.example/music.eapk\",\"digest\":\"sha256:"+hash+"\"}]}",Encoding.UTF8,"application/json")};
-            if(url.AbsolutePath=="/repo.json")return new(HttpStatusCode.OK){Content=new StringContent("[{\"id\":\"fixture\",\"name\":\"Fixture music\",\"updateUrl\":\"https://api.github.com/repos/owner/music/releases\"}]")};
+            if(url.AbsolutePath=="/repo.json")return new(HttpStatusCode.OK){Content=new StringContent("[{\"id\":\"fixture\",\"type\":\"music\",\"name\":\"Fixture music\",\"updateUrl\":\"https://api.github.com/repos/owner/music/releases\"},{\"type\":\"lyrics\",\"name\":\"Lyrics only\",\"updateUrl\":\"https://api.github.com/repos/owner/lyrics/releases\"}]")};
             if(url.AbsolutePath=="/redirect.eapk")return new(HttpStatusCode.Found){Headers={Location=new Uri("http://unsafe.example/file.eapk")}};
+            if(url.AbsolutePath=="/missing.eapk")return new(HttpStatusCode.NotFound);
             return new(HttpStatusCode.OK){Content=new ByteArrayContent(data)};
         }));
         var choices=await links.Read("https://github.com/owner/music");Check(choices.Count==1&&choices[0].Sha256==hash,"Release fingerprint must survive mapping.");
@@ -29,6 +30,7 @@ internal static class EchoLinkChecks
         var repo=await links.Read("https://repo.example/repo.json");Check(repo.Single().Name=="Fixture music","Echo repository schema must load.");await links.Install(repo[0],root);
         await Reject(()=>links.Install(new("bad","https://files.example/music.eapk",new string('0',64)),root));
         await Reject(()=>links.Install(new("redirect","https://files.example/redirect.eapk"),root));
+        bool unavailable=false;try{await links.Install(new("missing","https://files.example/missing.eapk"),root);}catch(EchoInstallException error){unavailable=error.Message.Contains("404")&&!error.Message.Contains("files.example");}Check(unavailable,"Unavailable releases must explain the failure without exposing private URLs.");
         using var oversized=new EchoLinks(new Fixture(_=>{var content=new ByteArrayContent([1]);content.Headers.ContentLength=33*1024*1024;return new(HttpStatusCode.OK){Content=content};}));
         await Reject(()=>oversized.Install(new("large","https://files.example/large.eapk"),root));
         using var cancelled=new CancellationTokenSource();cancelled.Cancel();bool stopped=false;try{await links.Install(choices[0],root,cancelled.Token);}catch(OperationCanceledException){stopped=true;}Check(stopped,"Cancellation must stop downloads.");

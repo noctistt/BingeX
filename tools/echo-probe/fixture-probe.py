@@ -5,7 +5,7 @@ p=argparse.ArgumentParser();p.add_argument('--java',required=True);p.add_argumen
 stream=io.BytesIO()
 with wave.open(stream,'wb') as w:
  w.setnchannels(1);w.setsampwidth(2);w.setframerate(16000);w.writeframes(b''.join(struct.pack('<h',int(math.sin(i*2*math.pi*440/16000)*1000)) for i in range(16000*20)))
-audio=stream.getvalue();counts={'search':0,'stream':0}
+audio=stream.getvalue();counts={'search':0,'stream':0,'home':0}
 class Fixture(http.server.BaseHTTPRequestHandler):
  def log_message(self,*args):pass
  def send_json(self,data):
@@ -21,6 +21,12 @@ class Fixture(http.server.BaseHTTPRequestHandler):
    self.send_json({'subsonic-response':{'status':'ok','user':{'username':'fixture'}}})
   elif u.path.endswith('/getAlbum'):
    self.send_json({'subsonic-response':{'status':'ok','album':{'id':'album','name':'Fixture album','song':[{'id':'album-track','isDir':False,'title':'Album tone','duration':20,'bitRate':256,'contentType':'audio/wav'}]}}})
+  elif u.path.endswith('/getAlbumList2'):
+   counts['home']+=1;self.send_json({'subsonic-response':{'status':'ok','albumList2':{'album':[{'id':'album','name':'Fixture album','songCount':1}]}}})
+  elif u.path.endswith('/getArtists'):
+   self.send_json({'subsonic-response':{'status':'ok','artists':{'index':[]}}})
+  elif u.path.endswith('/getPlaylists'):
+   self.send_json({'subsonic-response':{'status':'ok','playlists':{'playlist':[]}}})
   elif u.path.endswith('/search3'):
    counts['search']+=1
    if get('query')=='slow':time.sleep(3)

@@ -6,7 +6,7 @@ BingeX is an independent personal development project. No media catalog, streami
 
 ## Status
 
-Early development preview 0.14.5. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
+Early development preview 0.14.6. The desktop app includes a visual library, searchable catalogs, movie and series pages, and an upgraded local player with track selection, subtitle controls, and fullscreen overlays. No production release is available yet.
 
 ## What we are building
 
@@ -359,3 +359,7 @@ Add-ons > Music can select a separately prepared runtime profile and activate a 
 ### 0.14.5 — Paste-link music extension imports
 
 Add-ons > Music accepts Echo repository links, GitHub project/release links, direct .eapk links and Echo-style shortcodes. Choose a repository entry to download and validate its package; activation remains explicit. Local-file import and runtime controls now live under Advanced. Downloads have size limits, HTTPS-only redirects, cancellation and optional release digest checks. The separate music runtime still needs a one-time setup before playback; automatic engine provisioning is not included. See [supported links and limits](docs/echo-bridge.md#link-imports--0145).
+
+### 0.14.6 — Music catalogue and setup feedback
+
+Online Music now keeps a visible catalogue/setup section even before a provider is active. Add-ons shows the music engine status prominently. Successful activation or account login loads the provider's home catalogue automatically (or blank-query search when no home feed exists) and opens Music. Empty sections suggest a song/album/artist search. Repository entries marked lyrics, tracker or misc are excluded from music installation choices. Install buttons show installing/installed/retry states, while missing releases, host errors, rate limits and checksum failures get specific messages. This does not provide a built-in music catalogue or remove the separate engine setup requirement; live provider compatibility still varies.

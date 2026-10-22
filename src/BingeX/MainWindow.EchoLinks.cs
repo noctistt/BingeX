@@ -22,26 +22,31 @@ public partial class MainWindow
             }
             else
             {
-                foreach(var choice in choices){var button=new Button{Content="Install "+choice.Name,Margin=new Thickness(0,0,8,8)};button.Click+=async(_,_)=>await InstallEchoChoice(choice);EchoLinkChoices.Children.Add(button);}
+                foreach(var choice in choices){var button=new Button{Content="Install "+choice.Name,Margin=new Thickness(0,0,8,8)};button.Click+=async(_,_)=>await InstallEchoChoice(choice,button);EchoLinkChoices.Children.Add(button);}
                 EchoPackageMessage.Text=$"{choices.Count} extensions found. Choose one to install.";
             }
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){if(!localClosing)EchoPackageMessage.Text="Link import cancelled.";}
+        catch(EchoInstallException error){if(!localClosing)EchoPackageMessage.Text=error.Message;}
+        catch(OperationCanceledException){if(!localClosing)EchoPackageMessage.Text="The extension host took too long to respond. Try again.";}
         catch{if(!localClosing)EchoPackageMessage.Text="Could not read this link. Use an HTTPS Echo repository, GitHub release or direct .eapk link. The host may also be unavailable or rate limited.";}
         finally{echoImporting=false;if(!localClosing){EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;EchoLinkChoices.IsEnabled=true;}}
     }
-    private async Task InstallEchoChoice(EchoLinkChoice choice)
+    private async Task InstallEchoChoice(EchoLinkChoice choice,Button? clicked=null)
     {
         if(!onlineEnabled||echoImporting)return;
         echoLinkWork.Cancel();echoLinkWork.Dispose();echoLinkWork=new();var token=echoLinkWork.Token;echoImporting=true;EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;
         EchoPackageMessage.Text="Downloading and checking extension…";
+        if(clicked!=null)clicked.Content="Installing "+choice.Name+"…";bool installed=false;
         try
         {
             using var links=echoLinksFactory();await links.Install(choice,store.DataDirectory,token);token.ThrowIfCancellationRequested();if(localClosing)return;
-            await RefreshEchoPackages();EchoLinkInput.Text="";EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";
+            await RefreshEchoPackages();EchoLinkInput.Text="";EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";installed=true;
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){if(!localClosing)EchoPackageMessage.Text="Link import cancelled.";}
+        catch(EchoInstallException error){if(!localClosing)EchoPackageMessage.Text=error.Message;}
+        catch(OperationCanceledException){if(!localClosing)EchoPackageMessage.Text="The extension host took too long to respond. Try again.";}
         catch{if(!localClosing)EchoPackageMessage.Text="Could not install this extension. Check that the release has one compatible .eapk file, or paste its direct download link.";}
-        finally{echoImporting=false;if(!localClosing){EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;}}
+        finally{echoImporting=false;if(!localClosing){EchoLinkChoices.IsEnabled=EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=true;if(clicked!=null){clicked.Content=(installed?"Installed ":"Retry ")+choice.Name;clicked.IsEnabled=!installed;ToolTip.SetTip(clicked,EchoPackageMessage.Text);}}}
     }
 }

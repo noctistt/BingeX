@@ -129,6 +129,7 @@ public partial class MainWindow
         MusicServerPanel.IsVisible=onlineEnabled;MusicManageConnections.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
         EchoPackagesPanel.IsVisible=onlineEnabled;
         if(!onlineEnabled)StopEcho();
+        EchoMusicPanel.IsVisible=onlineEnabled;
         if(!onlineEnabled)DisconnectMusicServer();
     }
     private CancellationToken BeginMusicServerRequest()

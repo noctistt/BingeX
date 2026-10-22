@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 namespace BingeX;
 
 public sealed record EchoLinkChoice(string Name,string Url,string? Sha256=null);
+public sealed class EchoInstallException(string message):IOException(message);
 
 /// <summary>Explicit user-selected links only. Download never activates extension code.</summary>
 public sealed class EchoLinks:IDisposable
@@ -41,7 +42,11 @@ public sealed class EchoLinks:IDisposable
                 var location=response.Headers.Location;response.Dispose();if(location==null)throw new IOException("Missing redirect target.");
                 uri=Normalize(new Uri(uri,location).AbsoluteUri);continue;
             }
-            if(!response.IsSuccessStatusCode){response.Dispose();throw new IOException("The extension host could not complete this request.");}return response;
+            if(!response.IsSuccessStatusCode)
+            {
+                var code=(int)response.StatusCode;bool limited=code==429||code==403&&response.Headers.TryGetValues("X-RateLimit-Remaining",out var values)&&values.Contains("0");response.Dispose();
+                throw new EchoInstallException(limited?"The extension host is rate limiting requests. Try again later.":code==404?"This extension release or file is no longer available (404).":$"The extension host refused the request (HTTP {code}).");
+            }return response;
         }
         throw new IOException("Too many extension link redirects.");
     }
@@ -62,6 +67,7 @@ public sealed class EchoLinks:IDisposable
             if(root.GetArrayLength()>256)throw new InvalidDataException("Music repository is too large.");
             foreach(var row in root.EnumerateArray())
             {
+                var type=Text(row,"type");if(type.Length>0&&!type.Equals("music",StringComparison.OrdinalIgnoreCase))continue;
                 string name=Text(row,"name"),link=Text(row,"updateUrl");
                 if(name.Length is 0 or >512||link.Length==0)throw new InvalidDataException("Unsupported Echo repository.");
                 choices.Add(new(name,Normalize(link).AbsoluteUri));
@@ -78,7 +84,7 @@ public sealed class EchoLinks:IDisposable
             }
         }
         else throw new InvalidDataException("Use an Echo repository, GitHub release, or direct .eapk link.");
-        if(choices.Count==0)throw new InvalidDataException("No Echo extension files were found.");return choices;
+        if(choices.Count==0)throw new EchoInstallException("No supported music extension files were found in this release or repository.");return choices;
     }
     private static string Text(JsonElement row,string key)=>row.ValueKind==JsonValueKind.Object&&row.TryGetProperty(key,out var item)&&item.ValueKind==JsonValueKind.String?item.GetString()??"":"";
     public async Task<EchoPackage> Install(EchoLinkChoice choice,string dataDirectory,CancellationToken token=default)
@@ -87,7 +93,7 @@ public sealed class EchoLinks:IDisposable
         if(!uri.AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))
         {
             var assets=await Read(uri.AbsoluteUri,token);
-            if(assets.Count!=1||!Normalize(assets[0].Url).AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("Choose a release containing one .eapk, or paste the direct file link.");
+            if(assets.Count!=1||!Normalize(assets[0].Url).AbsolutePath.EndsWith(".eapk",StringComparison.OrdinalIgnoreCase))throw new EchoInstallException("This release has multiple files or an unsupported format. Paste the direct .eapk download link instead.");
             choice=assets[0];uri=Normalize(choice.Url);
         }
         var directory=Path.Combine(dataDirectory,"echo","downloads");Directory.CreateDirectory(directory);var temporary=Path.Combine(directory,Guid.NewGuid()+".download");
@@ -97,9 +103,9 @@ public sealed class EchoLinks:IDisposable
             if(choice.Sha256 is {} expected)
             {
                 if(expected.Length!=64||!expected.All(Uri.IsHexDigit))throw new InvalidDataException("Invalid release fingerprint.");
-                await using var input=File.OpenRead(temporary);if(!Convert.ToHexString(await SHA256.HashDataAsync(input,token)).Equals(expected,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("Extension download integrity check failed.");
+                await using var input=File.OpenRead(temporary);if(!Convert.ToHexString(await SHA256.HashDataAsync(input,token)).Equals(expected,StringComparison.OrdinalIgnoreCase))throw new EchoInstallException("The download did not match its published checksum. Try downloading again.");
             }
-            token.ThrowIfCancellationRequested();return await Task.Run(()=>new EchoPackages(dataDirectory).Import(temporary),token);
+            token.ThrowIfCancellationRequested();try{return await Task.Run(()=>new EchoPackages(dataDirectory).Import(temporary),token);}catch(InvalidDataException){throw new EchoInstallException("The downloaded file is not a music extension format supported by BingeX.");}
         }
         finally{if(File.Exists(temporary))File.Delete(temporary);}
     }

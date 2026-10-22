@@ -19,7 +19,7 @@ public partial class MainWindow
     private int echoEpoch;
     private void SetupEcho()
     {
-        try{var file=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");if(File.Exists(file))echoRuntimeFile=File.ReadAllText(file);if(echoRuntimeFile!=null)EchoRuntimeMessage.Text="Music runtime selected. Activate a trusted extension to start.";}catch{}
+        try{var file=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");if(File.Exists(file))echoRuntimeFile=File.ReadAllText(file);if(echoRuntimeFile!=null){EchoRuntimeMessage.Text="Music runtime selected. Activate a trusted extension to start.";EchoSetupSummary.Text="Music engine selected. Activate an installed provider to load its catalogue.";EchoStatus.Text="No music provider active. Activate an installed provider in Add-ons → Music to see its catalogue.";}}catch{}
         Closed+=(_,_)=>StopEcho();
     }
     private void StopEcho()
@@ -28,7 +28,7 @@ public partial class MainWindow
         echoEpoch++;echoWork.Cancel();echoWork.Dispose();echoWork=new();
         var old=echoBridge;echoBridge=null;echoPackage=null;echoWorking=false;
         if(old!=null)_=old.DisposeAsync().AsTask();
-        ClearEchoBrowser();EchoLoginForms.Children.Clear();EchoUsers.Children.Clear();EchoMusicPanel.IsVisible=false;EchoBusy.IsVisible=false;EchoPackageItems.IsEnabled=EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=true;EchoStatus.Text="Music extension disconnected. Login was cleared; current playback may continue.";
+        ClearEchoBrowser();EchoLoginForms.Children.Clear();EchoUsers.Children.Clear();EchoMusicTitle.Text="Online music catalogue";EchoSearchControls.IsVisible=false;EchoMusicPanel.IsVisible=onlineEnabled;EchoBusy.IsVisible=false;EchoPackageItems.IsEnabled=EchoMusicItems.IsEnabled=EchoTabs.IsEnabled=EchoLoginForms.IsEnabled=EchoUsers.IsEnabled=true;EchoStatus.Text=echoRuntimeFile==null?"Music engine setup is missing. Open Manage extension / login to finish setup before browsing.":"No music provider active. Activate an installed provider in Add-ons → Music to see its catalogue.";
     }
     private void ClearEchoBrowser(bool resetNavigation=true){echoFeed=null;echoTab=echoNext="";EchoTabs.Children.Clear();EchoMusicItems.Children.Clear();EchoMore.IsVisible=false;if(resetNavigation)echoNavigation.Clear();EchoBack.IsVisible=echoNavigation.Count>0;}
     private void DisconnectEcho_Click(object? sender,RoutedEventArgs e){StopEcho();_=RefreshEchoPackages();}
@@ -45,6 +45,8 @@ public partial class MainWindow
             StopEcho();echoRuntimeFile=file;EchoTrust.IsChecked=false;
             var location=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");Directory.CreateDirectory(Path.GetDirectoryName(location)!);File.WriteAllText(location,file);
             EchoRuntimeMessage.Text="Runtime verified. Activate a trusted music extension to start.";
+            EchoSetupSummary.Text="Music engine verified. Activate an installed provider to load its catalogue.";
+            EchoStatus.Text="Activate an installed provider to load its catalogue.";
         }
         catch{EchoRuntimeMessage.Text="Could not verify this runtime. Choose a prepared echo-runtime.json with its original dependency files.";}
     }
@@ -62,10 +64,12 @@ public partial class MainWindow
             var path=Path.Combine(store.DataDirectory,"echo","packages",package.Sha256+".eapk");
             await candidate.InitializeAsync(new(path,package.Sha256,package.EntryClass,profile.SdkHash),token);
             token.ThrowIfCancellationRequested();if(localClosing||epoch!=echoEpoch)return;
-            echoPackage=package;EchoMusicTitle.Text=package.Name;EchoMusicPanel.IsVisible=true;
+            echoPackage=package;EchoMusicTitle.Text=package.Name+" · catalogue";EchoMusicPanel.IsVisible=true;EchoSearchControls.IsVisible=true;
             EchoSearchButton.IsEnabled=candidate.Capabilities.Contains("SearchFeedClient");EchoHomeButton.IsEnabled=candidate.Capabilities.Contains("HomeFeedClient");
             if(candidate.Capabilities.Contains("CustomInput")){var forms=await candidate.CallAsync("loginForms",new{},token);token.ThrowIfCancellationRequested();RenderEchoForms(forms);}
-            token.ThrowIfCancellationRequested();EchoStatus.Text="Active. Sign in below if required, then open Music to browse or search.";
+            token.ThrowIfCancellationRequested();
+            if(candidate.Capabilities.Contains("CustomInput"))EchoStatus.Text="Provider active. Sign in below to load its music catalogue, then choose Open Music.";
+            else await LoadEchoCatalogue(candidate,token);
             await RefreshEchoPackages();
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
@@ -107,8 +111,8 @@ public partial class MainWindow
                 await EchoRequest(async(bridge,token)=>
                 {
                     ClearEchoBrowser();EchoUsers.Children.Clear();var users=await bridge.CallAsync("login",new{key=keyForm,data=values},token);values.Clear();token.ThrowIfCancellationRequested();
-                    if(users.GetArrayLength()==1){await bridge.CallAsync("selectUser",new{handle=users[0].GetProperty("handle").GetString()},token);EchoStatus.Text="Signed in for this session. Open Music to search or browse.";}
-                    else{foreach(var user in users.EnumerateArray()){var handle=user.GetProperty("handle").GetString();var choose=new Button{Content=user.GetProperty("name").GetString(),Margin=new Thickness(0,0,8,0)};choose.Click+=async(_,_)=>await EchoRequest(async(b,t)=>{ClearEchoBrowser();await b.CallAsync("selectUser",new{handle},t);EchoUsers.Children.Clear();EchoStatus.Text="Account selected for this session.";},"Selecting account…");EchoUsers.Children.Add(choose);}EchoStatus.Text=users.GetArrayLength()==0?"No accounts returned. Activate again to retry.":"Choose an account.";}
+                    if(users.GetArrayLength()==1){await bridge.CallAsync("selectUser",new{handle=users[0].GetProperty("handle").GetString()},token);await LoadEchoCatalogue(bridge,token);}
+                    else{foreach(var user in users.EnumerateArray()){var handle=user.GetProperty("handle").GetString();var choose=new Button{Content=user.GetProperty("name").GetString(),Margin=new Thickness(0,0,8,0)};choose.Click+=async(_,_)=>await EchoRequest(async(b,t)=>{ClearEchoBrowser();await b.CallAsync("selectUser",new{handle},t);EchoUsers.Children.Clear();await LoadEchoCatalogue(b,t);},"Selecting account…");EchoUsers.Children.Add(choose);}EchoStatus.Text=users.GetArrayLength()==0?"No accounts returned. Activate again to retry.":"Choose an account.";}
                 },"Signing in…");values.Clear();
             };
             panel.Children.Add(login);EchoLoginForms.Children.Add(panel);
@@ -121,6 +125,14 @@ public partial class MainWindow
         foreach(var tab in feed.Tabs){var button=new Button{Content=tab.Title,Margin=new Thickness(0,0,8,4)};button.Click+=async(_,_)=>await EchoRequest(async(b,t)=>await EchoPage(b,tab.Id,false,t),"Loading music…");EchoTabs.Children.Add(button);}
         if(feed.Feed.Length>0)await EchoPage(bridge,selectedTab??feed.Tabs.FirstOrDefault()?.Id??"",false,token);else EchoStatus.Text="No music returned.";
     }
+    private async Task LoadEchoCatalogue(EchoMusicBridge bridge,CancellationToken token)
+    {
+        EchoStatus.Text="Loading the provider's music catalogue…";
+        if(bridge.Capabilities.Contains("HomeFeedClient")){var raw=await bridge.CallAsync("home",new{},token);await OpenEchoFeed(bridge,raw.Deserialize<EchoFeed>(new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!,token);}
+        else if(bridge.Capabilities.Contains("SearchFeedClient"))await OpenEchoFeed(bridge,await bridge.SearchAsync("",token),token);
+        else EchoStatus.Text="This provider does not offer a catalogue or search supported by BingeX yet.";
+        token.ThrowIfCancellationRequested();if(bridge.Capabilities.Contains("SearchFeedClient")||bridge.Capabilities.Contains("HomeFeedClient"))OpenEchoMusic_Click(null,new RoutedEventArgs());
+    }
     private async Task EchoPage(EchoMusicBridge bridge,string tab,bool more,CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -128,7 +140,7 @@ public partial class MainWindow
         if(!more){EchoMusicItems.Children.Clear();echoNext="";EchoMore.IsVisible=false;}echoTab=tab;
         var page=await bridge.PageAsync(echoFeed.Feed,tab,more?echoNext:null,token);token.ThrowIfCancellationRequested();
         foreach(var item in page.Items)RenderEchoItem(item,0);
-        echoNext=page.Next;EchoMore.IsVisible=page.Next.Length>0;EchoStatus.Text=page.Items.Count==0?"No results in this section.":"Choose a track or album.";
+        echoNext=page.Next;EchoMore.IsVisible=page.Next.Length>0;EchoStatus.Text=page.Items.Count==0?"The provider returned no catalogue items here. Try searching by song, album or artist.":"Catalogue loaded. Open Music to choose a track or album.";
     }
     private void RenderEchoItem(EchoItem item,int depth)
     {
