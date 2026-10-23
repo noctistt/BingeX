@@ -11,6 +11,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if(args.Length==1&&args[0]=="--musicfree-worker")return MusicFreeWorker.Run();
         var dataDirectory = Environment.GetEnvironmentVariable("BINGEX_DATA_DIRECTORY") ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BingeX");
         using var instance = new SingleInstance(dataDirectory);

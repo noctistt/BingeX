@@ -1,7 +1,12 @@
 {
-  "reviewDate": "2026-10-22",
+  "reviewDate": "2026-10-23",
   "scope": "Resolved NuGet metadata; constituent native/runtime files require separate review",
   "packages": [
+    {
+      "package": "Acornima/1.7.0",
+      "licenseType": "expression",
+      "license": "BSD-3-Clause"
+    },
     {
       "package": "Avalonia.Angle.Windows.Natives/2.1.25547.20250602",
       "licenseType": "file",
@@ -63,6 +68,11 @@
       "license": "MIT"
     },
     {
+      "package": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.1",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
       "package": "HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.1",
       "licenseType": "expression",
       "license": "MIT"
@@ -73,14 +83,14 @@
       "license": "MIT"
     },
     {
-      "package": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.1",
+      "package": "HarfBuzzSharp/8.3.1.1",
       "licenseType": "expression",
       "license": "MIT"
     },
     {
-      "package": "HarfBuzzSharp/8.3.1.1",
+      "package": "Jint/4.17.0",
       "licenseType": "expression",
-      "license": "MIT"
+      "license": "BSD-2-Clause"
     },
     {
       "package": "LibVLCSharp.Avalonia/3.10.2",
@@ -123,6 +133,31 @@
       "license": "LICENSE.md"
     },
     {
+      "package": "SkiaSharp.NativeAssets.Linux/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.macOS/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.WebAssembly/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp.NativeAssets.Win32/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
+      "package": "SkiaSharp/2.88.9",
+      "licenseType": "expression",
+      "license": "MIT"
+    },
+    {
       "package": "SQLitePCLRaw.bundle_e_sqlite3/2.1.13",
       "licenseType": "expression",
       "license": "Apache-2.0"
@@ -141,31 +176,6 @@
       "package": "SQLitePCLRaw.provider.e_sqlite3/2.1.13",
       "licenseType": "expression",
       "license": "Apache-2.0"
-    },
-    {
-      "package": "SkiaSharp.NativeAssets.Linux/2.88.9",
-      "licenseType": "expression",
-      "license": "MIT"
-    },
-    {
-      "package": "SkiaSharp.NativeAssets.WebAssembly/2.88.9",
-      "licenseType": "expression",
-      "license": "MIT"
-    },
-    {
-      "package": "SkiaSharp.NativeAssets.Win32/2.88.9",
-      "licenseType": "expression",
-      "license": "MIT"
-    },
-    {
-      "package": "SkiaSharp.NativeAssets.macOS/2.88.9",
-      "licenseType": "expression",
-      "license": "MIT"
-    },
-    {
-      "package": "SkiaSharp/2.88.9",
-      "licenseType": "expression",
-      "license": "MIT"
     },
     {
       "package": "TagLibSharp/2.3.0",

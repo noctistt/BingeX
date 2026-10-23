@@ -2,6 +2,8 @@
 
 BingeX uses these independently maintained projects. Their licenses apply to their respective components; BingeX original work is GPL-3.0-or-later (see LICENSE and COPYRIGHT.md).
 
+- Jint 4.17.0: BSD-2-Clause - https://github.com/sebastienros/jint/tree/f0e4cbb55467b6e168c9da6392e402e8b3e65c2f
+- Acornima 1.7.0: BSD-3-Clause - https://github.com/adams85/acornima/tree/401bd62d8aeb9f7cbe7b6147937a87e0c71747a8
 - TagLibSharp 2.3.0: LGPL-2.1-only — https://github.com/mono/taglib-sharp/tree/TaglibSharp-2.3.0.0
 - MonoTorrent 3.0.2: MIT — https://github.com/alanmcgovern/monotorrent/tree/release-v3.0.2
 - Mono.Nat: MIT — https://github.com/alanmcgovern/Mono.Nat

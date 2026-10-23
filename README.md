@@ -1,4 +1,4 @@
-> Music update (0.14.13): Echo integration is archived and removed from the active application. Historical Echo notes below describe past development. See [archive and restoration](archive/echo/README.md) and [MusicFree evaluation](docs/musicfree-evaluation.md). Local music, artwork, playback controls and OpenSubsonic connections are retained.
+> Music update (0.14.13): Echo integration is archived and removed from the active application. Historical Echo notes below describe past development. See [archive and restoration](archive/echo/README.md) and [MusicFree setup and test scope](docs/musicfree-evaluation.md). Local music, artwork, playback controls and OpenSubsonic connections are retained.
 
 # BingeX
 
@@ -393,3 +393,7 @@ An off-by-default Advanced option can use a separately prepared, hash-verified c
 ### Guided music engine setup (0.14.12)
 
 Add-ons > Music now has a visible Set up music engine button. Selecting a verified prepared profile automatically chooses the available engine mode; enhanced mode cannot be enabled for a standard profile. Saved setup is checked on restart. Repository choices collapse after installation to keep installed providers visible. The runtime is still separately supplied, and provider compatibility remains experimental.
+
+### MusicFree search/audio preview (0.14.14)
+
+Add-ons > Music accepts one trusted MusicFree provider using a direct HTTPS .js link. The tested Audiomack plugin supports search with artwork cards and native music playback, seeking, previous/next and the persistent music bar. The embedded engine needs no external runtime setup. This is a limited experimental host, not full MusicFree compatibility; it adds no provider catalogue or lossless source. See [setup and tested limits](docs/musicfree-evaluation.md).

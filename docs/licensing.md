@@ -38,3 +38,7 @@ The music helper is original source with a separate C# process transport. Starti
 ## Optional enhanced music route (0.14.11)
 
 BingeX ships only the original opt-in host/adapter and local preparation tooling. The prepared compatibility component uses separately supplied Dartotsu bridge sources (custom Unabandon license), compatibility sources with retained MPL-2.0 notices, and external converter/ICU dependencies. The custom-license/GPL combination and runtime redistribution review remains unresolved; do not bundle or automatically download that component. The local builder retains source/notices and fingerprints, but does not certify a redistributable bundle. See [setup, test scope and review outcome](../archive/echo/docs/echo-enhanced-compatibility.md).
+
+## Embedded MusicFree subset (0.14.14)
+
+The application includes Jint 4.17.0 (BSD-2-Clause) and Acornima 1.7.0 (BSD-3-Clause), plus original BingeX host/shim code. Their upstream license texts and NuGet manifests are included in packaging/licenses and the packaged licenses folder. No MusicFree desktop code, JavaScript provider, Node runtime or npm package is bundled. Users import separately supplied plugins, whose own terms remain applicable. The limited host does not imply compatibility with every MusicFree plugin.

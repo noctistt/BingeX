@@ -1,3 +1,31 @@
+# MusicFree search/audio preview - 0.14.14
+
+Current status: the app includes a small embedded Jint host for the tested MusicFree search/standard-audio subset. The research-only notes below describe earlier phases. No Node, Java, npm packages or provider plugins are bundled in the app. Echo remains archived.
+
+## Using the preview
+
+1. Enable Online mode and open Add-ons > Music.
+2. Confirm trust, paste a direct HTTPS MusicFree JavaScript plugin link and choose Add provider.
+3. Open Music, search for a song/artist, then select a track. The music bar provides play/pause, seek, volume and previous/next. The existing autoplay preference applies to the current result queue.
+
+Tested provider: [author Audiomack plugin, pinned revision](https://raw.githubusercontent.com/maotoumao/MusicFreePlugins/3fa57cf37c100f32ca96e9199c6b008e79db28c1/dist/audiomack/index.js). This is an optional user import, not a baked-in catalogue or source. Only one provider is retained in this preview. Source code and trust choice are saved in the user's musicfree/provider.json; search results, full result items, queues and signed playback URLs remain session-only and are excluded from video history. Online mode hides the panel and cancels outstanding work without removing the provider. Existing music can continue playing. Removal similarly leaves current playback alone.
+
+This is not full MusicFree compatibility: repository JSON installation, provider accounts/cookies, HTML catalogue methods, nonstandard audio qualities and source headers are unsupported. Other plugins can fail. Search/next-track resolution uses fresh script instances; arbitrary plugin session state is not retained. Lyrics, saved online playlists and lossless sources are not added here. Audiomack's measured output was AAC, 44.1 kHz stereo.
+
+## Runtime and limits
+
+Jint 4.17.0 + Acornima 1.7.0 add roughly 3 MB of managed assemblies before installer compression. Only a small original host API is exposed: axios-style GET/POST, HMAC-SHA1/Base64 and the date format used by the tested plugin. Unsupported modules/methods fail explicitly. String compilation and broad CLR access are not enabled. The engine runs in a separate instance of the BingeX executable, before UI/single-instance initialization; no separate runtime picker or daemon is needed.
+
+Execution is capped by statement/memory/recursion/time limits, at most 12 HTTP requests, and a parent-process deadline which kills the worker. Source/output sizes and result counts are bounded. HTTP uses HTTPS, no cookies/proxy/default credentials, public-address validation and connection-time DNS validation, bounded bodies and manually validated redirects. This is process isolation for responsiveness, not an OS security sandbox; only import trusted code. No provider update is downloaded automatically. Runtime cancellation, startup, trust and import/source failure states are explicit.
+
+## App validation
+
+Actual UI test in an isolated profile: explicit trust before execution, pinned HTTPS import, search cards/artwork, muted LibVLC audio beyond three seconds, seeking, distinct next track, persistent music controls on navigation, no video history entries, offline retention and cancellation. Embedded-host synthetic checks use the unmodified plugin. An additional live engine-only request returned HTTP 406 while the full UI run succeeded; service availability is not guaranteed and the UI permits retry/another track. Earlier Node comparison also hit its script watchdog during the follow-up, so it is not treated as a successful additional run.
+
+The earlier native test remains recorded below. Tests do not establish long-term availability, all-catalogue coverage, gapless/bit-perfect output or a lossless source.
+
+---
+
 # MusicFree evaluation - 2026-10-23
 
 Status: research only. No MusicFree runtime, plugins or dependencies are included in the BingeX app. Echo is archived. Local music, metadata/artwork, playback controls, queues and native OpenSubsonic connections are retained.
@@ -47,4 +75,4 @@ Passed in one live run:
 
 Reported codec FourCC: mp4a (AAC); 44,100 Hz, stereo. This is not FLAC/high-resolution lossless. No bit-perfect output or audible device path was tested. One successful run does not establish service-wide catalogue coverage, long-term reliability or behaviour after provider updates.
 
-The result is recorded in tools/musicfree-probe/results/audiomack-native.json. The probe does not exercise BingeX's UI, queue/history wiring, library persistence or plugin installation. No new runtime/dependency is added to the user app, and no new installer is needed for this research-only change. Next implementation gate: a small end-to-end Audiomack integration with a clear unavailable/error state, artwork and native controls, while keeping generic plugin execution outside the UI process. Provider/runtime distribution and host design still need review before shipping.
+The result is recorded in tools/musicfree-probe/results/audiomack-native.json. That earlier probe did not exercise BingeX's UI, queue/history wiring, library persistence or plugin installation. No new runtime/dependency is added to the user app, and no new installer is needed for this research-only change. Next implementation gate: a small end-to-end Audiomack integration with a clear unavailable/error state, artwork and native controls, while keeping generic plugin execution outside the UI process. Provider/runtime distribution and host design still need review before shipping.

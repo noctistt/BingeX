@@ -1,0 +1,1 @@
+PASS: explicit trust, direct-link import, isolated embedded worker, live search/artwork cards, muted native playback, seeking, next track, video-history exclusion, persistent controls, offline retention and cancellation. No external runtime setup.

@@ -51,11 +51,11 @@ public partial class MainWindow
     private void UpdateQueueActions()
     {
         var active=currentContext==null && currentPath!=null && localQueue.IsCurrent(currentPath);
-        LocalQueueActions.IsVisible=localQueue.Items.Count>0 || IsServerMusicPlaying;
+        LocalQueueActions.IsVisible=localQueue.Items.Count>0 || IsServerMusicPlaying || IsMusicFreePlaying;
         QueueOpenButton.Content=LibraryQueueButton.Content=$"Queue ({localQueue.Items.Count})";
         QueuePanel.Header=$"Playback queue ({localQueue.Items.Count})";
-        QueuePreviousButton.IsEnabled=IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex>0 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>0;
-        QueueNextButton.IsEnabled=IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex<serverTracks.Count-1 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>=0 && localQueue.CurrentIndex<localQueue.Items.Count-1;
+        QueuePreviousButton.IsEnabled=IsMusicFreePlaying ? onlineEnabled&&!musicFreeWorking&&!NativePlaybackBusy&&musicFreeIndex>0 : IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex>0 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>0;
+        QueueNextButton.IsEnabled=IsMusicFreePlaying ? onlineEnabled&&!musicFreeWorking&&!NativePlaybackBusy&&musicFreeIndex<musicFreeQueue.Length-1 : IsServerMusicPlaying ? !NativePlaybackBusy && serverTrackIndex<serverTracks.Count-1 : active && !NativePlaybackBusy && !playbackStarting && localQueue.CurrentIndex>=0 && localQueue.CurrentIndex<localQueue.Items.Count-1;
     }
     private bool PlayQueueItem(string path)
     {
@@ -73,7 +73,7 @@ public partial class MainWindow
     }
     private void QueuePrevious_Click(object? sender,RoutedEventArgs e)=>MoveQueueOrMusic(-1);
     private void QueueNext_Click(object? sender,RoutedEventArgs e)=>MoveQueueOrMusic(1);
-    private bool MoveQueueOrMusic(int direction)=>IsServerMusicPlaying?MoveServerMusic(direction):MoveQueue(direction);
+    private bool MoveQueueOrMusic(int direction)=>IsMusicFreePlaying?MoveMusicFree(direction):IsServerMusicPlaying?MoveServerMusic(direction):MoveQueue(direction);
     private bool ContinueLocalQueue()=>preferences.AutoplayLocalQueue && MoveQueueOrMusic(1);
     private void AddQueueFiles(IEnumerable<string> paths,bool playFirst)
     {

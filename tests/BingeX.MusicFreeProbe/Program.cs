@@ -5,8 +5,11 @@ internal static class Program
 {
     private sealed record Source(string Url,Dictionary<string,string>? Headers);
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--host-checks")return HostChecks.Run();
+        if(args.FirstOrDefault()=="--ui-live")return MusicFreeUiChecks.Run();
+        if(args.Length>0)return EmbeddedChecks.Run(args);
         var stage="input";var passed=new List<string>();
         try
         {
