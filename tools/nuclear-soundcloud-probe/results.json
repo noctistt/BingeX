@@ -1,0 +1,130 @@
+{
+  "scope": "Unmodified reviewed Nuclear SoundCloud plugin; temporary SDK interfaces; no accounts, saved streams, or BingeX profile changes",
+  "requests": 10,
+  "stages": [
+    {
+      "stage": "module-load",
+      "result": "pass",
+      "registered": [
+        "metadata",
+        "streaming",
+        "playlists"
+      ]
+    },
+    {
+      "stage": "search",
+      "query": "Kevin MacLeod",
+      "result": "pass",
+      "count": 5,
+      "artwork": true
+    },
+    {
+      "stage": "stream-search",
+      "query": "Kevin MacLeod",
+      "result": "pass",
+      "count": 5
+    },
+    {
+      "stage": "track-formats",
+      "policy": "ALLOW",
+      "streamable": true,
+      "formats": [
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mp4; codecs=\"mp4a.40.2\""
+        },
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mp4; codecs=\"mp4a.40.2\""
+        },
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mpegurl"
+        }
+      ]
+    },
+    {
+      "stage": "media-host",
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "scheme": "https:"
+    },
+    {
+      "stage": "resolve",
+      "query": "Kevin MacLeod",
+      "result": "pass",
+      "protocol": "hls",
+      "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+      "estimatedBitrateKbps": 160
+    },
+    {
+      "stage": "search",
+      "query": "Arijit Singh",
+      "result": "pass",
+      "count": 5,
+      "artwork": true
+    },
+    {
+      "stage": "stream-search",
+      "query": "Arijit Singh",
+      "result": "pass",
+      "count": 5
+    },
+    {
+      "stage": "track-formats",
+      "policy": "ALLOW",
+      "streamable": true,
+      "formats": [
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mp4; codecs=\"mp4a.40.2\""
+        },
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mp4; codecs=\"mp4a.40.2\""
+        },
+        {
+          "protocol": "hls",
+          "mimeType": "audio/mpegurl"
+        }
+      ]
+    },
+    {
+      "stage": "media-host",
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "scheme": "https:"
+    },
+    {
+      "stage": "resolve",
+      "query": "Arijit Singh",
+      "result": "pass",
+      "protocol": "hls",
+      "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+      "estimatedBitrateKbps": 160
+    },
+    {
+      "stage": "native-playback",
+      "exitCode": 0,
+      "result": "pass",
+      "passed": [
+        "first_track",
+        "seek_forward",
+        "seek_backward",
+        "pause_resume",
+        "next_track",
+        "failed_source",
+        "recovery"
+      ],
+      "codecFourCC": 1630826605,
+      "sampleRate": 44100,
+      "channels": 2,
+      "output": "muted dummy output",
+      "scope": "native engine; no BingeX UI integration"
+    }
+  ],
+  "upstream": {
+    "repository": "https://github.com/NuclearPlayer/nuclear-plugin-soundcloud",
+    "commit": "b6b5722ab493ee9db697fc1d0a92674a9890af09",
+    "version": "0.3.0"
+  },
+  "testedAt": "2026-10-23"
+}
