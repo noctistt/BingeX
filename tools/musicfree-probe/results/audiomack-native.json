@@ -1,0 +1,47 @@
+{
+  "mode": "native",
+  "metadata": {
+    "name": "Audiomack",
+    "version": "0.0.2",
+    "sha256": "c2781dc55ce60be70b7901ae00cafa73cccf478d4e225c0651b5ecef2697de23",
+    "dependencies": [
+      "axios",
+      "cheerio",
+      "crypto-js",
+      "dayjs"
+    ],
+    "methods": [
+      "search",
+      "getMediaSource",
+      "getAlbumInfo",
+      "getMusicSheetInfo",
+      "getArtistWorks",
+      "getRecommendSheetTags",
+      "getRecommendSheetsByTag",
+      "getTopLists",
+      "getTopListDetail"
+    ]
+  },
+  "query": "Kevin MacLeod",
+  "distinctTracks": 2,
+  "artwork": true,
+  "requests": 3,
+  "native": {
+    "exitCode": 0,
+    "result": "pass",
+    "passed": [
+      "first_track",
+      "seek_forward",
+      "seek_backward",
+      "pause_resume",
+      "next_track",
+      "failed_source",
+      "recovery"
+    ],
+    "codecFourCC": 1630826605,
+    "sampleRate": 44100,
+    "channels": 2,
+    "output": "muted dummy output",
+    "scope": "native engine; no BingeX UI integration"
+  }
+}

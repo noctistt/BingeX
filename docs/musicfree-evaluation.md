@@ -32,3 +32,19 @@ The desktop host provides axios, cheerio, crypto-js, dayjs, big-integer, qs, he,
 ## Next gate
 
 Before implementing a user-facing importer: verify one provider's native playback, seeking, next-track/retry, artwork and real codec/quality; review maintenance and redistribution terms; choose a host requiring no manual runtime selection. Lyrics should be independent of the source. No replacement is claimed ready from load-only tests.
+
+## Native playback follow-up (2026-10-23)
+
+The unmodified pinned Audiomack plugin resolved two distinct public search results, both with artwork. Sources were passed to a standalone C# test through stdin and never written to disk. The test references BingeX's current project and uses the same LibVLC package/backend with video disabled and dummy (muted) output.
+
+Passed in one live run:
+
+- First track decoded audio and advanced beyond three seconds.
+- Seek forward to 15 seconds, then backward to two seconds, with clock advancement after both seeks.
+- Pause held the playback position; resume advanced again.
+- A second distinct source started and decoded audio.
+- An intentionally unavailable loopback source failed; opening the first source again recovered playback.
+
+Reported codec FourCC: mp4a (AAC); 44,100 Hz, stereo. This is not FLAC/high-resolution lossless. No bit-perfect output or audible device path was tested. One successful run does not establish service-wide catalogue coverage, long-term reliability or behaviour after provider updates.
+
+The result is recorded in tools/musicfree-probe/results/audiomack-native.json. The probe does not exercise BingeX's UI, queue/history wiring, library persistence or plugin installation. No new runtime/dependency is added to the user app, and no new installer is needed for this research-only change. Next implementation gate: a small end-to-end Audiomack integration with a clear unavailable/error state, artwork and native controls, while keeping generic plugin execution outside the UI process. Provider/runtime distribution and host design still need review before shipping.

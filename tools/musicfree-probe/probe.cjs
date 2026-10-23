@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const {createRequire} = require('node:module');
 const crypto = require('node:crypto');
 const [root, dependencyRoot, mode = 'inspect', name = 'youtube', query = 'Kevin MacLeod'] = process.argv.slice(2);
-if (!root || !dependencyRoot || !['inspect','fixture','live'].includes(mode)) throw Error('Usage: node probe.cjs PLUGIN_REPO DEPENDENCY_DIRECTORY inspect|fixture|live [plugin] [query]');
+if (!root || !dependencyRoot || !['inspect','fixture','live','native'].includes(mode)) throw Error('Usage: node probe.cjs PLUGIN_REPO DEPENDENCY_DIRECTORY inspect|fixture|live|native [plugin] [query]');
 const dependency = createRequire(path.resolve(dependencyRoot, 'package.json'));
 const allowed = new Set(['axios','cheerio','crypto-js','dayjs','big-integer','qs','he','webdav']);
 const quiet = {log(){},warn(){},error(){},debug(){},info(){}};
@@ -37,7 +37,7 @@ function load(name, mockAxios) {
   const plugin=module.exports.default??module.exports;
   return {plugin, metadata:{name:plugin.platform,version:plugin.version,sha256:crypto.createHash('sha256').update(source).digest('hex'),dependencies:[...imports],methods:Object.keys(plugin).filter(k=>typeof plugin[k]==='function')}};
 }
-const watchdog=setTimeout(()=>{console.log(JSON.stringify({mode,name,result:'timeout'}));process.exit(2)},55000);
+const watchdog=setTimeout(()=>{console.log(JSON.stringify({mode,name,result:'timeout'}));process.exit(2)},mode==='native'?120000:55000);
 (async()=>{
   const axios=dependency('axios');axios.defaults.timeout=12000;axios.defaults.maxContentLength=4*1024*1024;
   axios.interceptors.request.use(c=>{requests++;if(mode==='inspect')throw Object.assign(Error('Inspection blocks network'),{code:'INSPECTION_NETWORK_BLOCKED'});return c});
@@ -67,6 +67,29 @@ const watchdog=setTimeout(()=>{console.log(JSON.stringify({mode,name,result:'tim
     if(typeof plugin.search!=='function') throw Error('No search');
     const found=await plugin.search(query,1,'music');const items=found?.data??[];searchCount=items.length;
     const report={mode,metadata,query,result:items.length?'search_ok':'empty',count:items.length,artwork:items.some(x=>!!x.artwork),requests};
+    if(mode==='native') {
+      stage='native_sources';
+      const distinct=[...new Map(items.map(x=>[x.id,x])).values()].slice(0,2);
+      if(distinct.length!==2)throw Error('Two distinct tracks required');
+      const sources=[];
+      for(const item of distinct){const media=await plugin.getMediaSource(item,'standard');if(!media?.url)throw Error('Missing source');sources.push({url:media.url,headers:media.headers??{}});}
+      const executable=process.env.BINGEX_PROBE_DOTNET, assembly=process.env.BINGEX_PROBE_ASSEMBLY;
+      if(!executable||!assembly)throw Error('Native probe paths missing');
+      stage='native_playback';
+      const {spawn}=require('node:child_process');
+      const native=await new Promise((resolve,reject)=>{
+        const child=spawn(executable,[assembly],{stdio:['pipe','pipe','pipe'],windowsHide:true});
+        let output='';const limit=setTimeout(()=>{child.kill();reject(Object.assign(Error('Native timeout'),{code:'NATIVE_TIMEOUT'}))},100000);
+        child.stdout.on('data',chunk=>{output+=chunk;if(output.length>65536){child.kill();reject(Error('Output limit'))}});
+        child.stderr.on('data',()=>{}); // Native diagnostics can contain signed URLs.
+        child.on('error',e=>{clearTimeout(limit);reject(e)});
+        child.on('close',code=>{clearTimeout(limit);try{resolve({exitCode:code,...JSON.parse(output.trim().split(/\r?\n/).at(-1))})}catch{reject(Error('Invalid native report'))}});
+        child.stdin.on('error',()=>{});child.stdin.end(JSON.stringify(sources));
+      });
+      console.log(JSON.stringify({mode,metadata,query,distinctTracks:distinct.length,artwork:distinct.every(x=>!!x.artwork),requests,native},null,2));
+      if(native.result!=='pass')process.exitCode=1;
+      return;
+    }
     if(items.length&&typeof plugin.getMediaSource==='function') {
       stage='source';const media=await plugin.getMediaSource(items[0],'standard');report.sourceResolved=!!media?.url;
       if(media?.url){
@@ -75,5 +98,5 @@ const watchdog=setTimeout(()=>{console.log(JSON.stringify({mode,name,result:'tim
       }
     }
     report.requests=requests;console.log(JSON.stringify(report,null,2));
-  }catch(e){console.log(JSON.stringify({mode,metadata,result:'failed',stage,searchCount,httpStatus:e.response?.status??null,errorCode:e.code??e.name,requests},null,2));}
+  }catch(e){console.log(JSON.stringify({mode,metadata,result:'failed',stage,searchCount,httpStatus:e.response?.status??null,errorCode:e.code??e.name,requests},null,2));if(mode==='native')process.exitCode=1;}
 })().catch(e=>{console.log(JSON.stringify({mode,name,result:'failed',errorCode:e.code??e.name}));process.exitCode=1}).finally(()=>clearTimeout(watchdog));

@@ -13,3 +13,13 @@ node probe.cjs PATH_TO_PLUGIN_REPO PATH_TO_DEPENDENCY_FOLDER live audiomack "Kev
 Inspect records exports/dependencies with HTTP blocked. Fixture runs the unmodified YouTube plugin against synthetic data. Live searches and resolves the first result, optionally checking response headers without retaining audio. Each invocation has a 55-second watchdog. Source URLs, headers and raw errors are excluded from reports. Node vm is not an untrusted-code sandbox; do not supply login variables.
 
 See ../../docs/musicfree-evaluation.md for actual outcomes and limits.
+
+## Native playback mode
+
+Build tests/BingeX.MusicFreeProbe with the project .NET runtime. Set BINGEX_PROBE_DOTNET to its dotnet executable and BINGEX_PROBE_ASSEMBLY to the absolute built BingeX.MusicFreeProbe.dll path, then run:
+
+```
+node probe.cjs PATH_TO_PLUGIN_REPO PATH_TO_DEPENDENCY_FOLDER native audiomack "Kevin MacLeod"
+```
+
+This resolves two distinct results and sends sources over stdin to the native probe. It checks decoded audio, seeking, pause/resume, switching tracks, an unavailable loopback source and recovery. Output is muted, not an audible device/bit-perfect test. The native mode has a 120-second outer watchdog and a 100-second child limit; other modes retain 55 seconds. Native stderr is intentionally discarded because decoder diagnostics may contain signed source URLs. Cookie/storage support remains research placeholders; header-dependent playback is explicitly rejected pending relay testing. No BingeX profile is opened.
