@@ -34,3 +34,7 @@ The app now uses Jint in a separate BingeX worker, without Node. The original No
 - `--ui-live`: opt-in real UI import, search/artwork, muted native playback, seek/next, video-history privacy, navigation, offline retention and cancellation. Requires BINGEX_DATA_DIRECTORY with a fresh folder name beginning musicfree-ui-test-.
 
 Live tests use the pinned author Audiomack plugin and public Kevin MacLeod search, with no account and no saved media URLs. They can fail when the source service does. Run UI checks separately from builds so Windows does not lock the test assembly during compilation.
+
+## Explore/provider checks (0.14.15)
+
+`--embedded` now checks the unmodified Audiomack plugin's catalogue definitions and browse mapping against synthetic responses as well as search/resolve. `--browse-live PATH_TO_PLUGIN` verifies live catalogue definitions and trending content without playing media. `--ui-live` checks automatic Explore, genre/recent content and cover rendering, provider selection with stale results cleared, a search-only alternate fixture, playback preserved across provider switches and Next resolved through the original provider, persisted selection and offline cancellation. The alternate is synthetic, not a second verified service. `--host-checks` also checks multi-provider retention/removal and migration of the 0.14.14 single-provider JSON.

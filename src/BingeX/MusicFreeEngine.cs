@@ -4,13 +4,13 @@ using System.Text.Json;
 using Jint;
 namespace BingeX;
 
-// A deliberately small, stateless MusicFree host: search + standard audio only.
+// A deliberately small, stateless MusicFree host: search, charts + standard audio.
 // Execution limits are cooperative; the app also runs this in a killable worker.
 public static class MusicFreeEngine
 {
     public static string Run(string source,string operation,string arguments,CancellationToken token,Func<string,string>? http=null)
     {
-        if(source.Length>512*1024||operation is not("inspect" or "search" or "resolve"))throw new InvalidDataException();
+        if(source.Length>512*1024||operation is not("inspect" or "search" or "resolve" or "catalogs" or "browse"))throw new InvalidDataException();
         var requests=0;
         using var engine=new Engine(o=>o.DisableStringCompilation().LimitMemory(32_000_000).MaxStatements(1_000_000).LimitRecursion(128).TimeoutInterval(TimeSpan.FromSeconds(25)).CancellationToken(token));
         engine.SetValue("__http",new Func<string,string>(config=>{if(operation=="inspect"||++requests>12)throw new InvalidOperationException();return (http??(s=>MusicFreeHttp.Send(s,token)))(config);}));
@@ -45,9 +45,20 @@ public static class MusicFreeEngine
                 const plugin=module.exports.default??module.exports,args=JSON.parse(__arguments);
                 if(typeof plugin.platform!=='string'||typeof plugin.search!=='function'||typeof plugin.getMediaSource!=='function')throw Error('Search/audio provider required');
                 if(__operation==='inspect')return JSON.stringify({name:plugin.platform,version:String(plugin.version??''),author:String(plugin.author??'')});
+                const tracks=items=>(items??[]).slice(0,60).map(x=>({id:String(x.id??''),title:String(x.title??''),artist:String(x.artist??''),artwork:typeof x.artwork==='string'?x.artwork:null,duration:Number(x.duration)||0,item:x}));
+                if(__operation==='catalogs'){
+                    if(typeof plugin.getTopLists!=='function'||typeof plugin.getTopListDetail!=='function')return JSON.stringify([]);
+                    const groups=await plugin.getTopLists();
+                    return JSON.stringify((groups??[]).slice(0,12).map(g=>({title:String(g.title??''),catalogs:(g.data??[]).slice(0,60).map(c=>({title:String(c.title??c.name??''),item:c}))})));
+                }
+                if(__operation==='browse'){
+                    if(typeof plugin.getTopListDetail!=='function')throw Error('Browse unavailable');
+                    const result=await plugin.getTopListDetail(args.item,args.page);
+                    return JSON.stringify({isEnd:result?.isEnd!==false,items:tracks(result?.musicList??result?.data)});
+                }
                 if(__operation==='search'){
                     const found=await plugin.search(args.query,args.page,'music');
-                    return JSON.stringify({isEnd:found?.isEnd!==false,items:(found?.data??[]).slice(0,60).map(x=>({id:String(x.id??''),title:String(x.title??''),artist:String(x.artist??''),artwork:typeof x.artwork==='string'?x.artwork:null,duration:Number(x.duration)||0,item:x}))});
+                    return JSON.stringify({isEnd:found?.isEnd!==false,items:tracks(found?.data)});
                 }
                 const media=await plugin.getMediaSource(args.item,'standard');
                 return JSON.stringify({url:media?.url??'',headers:media?.headers??{}});

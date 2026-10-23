@@ -124,7 +124,7 @@ public partial class MainWindow
     }
     private void ApplyMusicOnlineMode()
     {
-        MusicFreePanel.IsVisible=onlineEnabled;if(!onlineEnabled)CancelMusicFree();
+        MusicFreePanel.IsVisible=onlineEnabled;if(!onlineEnabled)CancelMusicFree();else if(MusicPage.IsVisible)_=EnsureMusicFreeExplore();
         MusicServerPanel.IsVisible=onlineEnabled;MusicManageConnections.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
         if(!onlineEnabled)DisconnectMusicServer();
     }

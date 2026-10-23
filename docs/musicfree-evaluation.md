@@ -1,3 +1,19 @@
+# Provider browsing update - 0.14.15
+
+Music now has a provider selector above Explore and Search. Multiple imported providers are retained (up to 12), with the last selected provider and each provider's trust choice remembered. Existing single-provider data is read in its original form and migrated when next saved; no reinstall is needed.
+
+The installed plugin supplies its catalogue sections through getTopLists and getTopListDetail. Audiomack supplies Trending Songs, Recently Added Music and 14 genre choices. These are loaded on first entering Music or selecting a provider, without typing a search. Sections/genres are not hardcoded into BingeX. Search-only providers retain search and hide Explore controls after capability discovery. A provider failure shows retry/search alternatives. Chart pagination is not guessed when the plugin supplies no continuation signal; search pagination remains available.
+
+Switching providers cancels pending work and clears results, genres and the search field. Current playback and its result queue retain the original provider code/items, so browsing another provider cannot route Next to an unrelated service. Next only works while that original provider version remains installed and trusted. Removing or updating that provider leaves current audio alone but prevents further resolutions using obsolete code. Search results and playback queues remain session-only.
+
+Live checks: unmodified author Audiomack plugin returned both sections, 14 genres and 49 trending tracks. Actual UI checks cover automatic Explore, genres, recent tracks, search/artwork, a synthetic search-only alternate provider, clearing stale results, continued native playback and original-provider Next while browsing the alternate, persisted selection, offline retention and cancellation. The alternate is a test fixture, not a second recommended public provider. Audiomack remains the only live provider verified here.
+
+This update adds no runtime dependency or bundled provider. Album/artist/playlist detail pages and HTML-dependent catalogue methods remain outside the tested subset. Quality remains source-dependent; no lossless source is added.
+
+The notes below describe the earlier search/audio implementation and experiments.
+
+---
+
 # MusicFree search/audio preview - 0.14.14
 
 Current status: the app includes a small embedded Jint host for the tested MusicFree search/standard-audio subset. The research-only notes below describe earlier phases. No Node, Java, npm packages or provider plugins are bundled in the app. Echo remains archived.

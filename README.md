@@ -397,3 +397,7 @@ Add-ons > Music now has a visible Set up music engine button. Selecting a verifi
 ### MusicFree search/audio preview (0.14.14)
 
 Add-ons > Music accepts one trusted MusicFree provider using a direct HTTPS .js link. The tested Audiomack plugin supports search with artwork cards and native music playback, seeking, previous/next and the persistent music bar. The embedded engine needs no external runtime setup. This is a limited experimental host, not full MusicFree compatibility; it adds no provider catalogue or lossless source. See [setup and tested limits](docs/musicfree-evaluation.md).
+
+### Provider Explore and genres (0.14.15)
+
+Music has a provider selector, automatic Explore, plugin-supplied sections and genre filters. Audiomack provides Trending and Recently Added. Multiple imported providers and the selected provider are retained, including the existing 0.14.14 import. Browsing another provider preserves current playback and keeps Next tied to the original provider. Search-only providers remain supported; Audiomack is the only public provider verified live. See [setup and scope](docs/musicfree-evaluation.md).

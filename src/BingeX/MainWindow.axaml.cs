@@ -159,6 +159,7 @@ public partial class MainWindow : Window
         if (page == "My Library") RefreshLocalLibrary();
         PageTitle.Text = page == "Library" ? "Home" : page == "Details" ? "Discover" : page;
         if (page == "Library") { RefreshHistory(); if (onlineEnabled) ResumePosterArtwork(); }
+        if(page=="Music"&&onlineEnabled)_=EnsureMusicFreeExplore();
     }
     private async void Library_Click(object? sender, RoutedEventArgs e)
     {

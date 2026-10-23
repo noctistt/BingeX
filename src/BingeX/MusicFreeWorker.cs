@@ -4,6 +4,8 @@ namespace BingeX;
 public record MusicFreeRequest(string Source,string Operation,string Arguments);
 public record MusicFreeProvider(string Name,string Version,string Author,string Sha256="",bool Trusted=false);
 public record MusicFreeTrack(string Id,string Title,string Artist,string? Artwork,double Duration,JsonElement Item);
+public record MusicFreeCatalog(string Title,JsonElement Item);
+public record MusicFreeCatalogGroup(string Title,MusicFreeCatalog[] Catalogs);
 public record MusicFreeResults(bool IsEnd,MusicFreeTrack[] Items);
 public record MusicFreeSource(string Url,Dictionary<string,string>? Headers);
 public static class MusicFreeWorker

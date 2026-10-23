@@ -1,0 +1,1 @@
+PASS: automatic Trending Explore, genre changes, Recently Added, live search/artwork, provider switching with cleared results, search-only fallback, preserved playback and original-provider next track, persisted selection and multiple providers, native playback/seeking, history exclusion, navigation, offline retention and cancellation.

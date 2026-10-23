@@ -14,19 +14,28 @@ public partial class MainWindow
     private int musicFreeIndex=-1,musicFreePage;
     private string musicFreeQuery="";
     private CancellationTokenSource musicFreeWork=new();
-    private bool musicFreeWorking;
+    private bool musicFreeWorking,musicFreeSelecting,musicFreeBrowsing;
+    private IReadOnlyList<MusicFreeSaved> musicFreeProviders=[];
+    private MusicFreeCatalogGroup[] musicFreeCatalogs=[];
+    private string? musicFreeCatalogProvider,musicFreeQueueCode,musicFreeQueueProvider;
+
     private void SetupMusicFree()
     {
         musicFreeStore=new(store.DataDirectory);
-        try{if(musicFreeStore.Read() is {} saved){musicFreeProvider=saved.Provider;musicFreeCode=saved.Source;MusicFreeTrust.IsChecked=saved.Provider.Trusted;}}catch{MusicFreeInstallMessage.Text="The saved provider could not be read. Add its original link again.";}
+        try{ReloadMusicFreeProviders();}catch{MusicFreeInstallMessage.Text="The saved providers could not be read. Add their original links again.";}
         UpdateMusicFreeProvider();
-        MusicFreeTrust.IsCheckedChanged+=(_,_)=>{if(MusicFreeTrust.IsChecked!=true)CancelMusicFree();if(musicFreeProvider!=null&&musicFreeCode!=null){try{musicFreeProvider=musicFreeProvider with{Trusted=MusicFreeTrust.IsChecked==true};musicFreeStore.Save(musicFreeProvider,musicFreeCode);}catch{MusicFreeInstallMessage.Text="Could not save the trust preference.";}}};
+        MusicFreeTrust.IsCheckedChanged+=(_,_)=>{if(musicFreeSelecting)return;if(MusicFreeTrust.IsChecked!=true)CancelMusicFree();if(musicFreeProvider!=null&&musicFreeCode!=null){try{musicFreeProvider=musicFreeProvider with{Trusted=MusicFreeTrust.IsChecked==true};musicFreeStore.Save(musicFreeProvider,musicFreeCode);musicFreeProviders=musicFreeStore.ReadAll();UpdateQueueActions();}catch{MusicFreeInstallMessage.Text="Could not save the trust preference.";}}};
         Closed+=(_,_)=>musicFreeWork.Cancel();
     }
     private void UpdateMusicFreeProvider()
     {
         MusicFreeProviderName.Text=musicFreeProvider is {} p?$"{p.Name} · {p.Version}":"No music provider installed";
         MusicFreeTitle.Text=musicFreeProvider?.Name??"Online music";
+        musicFreeSelecting=true;
+        MusicFreeProviderPicker.ItemsSource=musicFreeProviders.Select(x=>x.Provider.Name).ToArray();
+        MusicFreeProviderPicker.SelectedItem=musicFreeProvider?.Name;
+        MusicFreeTrust.IsChecked=musicFreeProvider?.Trusted==true;
+        musicFreeSelecting=false;
         MusicFreeRemove.IsVisible=musicFreeProvider!=null;UpdateQueueActions();
     }
     private void CancelMusicFree()
@@ -56,18 +65,22 @@ public partial class MainWindow
             var source=await Task.Run(()=>MusicFreeHttp.Download(link.Trim(),token),token);token.ThrowIfCancellationRequested();
             var provider=await MusicFreeWorker.Call<MusicFreeProvider>(source,"inspect",new{},token);token.ThrowIfCancellationRequested();
             if(localClosing||!onlineEnabled)return;
-            provider=provider with{Trusted=true};musicFreeStore!.Save(provider,source);musicFreeProvider=provider;musicFreeCode=source;musicFreeQueue=[];musicFreeIndex=-1;musicFreeItems.Clear();MusicFreeResultsPanel.Children.Clear();MusicFreeMore.IsVisible=false;UpdateMusicFreeProvider();
-            MusicFreeLink.Text="";MusicFreeInstallMessage.Text="Provider added. Open Music to search for tracks.";MusicFreeMessage.Text="Search for a song or artist to begin.";
+            provider=provider with{Trusted=true};musicFreeStore!.Save(provider,source);ReloadMusicFreeProviders();ClearMusicFreeBrowse();UpdateMusicFreeProvider();
+            MusicFreeLink.Text="";MusicFreeInstallMessage.Text="Provider added. Open Music to explore or search.";MusicFreeMessage.Text="Search for a song or artist to begin.";
         }catch(OperationCanceledException){}
         catch{if(!token.IsCancellationRequested&&!localClosing)MusicFreeInstallMessage.Text="Could not add this provider. Use a direct HTTPS .js link for a compatible MusicFree search/audio plugin. Your previous provider is kept.";}
         finally{if(!token.IsCancellationRequested&&!localClosing){musicFreeWorking=false;MusicFreeBusy.IsVisible=false;MusicFreeSearchButton.IsEnabled=MusicFreeInstallButton.IsEnabled=true;}}
     }
     private void RemoveMusicFree_Click(object? sender,RoutedEventArgs e)
     {
-        CancelMusicFree();try{musicFreeStore!.Remove();musicFreeCode=null;musicFreeProvider=null;musicFreeQueue=[];musicFreeIndex=-1;musicFreeItems.Clear();MusicFreeResultsPanel.Children.Clear();MusicFreeMore.IsVisible=false;MusicFreeTrust.IsChecked=false;UpdateMusicFreeProvider();MusicFreeInstallMessage.Text="Provider removed. Current playback can continue.";}catch{MusicFreeInstallMessage.Text="Could not remove the provider. Try again.";}
+        CancelMusicFree();try{
+            var name=musicFreeProvider?.Name;musicFreeStore!.Remove(name);
+            if(name==musicFreeQueueProvider){musicFreeQueue=[];musicFreeIndex=-1;musicFreeQueueCode=null;}
+            ReloadMusicFreeProviders();ClearMusicFreeBrowse();UpdateMusicFreeProvider();MusicFreeInstallMessage.Text="Provider removed. Current playback can continue.";
+        }catch{MusicFreeInstallMessage.Text="Could not remove the provider. Try again.";}
     }
     private async void SearchMusicFree_Click(object? sender,RoutedEventArgs e)=>await SearchMusicFree(false);
-    private async void MoreMusicFree_Click(object? sender,RoutedEventArgs e)=>await SearchMusicFree(true);
+    private async void MoreMusicFree_Click(object? sender,RoutedEventArgs e){if(!musicFreeBrowsing)await SearchMusicFree(true);}
     private async Task SearchMusicFree(bool more)
     {
         if(!MusicFreeReady())return;
@@ -75,7 +88,7 @@ public partial class MainWindow
         if(more&&musicFreeWorking)return;
         var token=StartMusicFree();var page=more?musicFreePage+1:1;var code=musicFreeCode!;
         if(!more){musicFreeItems.Clear();MusicFreeResultsPanel.Children.Clear();MusicFreeMore.IsVisible=false;}
-        MusicFreeMessage.Text="Searching…";
+        musicFreeBrowsing=false;MusicFreeExploreButton.Classes.Set("primary",false);MusicFreeMessage.Text="Searching…";
         try{
             var result=await MusicFreeWorker.Call<MusicFreeResults>(code,"search",new{query,page},token);token.ThrowIfCancellationRequested();if(localClosing||code!=musicFreeCode)return;
             foreach(var item in result.Items.Where(x=>x.Id.Length>0&&x.Title.Length>0))if(!musicFreeItems.Any(x=>x.Id==item.Id))musicFreeItems.Add(item);
@@ -96,24 +109,25 @@ public partial class MainWindow
             content.Children.Add(new TextBlock{Text=item.Title,MaxLines=2,TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});content.Children.Add(new TextBlock{Text=item.Artist,MaxLines=1,TextTrimming=TextTrimming.CharacterEllipsis,FontSize=12});
             content.Children.Add(new TextBlock{Text=Clock((long)(Math.Clamp(item.Duration,0,86400)*1000)),FontSize=11});
             var button=new Button{Content=content,Padding=new(8),Margin=new(0,0,8,8),VerticalAlignment=VerticalAlignment.Top};
-            button.Click+=async(_,_)=>{if(!musicFreeWorking&&MusicFreeReady()&&!NativePlaybackBusy){musicFreeQueue=musicFreeItems.ToArray();await PlayMusicFree(Array.FindIndex(musicFreeQueue,x=>x.Id==item.Id));}};MusicFreeResultsPanel.Children.Add(button);
+            button.Click+=async(_,_)=>{if(!musicFreeWorking&&MusicFreeReady()&&!NativePlaybackBusy){musicFreeQueue=musicFreeItems.ToArray();musicFreeQueueCode=musicFreeCode;musicFreeQueueProvider=musicFreeProvider?.Name;await PlayMusicFree(Array.FindIndex(musicFreeQueue,x=>x.Id==item.Id));}};MusicFreeResultsPanel.Children.Add(button);
         }
     }
     private async Task PlayMusicFree(int index)
     {
-        if(!MusicFreeReady()||NativePlaybackBusy||index<0||index>=musicFreeQueue.Length)return;
-        var track=musicFreeQueue[index];var code=musicFreeCode!;var request=playbackRequest;var token=StartMusicFree();MusicFreeMessage.Text="Opening "+track.Title+"…";
+        if(!onlineEnabled||!MusicFreeQueueReady||NativePlaybackBusy||index<0||index>=musicFreeQueue.Length)return;
+        var queue=musicFreeQueue;var track=queue[index];var code=musicFreeQueueCode!;var request=playbackRequest;var token=StartMusicFree();MusicFreeMessage.Text="Opening "+track.Title+"…";
         try{
-            var media=await MusicFreeWorker.Call<MusicFreeSource>(code,"resolve",new{item=track.Item},token);token.ThrowIfCancellationRequested();if(localClosing||code!=musicFreeCode||request!=playbackRequest)return;
+            var media=await MusicFreeWorker.Call<MusicFreeSource>(code,"resolve",new{item=track.Item},token);token.ThrowIfCancellationRequested();if(localClosing||code!=musicFreeQueueCode||!ReferenceEquals(queue,musicFreeQueue)||request!=playbackRequest)return;
             MusicFreeHttp.PublicUri(media.Url);if(media.Headers?.Count>0)throw new NotSupportedException();
             musicFreeIndex=index;musicFreeCurrentUrl=media.Url;Play(media.Url,track.Artist+" — "+track.Title,skipHistory:true,musicPlayback:true);MusicFreeMessage.Text="Playing · "+track.Title;
         }catch(OperationCanceledException){}
         catch{if(!token.IsCancellationRequested&&!localClosing)MusicFreeMessage.Text="This track is unavailable or needs unsupported features. Try another track or retry.";}
         finally{if(!token.IsCancellationRequested&&!localClosing){musicFreeWorking=false;MusicFreeBusy.IsVisible=false;MusicFreeSearchButton.IsEnabled=MusicFreeInstallButton.IsEnabled=true;UpdateQueueActions();}}
     }
+    private bool MusicFreeQueueReady=>musicFreeProviders.Any(x=>x.Provider.Trusted&&x.Provider.Name==musicFreeQueueProvider&&x.Source==musicFreeQueueCode);
     private bool IsMusicFreePlaying=>musicFreeCurrentUrl!=null&&currentPath==musicFreeCurrentUrl;
     private bool MoveMusicFree(int direction)
     {
-        var next=musicFreeIndex+direction;if(!onlineEnabled||musicFreeWorking||NativePlaybackBusy||next<0||next>=musicFreeQueue.Length)return false;_=PlayMusicFree(next);return true;
+        var next=musicFreeIndex+direction;if(!onlineEnabled||!MusicFreeQueueReady||musicFreeWorking||NativePlaybackBusy||next<0||next>=musicFreeQueue.Length)return false;_=PlayMusicFree(next);return true;
     }
 }
