@@ -92,7 +92,7 @@ public partial class MainWindow
                 button.Click+=(_,_)=>{if(epoch==musicLyricEpoch)SelectMusicLyrics(match);};MusicLyricMatches.Children.Add(button);
             }
             MusicLyricsMessage.Text=matches.Count==0?"No lyrics found. Edit the matching details or load a local .lrc file.":"Choose the recording that matches your track. Remixes may use different timing.";
-        }catch(OperationCanceledException){}
+        }catch(OperationCanceledException)when(token.IsCancellationRequested){}
         catch{if(!token.IsCancellationRequested&&epoch==musicLyricEpoch&&!localClosing)MusicLyricsMessage.Text="Lyrics could not be loaded. Retry or use a local .lrc file.";}
         finally{if(!token.IsCancellationRequested&&epoch==musicLyricEpoch&&!localClosing){MusicLyricsBusy.IsVisible=false;MusicLyricsFind.IsEnabled=true;}}
     }

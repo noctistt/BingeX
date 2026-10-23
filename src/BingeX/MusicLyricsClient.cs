@@ -17,6 +17,7 @@ public sealed class MusicLyricsClient:IDisposable
     }
     public async Task<IReadOnlyList<MusicLyricMatch>> Search(string title,string artist,string album,double duration,CancellationToken token)
     {
+        using var deadline=CancellationTokenSource.CreateLinkedTokenSource(token);deadline.CancelAfter(TimeSpan.FromSeconds(15));token=deadline.Token;
         title=title.Trim();artist=artist.Trim();album=album.Trim();if(title.Length is 0 or >200||artist.Length>200||album.Length>200)throw new InvalidDataException();
         var args=new List<string>{"track_name="+Uri.EscapeDataString(title)};if(artist.Length>0)args.Add("artist_name="+Uri.EscapeDataString(artist));
         var path="https://lrclib.net/api/search?"+string.Join("&",args);
