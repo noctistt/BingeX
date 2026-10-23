@@ -16,7 +16,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.14.10" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.14.11" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -512,6 +512,7 @@
                 <WrapPanel x:Name="EchoDownloadActions" IsVisible="False"><ProgressBar Width="180" Height="3" IsIndeterminate="True" VerticalAlignment="Center" /><Button Content="Cancel download" Click="CancelEchoDownload_Click" Margin="10,0,0,0" /></WrapPanel>
                 <CheckBox x:Name="EchoTrust" Content="I trust the extensions I activate (extensions execute code)" />
                 <Expander x:Name="EchoAdvanced" Header="Advanced · local files and music engine setup" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="10" Margin="0,10,0,0">
+                  <CheckBox x:Name="EchoCompatibilityCheck" Content="Enhanced music compatibility (experimental)" ToolTip.Tip="Uses a separately prepared compatibility runtime on the next activation. Turn off to return to the standard engine." />
                   <Button Content="Choose music runtime profile" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
                   <TextBlock x:Name="EchoRuntimeMessage" Text="Music engine setup is required once before playback. Select a separately prepared echo-runtime.json from a trusted source. Nothing is downloaded automatically." Classes="muted" TextWrapping="Wrap" />
                   <Button x:Name="EchoImportButton" Content="Import a local extension file" Click="ImportEcho_Click" HorizontalAlignment="Left" />

@@ -52,6 +52,15 @@ try
     {
         var profile=EchoRuntimeProfile.Load(Path.GetFullPath(args[1]),root);Check(profile.SdkHash.Length==64,"Prepared runtime must verify.");
         var config=System.Text.Json.JsonSerializer.Deserialize<EchoRuntimeProfile>(File.ReadAllText(args[1]))!;var sdkKey=config.Files.Keys.Single(x=>Path.GetFullPath(x)==Path.GetFullPath(config.Sdk));config.Files[sdkKey]=new string('0',64);
+        if(args.Length>2)
+        {
+            var enhanced=EchoRuntimeProfile.Load(Path.GetFullPath(args[2]),root,true);Check(enhanced.HasCompatibility&&enhanced.Runtime.CompatibilityJars?.Count>0,"Explicit enhanced mode requires verified extra JARs.");
+            Check(EchoRuntimeProfile.Load(Path.GetFullPath(args[2]),root).Runtime.CompatibilityJars==null,"Enhanced mode must remain opt-in.");
+            Reject(()=>EchoRuntimeProfile.Load(Path.GetFullPath(args[1]),root,true));
+            var extras=System.Text.Json.JsonSerializer.Deserialize<EchoRuntimeProfile>(File.ReadAllText(args[2]))!;
+            var unverified=extras.Compatibility!.Jars[0];extras.Files.Remove(unverified);
+            var missing=Path.Combine(root,"unverified-extra.json");File.WriteAllText(missing,System.Text.Json.JsonSerializer.Serialize(extras));Reject(()=>EchoRuntimeProfile.Load(missing,root,true));
+        }
         var altered=Path.Combine(root,"altered-runtime.json");File.WriteAllText(altered,System.Text.Json.JsonSerializer.Serialize(config));Reject(()=>EchoRuntimeProfile.Load(altered,root));
     }
     Console.WriteLine("PASS: UTF-8/UTF-16 manifests, package metadata, persistence, duplicate import, removal, malformed packages, non-music rejection and cleanup.");

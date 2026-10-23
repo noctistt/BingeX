@@ -36,6 +36,7 @@ public final class EchoMusicHelper {
     final Map<String,Held> handles=new LinkedHashMap<>();
     final Map<String,Object> settings=new ConcurrentHashMap<>();
     final Path cache;
+    boolean enhancedCompatibility;
     Object extension;
     URLClassLoader loader;
     boolean exit;
@@ -119,10 +120,18 @@ public final class EchoMusicHelper {
         phase="validate_sdk";Class<?> user=Class.forName("dev.brahmkshatriya.echo.common.models.User");
         if(!digest(Path.of(user.getProtectionDomain().getCodeSource().getLocation().toURI())).equalsIgnoreCase(sdkHash))throw new IllegalArgumentException();
         phase="convert";Path target=cache.resolve(runtimeFingerprint());Files.createDirectories(target);
-        Class<?> converter=Class.forName("dev.akash.cs3engine.jvm.Dex2Jar");
-        Object converted=converter.getMethod("convert",File.class,File.class).invoke(converter.getField("INSTANCE").get(null),file.toFile(),target.toFile());
-        if(Boolean.TRUE.equals(call(converted,"getIncomplete")))throw new UnsupportedOperationException();
-        phase="instantiate";loader=new ExtensionLoader(fixExternalInterfaces(((File)call(converted,"getJar")).toPath()).toUri().toURL(),file.toUri().toURL());
+        Path convertedJar;Object conversion;
+        if(enhancedCompatibility){
+            phase="repair";Path isolated=target.resolve("enhanced-v1").resolve(expected.toLowerCase(Locale.ROOT));Files.createDirectories(isolated);
+            convertedJar=(Path)Class.forName("BingeXEchoCompatibility").getMethod("convert",Path.class,Path.class).invoke(null,file,isolated);
+            conversion=Map.of("enhanced",true);
+        }else{
+            Class<?> converter=Class.forName("dev.akash.cs3engine.jvm.Dex2Jar");
+            Object converted=converter.getMethod("convert",File.class,File.class).invoke(converter.getField("INSTANCE").get(null),file.toFile(),target.toFile());
+            if(Boolean.TRUE.equals(call(converted,"getIncomplete")))throw new UnsupportedOperationException();
+            convertedJar=((File)call(converted,"getJar")).toPath();conversion=call(converted,"notes");
+        }
+        phase="instantiate";loader=new ExtensionLoader(fixExternalInterfaces(convertedJar).toUri().toURL(),file.toUri().toURL());
         // Conversion produces classes only; service registrations/resources stay in the verified package.
         Thread.currentThread().setContextClassLoader(loader);
         extension=Class.forName(entry,true,loader).getConstructor().newInstance();
@@ -134,7 +143,13 @@ public final class EchoMusicHelper {
         });
         if(p.has("settings"))configure(p.getAsJsonObject("settings"));
         call(extension,"setSettings",proxy);phase="initialize";suspend(extension,"onInitialize");phase="select_extension";suspend(extension,"onExtensionSelected");phase="dispatch";
-        return Map.of("capabilities",Arrays.stream(extension.getClass().getInterfaces()).map(Class::getSimpleName).toList(),"conversion",call(converted,"notes"));
+        return Map.of("capabilities",capabilities(extension.getClass()),"conversion",conversion);
+    }
+    static Set<String> capabilities(Class<?> type){
+        Set<String> names=new TreeSet<>();collectCapabilities(type,names);return names;
+    }
+    static void collectCapabilities(Class<?> type,Set<String> names){
+        if(type==null)return;for(Class<?> contract:type.getInterfaces())if(names.add(contract.getSimpleName()))collectCapabilities(contract,names);collectCapabilities(type.getSuperclass(),names);
     }
     Object feed(Object value)throws Exception {
         if(value==null)return Map.of("feed","","tabs",List.of());
@@ -211,7 +226,7 @@ public final class EchoMusicHelper {
         System.setOut(new PrintStream(OutputStream.nullOutputStream()));System.setErr(new PrintStream(OutputStream.nullOutputStream()));
         int code=0;
         try {
-            if(args.length!=1)throw new IllegalArgumentException();EchoMusicHelper helper=new EchoMusicHelper(Path.of(args[0]));Reader input=new BufferedReader(new InputStreamReader(System.in,StandardCharsets.UTF_8));String line;
+            if(args.length<1||args.length>2||(args.length==2&&!args[1].equals("--compatibility")))throw new IllegalArgumentException();EchoMusicHelper helper=new EchoMusicHelper(Path.of(args[0]));helper.enhancedCompatibility=args.length==2;Reader input=new BufferedReader(new InputStreamReader(System.in,StandardCharsets.UTF_8));String line;
             while((line=readLine(input))!=null){int id=-1;try{JsonObject request=JsonParser.parseString(line).getAsJsonObject();id=request.get("id").getAsInt();if(id<1)throw new IllegalArgumentException();Object result=helper.dispatch(input(request,"method"),request.getAsJsonObject("params"));String response=JSON.toJson(Map.of("id",id,"result",result));if(response.length()>MAX_LINE)throw new UnsupportedOperationException();protocol.println(response);if(helper.exit)break;}
                 catch(Throwable error){protocol.println(JSON.toJson(Map.of("id",id,"error",Map.of("code",error instanceof UnsupportedOperationException?"unsupported":"request_failed","fatal",true,"stage",helper.phase,"type",failureType(error)))));code=1;break;}}
             helper.settings.clear();helper.handles.clear();if(helper.loader!=null)helper.loader.close();

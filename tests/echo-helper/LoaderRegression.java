@@ -5,6 +5,9 @@ import java.util.jar.*;
 import java.util.function.Supplier;
 import org.objectweb.asm.*;
 public class LoaderRegression {
+    interface BaseCapability {}
+    interface DerivedCapability extends BaseCapability {}
+    static class CapabilityFixture implements DerivedCapability {}
     static byte[] type(String name,boolean iface,boolean caller){
         ClassWriter w=new ClassWriter(0);w.visit(Opcodes.V17,Opcodes.ACC_PUBLIC|(iface?Opcodes.ACC_INTERFACE|Opcodes.ACC_ABSTRACT:Opcodes.ACC_SUPER),name,null,"java/lang/Object",null);
         if(!iface){var init=w.visitMethod(Opcodes.ACC_PUBLIC,"<init>","()V",null,null);init.visitCode();init.visitVarInsn(Opcodes.ALOAD,0);init.visitMethodInsn(Opcodes.INVOKESPECIAL,"java/lang/Object","<init>","()V",false);init.visitInsn(Opcodes.RETURN);init.visitMaxs(1,1);init.visitEnd();}
@@ -20,6 +23,7 @@ public class LoaderRegression {
     }
     static void write(JarOutputStream out,String name,byte[] bytes)throws Exception{out.putNextEntry(new JarEntry(name));out.write(bytes);out.closeEntry();}
     public static void main(String[] args)throws Exception{
+        if(!EchoMusicHelper.capabilities(CapabilityFixture.class).containsAll(Set.of("BaseCapability","DerivedCapability")))throw new AssertionError("Inherited capabilities lost");
         Path root=Path.of(args[0]);Files.createDirectory(root);Path classes=root.resolve("classes.jar"),resources=root.resolve("resources.eapk");
         try(var out=new JarOutputStream(Files.newOutputStream(classes))){write(out,"fixture/Contract.class",type("fixture/Contract",true,false));write(out,"fixture/Caller.class",type("fixture/Caller",false,true));write(out,"fixture/Provider.class",provider());}
         try(var out=new JarOutputStream(Files.newOutputStream(resources))){write(out,"META-INF/services/java.util.function.Supplier","fixture.Provider\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));}

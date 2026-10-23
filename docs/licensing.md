@@ -32,3 +32,7 @@ Licensing the original project is complete; the native and optional-runtime dist
 ## Echo helper research
 
 The music helper is original source with a separate C# process transport. Starting in 0.14.7, the application embeds compiled original BingeX helper classes (GPL-3.0-or-later); source and the rebuild script are under tools/echo-helper. The archive contains no SDK, engine, compiler or provider classes. The external Echo common-jvm SDK uses the custom Unabandon Public License and remains separately supplied, without SDK bundling or automatic downloads. See echo-bridge.md for the license review and remaining combination/distribution questions. The NuGet inventory does not certify this optional Java runtime. Keep upstream SDK/runtime bundling and automatic installation out of the app until that review is resolved.
+
+## Optional enhanced music route (0.14.11)
+
+BingeX ships only the original opt-in host/adapter and local preparation tooling. The prepared compatibility component uses separately supplied Dartotsu bridge sources (custom Unabandon license), compatibility sources with retained MPL-2.0 notices, and external converter/ICU dependencies. The custom-license/GPL combination and runtime redistribution review remains unresolved; do not bundle or automatically download that component. The local builder retains source/notices and fingerprints, but does not certify a redistributable bundle. See [setup, test scope and review outcome](echo-enhanced-compatibility.md).

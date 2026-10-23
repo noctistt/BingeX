@@ -9,7 +9,7 @@ internal static class ProviderChecks
         var stage="setup";
         try
         {
-            var profile=EchoRuntimeProfile.Load(args[1],args[3]);var package=EchoPackages.Inspect(args[2]);
+            var profile=EchoRuntimeProfile.Load(args[1],args[3],args[0]=="--provider-enhanced");var package=EchoPackages.Inspect(args[2]);
             await using var bridge=new EchoMusicBridge(profile.Runtime);
             stage="activation";await bridge.InitializeAsync(new(args[2],package.Sha256,package.EntryClass,profile.SdkHash));Console.WriteLine("PASS activation");
             stage="search";var feed=await bridge.SearchAsync(args[4]);EchoItem? track=null;

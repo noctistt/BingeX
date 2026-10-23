@@ -24,7 +24,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         var data=Environment.GetEnvironmentVariable("BINGEX_DATA_DIRECTORY");
-        if(args.Length is not(1 or 3)||string.IsNullOrWhiteSpace(data)||!Path.GetFileName(data).StartsWith("echo-ui-test-"))return 2;
+        if(args.Length is not(1 or 3 or 4)||string.IsNullOrWhiteSpace(data)||!Path.GetFileName(data).StartsWith("echo-ui-test-"))return 2;
         Directory.CreateDirectory(data);var passed=false;
         var builder=(AppBuilder)typeof(MainWindow).Assembly.GetType("BingeX.Program")!.GetMethod("CreateAppBuilder")!.Invoke(null,null)!;
         _=Task.Run(async()=>
@@ -67,10 +67,11 @@ internal static class Program
                     Check(new EchoPackages(data).List().Count==1&&C<TextBox>("EchoLinkInput").Text=="","Link install must retain a validated package and clear the input.");
                     using(var image=new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)window.Bounds.Width,(int)window.Bounds.Height))){image.Render(window);image.Save(Path.Combine(data,"echo-addons.png"));}
                     Call("SelectAddonCategory",false);Check(!C<Border>("EchoPackagesPanel").IsEffectivelyVisible,"Video category must hide music packages.");
-                    if(args.Length==3)
+                    if(args.Length==4&&args[3].StartsWith("--public",StringComparison.Ordinal))await EchoPublicChecks.Run(window,args,item);
+                    if(args.Length==3||(args.Length==4&&args[3]=="--enhanced"))
                     {
                         Check(new Uri(args[2]).Host=="127.0.0.1","Only synthetic loopback accounts may be used.");
-                        Set("echoRuntimeFile",Path.GetFullPath(args[1]));Call("SelectAddonCategory",true);
+                        Set("echoRuntimeFile",Path.GetFullPath(args[1]));C<CheckBox>("EchoCompatibilityCheck").IsChecked=args.Length==4;Call("SelectAddonCategory",true);
                         await (Task)Call("ActivateEcho",item)!;Check(Get("echoBridge")==null,"Trust must be explicit.");C<CheckBox>("EchoTrust").IsChecked=true;
                         await (Task)Call("ActivateEcho",item)!;Check(Get("echoBridge") is EchoMusicBridge,"Extension did not activate.");
                         var helper=(EchoMusicBridge)Get("echoBridge")!;
@@ -106,7 +107,7 @@ internal static class Program
                     await (Task)Call("SetOnlineMode",false)!;Check(new EchoPackages(data).List().Single().Sha256==item.Sha256,"Offline toggle must retain imported files.");
                     var row=(Grid)C<StackPanel>("EchoPackageItems").Children.Single();Click(row.Children.OfType<Button>().Single(x=>x.Content?.ToString()=="Remove"));
                     await Task.Delay(300);Check(new EchoPackages(data).List().Count==0&&C<StackPanel>("EchoPackageItems").Children.Count==0,"Remove must update disk and UI.");
-                    passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),args.Length==3?"PASS: repository-link install, collapsed Advanced controls, actual extension activation, trust gating, custom session login, paged browsing, album navigation, native playback, history exclusion, cancellation/restart, offline retention and removal.":"PASS: real Add-ons/Music UI, repository-link install, import rendering, category separation, online toggle retention and removal.");
+                    passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),args.Length==4&&args[3].StartsWith("--public",StringComparison.Ordinal)?"PASS: enhanced public-provider activation, home/search, inherited capabilities, muted native playback, music controls, and explicit return to the standard engine.":args.Length>=3?"PASS: repository-link install, collapsed Advanced controls, actual extension activation, trust gating, custom session login, paged browsing, album navigation, native playback, history exclusion, cancellation/restart, offline retention and removal.":"PASS: real Add-ons/Music UI, repository-link install, import rendering, category separation, online toggle retention and removal.");
                 }
                 catch(Exception e){File.WriteAllText(Path.Combine(data,"result.txt"),"FAIL: "+e+"\nMusic status: "+C<TextBlock>("EchoStatus").Text);}
                 finally{window.Close();}

@@ -55,6 +55,7 @@ public partial class MainWindow
         VolumeBar.Value=desired.Volume; SpeedBox.SelectedIndex=desired.DefaultSpeedIndex;
         IncludeTorrentSourcesCheck.IsChecked=desired.IncludeTorrentSources;SearchAllProvidersSwitch.IsChecked=desired.SearchAllStreamProviders;
         QueueAutoplayCheck.IsChecked=desired.AutoplayLocalQueue;
+        EchoCompatibilityCheck.IsChecked=desired.EchoEnhancedCompatibility;
         AutoplayEpisodesCheck.IsChecked=desired.AutoplayEpisodes; AutoNextSource.IsChecked=desired.AutoSwitchSources;
         LocalSort.SelectedIndex=desired.LocalLibrarySort; LocalGrouping.SelectedIndex=desired.LocalLibraryGrouping;
         preferences=desired; store.SavePreferences(preferences); PopulateAppSettings(); SettingsSaved.Text="Settings saved. Language defaults apply to newly opened videos.";

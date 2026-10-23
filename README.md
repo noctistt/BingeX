@@ -383,3 +383,7 @@ Extension songs use compact play rows; albums, artists and playlists use wrappin
 ### YouTube Music loader repair (0.14.10)
 
 The desktop helper now preserves extension service/resource lookup and repairs converted local-interface calls. The tested YouTube Music package now activates, browses, searches, resolves sources and decodes audio without Android. Other providers with malformed converted bytecode remain unsupported; see the [tested scope](docs/echo-bridge.md#desktop-loader-repair--01410-2026-10-23).
+
+### Optional enhanced music compatibility (0.14.11)
+
+An off-by-default Advanced option can use a separately prepared, hash-verified compatibility runtime. Saavn was tested through home/search and actual UI playback; the standard engine remains available. No Android emulator, automatic runtime download or new third-party binary is included. See [setup, measured costs and limitations](docs/echo-enhanced-compatibility.md).

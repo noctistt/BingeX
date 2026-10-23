@@ -1,0 +1,25 @@
+{
+  "revision": "35db96730c98a1e0d76d69e56097585c8c60bab9",
+  "jars": {
+    "dex-translator-2.4.38.jar": "9bb5a7852cfc9698d130cc780513bb202a8b0c59bf8dd43c3f25cf32c587741d",
+    "dex-reader-api-2.4.38.jar": "490cac37ca090db759295eae2c279536bca7c77e8cfa3be4372210a6a4ca9d2a",
+    "d2j-external-2.4.38.jar": "929884e103c6897448abfe34eb9c6c0018b0443b160da87d0073976b1b3b2b67",
+    "dex-reader-2.4.38.jar": "177a7ddc7a9b7cc1e9a86603f93599461bc64ed8d5574b80f42391390ea9ec7d",
+    "dex-ir-2.4.38.jar": "ecac2eb44ad9393ac579d5d4e48520b485e90ab6536becdb061466fef92d9bb8",
+    "d2j-base-cmd-2.4.38.jar": "4e9ee8b7d751b6d8447313cb168c88ea14454d53d281ca7c1d9307c7f74051a4",
+    "dex-tools-2.4.38.jar": "506e5330db25a10e210abb72f94dd8d521f475974ee5430efdd3a5726b8affe3",
+    "d2j-smali-2.4.38.jar": "f6b71d9b9b48f1a6b5214c9f49c25d7f0c4f070d44bb506efe64731b181cd18c",
+    "dex-writer-2.4.38.jar": "3a98bcacf97d92b64e82d6c9397077efc40ab528e80cef2efadb943fbe5228eb",
+    "d2j-jasmin-2.4.38.jar": "c728f1b5b5eef67239429dd905224208a537d5f304acecc56f18db1dfa21cf43"
+  },
+  "icuSha256": "e962c1758d9659ea1e1fbab99c58683f654d304e1126ace19aaabfe39e0edb25",
+  "sources": {
+    "LICENSE": "82de8e7a46e3d6ae407757f2b1ea2e1d1a2f7eb1bfaaf9f4a768984aeda2288e",
+    "runtimeManager/libraries/commonDesktopLib/src/main/kotlin/com/aayush262/dartotsu_extension_bridge/util/BytecodeEditor.kt": "8630f023e8392a320712274edcda0f53422258e5e7c29c543c6ef5158edb6546",
+    "runtimeManager/libraries/commonDesktopLib/src/main/kotlin/com/aayush262/dartotsu_extension_bridge/util/DexNewInstance.kt": "d1b514853b8b1839b73fe8540c337f5ec80d6656bbeca1d9da6f0b5bd33e22f1",
+    "runtimeManager/libraries/commonDesktopLib/src/main/java/xyz/nulldev/androidcompat/replace/java/text/NumberFormat.java": "131254014545bffb45e72daf5675906fae50c0cd4bc2bd28e90c4c1c5b1cab48",
+    "runtimeManager/libraries/commonDesktopLib/src/main/java/xyz/nulldev/androidcompat/replace/java/text/SimpleDateFormat.java": "5e28502f84920b7e97c6ea4853cca8d8aba0b8ab66e6af19bfd443c551f2d99e",
+    "runtimeManager/libraries/commonDesktopLib/src/main/java/xyz/nulldev/androidcompat/replace/java/util/Calendar.java": "000412f90b85e32371e35cf6a1fef41cf56008fa321164082c0c6293e196f9ad",
+    "runtimeManager/libraries/commonDesktopLib/src/main/java/xyz/nulldev/androidcompat/replace/java/util/TimeZone.java": "4002e4ead075e77041cd3fab638636851663f5b3f538d941b89f9aa6d4aaf618"
+  }
+}

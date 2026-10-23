@@ -11,7 +11,7 @@ internal static class Program
     }
     private static async Task<int> Run(string[] args)
     {
-if(args.FirstOrDefault()=="--provider")return await ProviderChecks.Run(args);
+if(args.FirstOrDefault() is "--provider" or "--provider-enhanced")return await ProviderChecks.Run(args);
 if(args.FirstOrDefault()=="--bridge")return await BridgeChecks.Run(args,DecodeOnSta);
 // Decode only the synthetic loopback source emitted by tools/echo-probe/EchoProbe.java.
 if(args.Length!=1)return 2;

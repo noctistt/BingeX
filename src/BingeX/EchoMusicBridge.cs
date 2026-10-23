@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace BingeX;
 
-public sealed record EchoRuntime(string JavaExecutable,string ClassesDirectory,string SdkJar,string EngineDirectory,string CacheDirectory);
+public sealed record EchoRuntime(string JavaExecutable,string ClassesDirectory,string SdkJar,string EngineDirectory,string CacheDirectory,IReadOnlyList<string>? CompatibilityJars=null);
 public sealed record EchoExtension(string Path,string Sha256,string EntryClass,string SdkSha256);
 public sealed record EchoFeed(string Feed,IReadOnlyList<EchoTab> Tabs);
 public sealed record EchoTab(string Id,string Title);
@@ -38,8 +38,12 @@ public sealed class EchoMusicBridge:IAsyncDisposable
             UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,
             StandardInputEncoding=new UTF8Encoding(false),StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8
         };
-        var classpath=string.Join(Path.PathSeparator,Path.GetFullPath(runtime.ClassesDirectory),Path.GetFullPath(runtime.SdkJar),Path.Combine(Path.GetFullPath(runtime.EngineDirectory),"*"));
+        var entries=new List<string>{Path.GetFullPath(runtime.ClassesDirectory)};
+        if(runtime.CompatibilityJars is {} extras){if(extras.Count is <1 or >32||extras.Any(x=>!File.Exists(x)))throw new InvalidDataException("Compatibility runtime is incomplete.");entries.AddRange(extras.Select(Path.GetFullPath));}
+        entries.Add(Path.GetFullPath(runtime.SdkJar));entries.Add(Path.Combine(Path.GetFullPath(runtime.EngineDirectory),"*"));
+        var classpath=string.Join(Path.PathSeparator,entries);
         foreach(var argument in new[]{"-Xmx1024m","-cp",classpath,"EchoMusicHelper",Path.GetFullPath(runtime.CacheDirectory)})start.ArgumentList.Add(argument);
+        if(runtime.CompatibilityJars!=null)start.ArgumentList.Add("--compatibility");
         process=Process.Start(start)??throw new IOException("Echo helper did not start.");
         stderr=Task.Run(async()=>{var buffer=new char[4096];try{while(await process.StandardError.ReadAsync(buffer)>0){}}catch(ObjectDisposedException){}catch(IOException){}});
     }
@@ -69,7 +73,7 @@ public sealed class EchoMusicBridge:IAsyncDisposable
             {
                 string Read(string key)=>error.TryGetProperty(key,out var value)&&value.ValueKind==JsonValueKind.String?value.GetString()??"":"";
                 var type=Read("type");var stage=Read("stage");
-                if(!new[]{"validate_package","validate_sdk","convert","instantiate","inject_settings","initialize","select_extension","dispatch"}.Contains(stage))stage="request";
+                if(!new[]{"validate_package","validate_sdk","convert","repair","instantiate","inject_settings","initialize","select_extension","dispatch"}.Contains(stage))stage="request";
                 var explanation=type switch{
                     "VerifyError" or "ClassFormatError"=>"This extension's Android code is not compatible with the current desktop converter. Reinstalling it will not resolve that conversion error.",
                     "ClassNotFoundException" or "NoClassDefFoundError"=>"This extension needs runtime classes that the current music engine does not provide.",

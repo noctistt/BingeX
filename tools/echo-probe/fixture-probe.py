@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Local-only development fixture; requires explicitly supplied trusted extension/runtime files.
 import argparse,hashlib,http.server,io,json,math,pathlib,subprocess,threading,urllib.parse,wave,struct,time
-p=argparse.ArgumentParser();p.add_argument('--java',required=True);p.add_argument('--classpath',required=True);p.add_argument('--extension',required=True);p.add_argument('--converted',required=True);p.add_argument('--entry',required=True);p.add_argument('--output',required=True);p.add_argument('--dotnet',required=True);p.add_argument('--project',required=True);p.add_argument('--bridge',action='store_true');p.add_argument('--engine');p.add_argument('--classes');p.add_argument('--sdk');p.add_argument('--cache');p.add_argument('--ui-runtime');a=p.parse_args();a.bridge=a.bridge or bool(a.ui_runtime)
+p=argparse.ArgumentParser();p.add_argument('--java',required=True);p.add_argument('--classpath',required=True);p.add_argument('--extension',required=True);p.add_argument('--converted',required=True);p.add_argument('--entry',required=True);p.add_argument('--output',required=True);p.add_argument('--dotnet',required=True);p.add_argument('--project',required=True);p.add_argument('--bridge',action='store_true');p.add_argument('--engine');p.add_argument('--classes');p.add_argument('--sdk');p.add_argument('--cache');p.add_argument('--ui-runtime');p.add_argument('--ui-enhanced',action='store_true');a=p.parse_args();a.bridge=a.bridge or bool(a.ui_runtime)
 stream=io.BytesIO()
 with wave.open(stream,'wb') as w:
  w.setnchannels(1);w.setsampwidth(2);w.setframerate(16000);w.writeframes(b''.join(struct.pack('<h',int(math.sin(i*2*math.pi*440/16000)*1000)) for i in range(16000*20)))
@@ -61,7 +61,7 @@ server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Fixture);threading.Thread
 out=pathlib.Path(a.output);out.parent.mkdir(parents=True,exist_ok=True)
 try:
  if a.ui_runtime:
-  subprocess.run([a.dotnet,str(pathlib.Path(a.project)/'bin/Release/net10.0/BingeX.EchoUiTests.dll'),a.extension,a.ui_runtime,f'http://127.0.0.1:{server.server_port}'],check=True,timeout=180)
+  subprocess.run([a.dotnet,str(pathlib.Path(a.project)/'bin/Release/net10.0/BingeX.EchoUiTests.dll'),a.extension,a.ui_runtime,f'http://127.0.0.1:{server.server_port}']+(['--enhanced'] if a.ui_enhanced else []),check=True,timeout=180)
  elif a.bridge:
   subprocess.run([a.dotnet,str(pathlib.Path(a.project)/'bin/Release/net10.0/BingeX.EchoProbe.dll'),'--bridge',a.java,a.classes,a.sdk,a.engine,a.extension,f'http://127.0.0.1:{server.server_port}',str(out),a.cache],check=True,timeout=140)
  else:

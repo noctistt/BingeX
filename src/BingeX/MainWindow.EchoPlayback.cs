@@ -20,6 +20,8 @@ public partial class MainWindow
     private void SetupEcho()
     {
         try{var file=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");if(File.Exists(file))echoRuntimeFile=File.ReadAllText(file);if(echoRuntimeFile!=null){EchoRuntimeMessage.Text="Music runtime selected. Activate a trusted extension to start.";EchoSetupSummary.Text="Music engine selected. Activate an installed provider to load its catalogue.";EchoStatus.Text="No music provider active. Activate an installed provider in Add-ons → Music to see its catalogue.";}}catch{}
+        EchoCompatibilityCheck.IsChecked=preferences.EchoEnhancedCompatibility;
+        EchoCompatibilityCheck.IsCheckedChanged+=(_,_)=>{preferences=preferences with{EchoEnhancedCompatibility=EchoCompatibilityCheck.IsChecked==true};store.SavePreferences(preferences);EchoRuntimeMessage.Text="Engine choice saved. It takes effect on the next extension activation.";};
         Closed+=(_,_)=>StopEcho();
     }
     private void StopEcho()
@@ -42,10 +44,10 @@ public partial class MainWindow
         if(localClosing||!onlineEnabled||files.FirstOrDefault()?.TryGetLocalPath() is not {} file)return;
         try
         {
-            await Task.Run(()=>EchoRuntimeProfile.Load(file,store.DataDirectory));if(localClosing||!onlineEnabled)return;
+            var verified=await Task.Run(()=>EchoRuntimeProfile.Load(file,store.DataDirectory));if(localClosing||!onlineEnabled)return;
             StopEcho();echoRuntimeFile=file;EchoTrust.IsChecked=false;
             var location=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");Directory.CreateDirectory(Path.GetDirectoryName(location)!);File.WriteAllText(location,file);
-            EchoRuntimeMessage.Text="Runtime verified. Activate a trusted music extension to start.";
+            EchoRuntimeMessage.Text=verified.HasCompatibility?"Runtime verified. Enhanced compatibility is available using the checkbox above.":"Standard runtime verified. Activate a trusted music extension to start.";
             EchoSetupSummary.Text="Music engine verified. Activate an installed provider to load its catalogue.";
             EchoStatus.Text="Activate an installed provider to load its catalogue.";
         }
@@ -56,12 +58,13 @@ public partial class MainWindow
         if(!onlineEnabled||echoWorking)return;
         if(echoRuntimeFile==null){EchoAdvanced.IsExpanded=true;EchoStatus.Text="Music engine setup is required once before playback. Open Advanced to finish setup.";return;}
         if(EchoTrust.IsChecked!=true){EchoStatus.Text="Confirm that you trust the runtime and extension before activation.";return;}
+        var useCompatibility=EchoCompatibilityCheck.IsChecked==true;
         StopEcho();SetEchoPackageState(package,"Starting…");var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoPackageItems.IsEnabled=false;EchoStatus.Text="Starting "+package.Name+"…";
         await RefreshEchoPackages();
         EchoMusicBridge? candidate=null;
         try
         {
-            var profile=await Task.Run(()=>EchoRuntimeProfile.Load(echoRuntimeFile,store.DataDirectory),token);token.ThrowIfCancellationRequested();
+            var profile=await Task.Run(()=>EchoRuntimeProfile.Load(echoRuntimeFile,store.DataDirectory,useCompatibility),token);token.ThrowIfCancellationRequested();
             candidate=new EchoMusicBridge(profile.Runtime);echoBridge=candidate;
             var path=Path.Combine(store.DataDirectory,"echo","packages",package.Sha256+".eapk");
             await candidate.InitializeAsync(new(path,package.Sha256,package.EntryClass,profile.SdkHash),token);
@@ -76,6 +79,7 @@ public partial class MainWindow
             await RefreshEchoPackages();
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
+        catch(InvalidDataException){if(epoch==echoEpoch){StopEcho();SetEchoPackageState(package,"Setup required · choose a compatible runtime");await RefreshEchoPackages();EchoAdvanced.IsExpanded=true;EchoStatus.Text=useCompatibility?"Enhanced compatibility requires a verified version-2 runtime profile. Choose one under Advanced, or turn Enhanced compatibility off.":"The selected music runtime could not be verified. Choose its original profile and dependency files.";}}
         catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=package.Name+": "+error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
         catch(Exception error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=error is OperationCanceledException?"Activation timed out. The helper was stopped; activate to retry.":"Could not activate this extension. Check runtime compatibility and try again.";}}
         finally
