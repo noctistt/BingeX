@@ -38,3 +38,7 @@ Live tests use the pinned author Audiomack plugin and public Kevin MacLeod searc
 ## Explore/provider checks (0.14.15)
 
 `--embedded` now checks the unmodified Audiomack plugin's catalogue definitions and browse mapping against synthetic responses as well as search/resolve. `--browse-live PATH_TO_PLUGIN` verifies live catalogue definitions and trending content without playing media. `--ui-live` checks automatic Explore, genre/recent content and cover rendering, provider selection with stale results cleared, a search-only alternate fixture, playback preserved across provider switches and Next resolved through the original provider, persisted selection and offline cancellation. The alternate is synthetic, not a second verified service. `--host-checks` also checks multi-provider retention/removal and migration of the 0.14.14 single-provider JSON.
+
+## Now Playing/lyrics checks (0.14.16)
+
+`--lyrics-checks` runs LRC parsing, seek/delay and independent metadata-client fixtures. `--lyrics-live` makes an explicit public LRCLIB request and reports match availability without lyric bodies. `--ui-live` additionally checks Now Playing artwork/metadata, LRC loading via the production file loader, highlighting, seek/offset changes and next-track reset. The UI fixture contains original test labels, not downloaded song lyrics; no lyric corpus is checked in.

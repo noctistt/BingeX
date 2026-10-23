@@ -39,7 +39,7 @@ public partial class MainWindow
         QueueAutoplayCheck.IsCheckedChanged+=(_,_)=>MusicAutoplayCheck.IsChecked=QueueAutoplayCheck.IsChecked;
         Closed+=(_,_)=>{musicSearchTimer.Stop();musicScanWork.Cancel();musicServerWork.Cancel();musicServer?.Dispose();};
         MusicMessage.Text=musicLibrary.Tracks.Length>0?$"{musicLibrary.Tracks.Length} tracks indexed. Add folders or rescan to update your collection.":"Add a music folder to get started.";
-        SetupMusicFree();RenderMusic();ApplyMusicOnlineMode();
+        SetupMusicNowDetails();SetupMusicFree();RenderMusic();ApplyMusicOnlineMode();
     }
     private void LibraryMusic_Click(object? sender,RoutedEventArgs e)=>Page("Music");
     private void ManageMusicConnections_Click(object? sender,RoutedEventArgs e)
@@ -124,7 +124,7 @@ public partial class MainWindow
     }
     private void ApplyMusicOnlineMode()
     {
-        MusicFreePanel.IsVisible=onlineEnabled;if(!onlineEnabled)CancelMusicFree();else if(MusicPage.IsVisible)_=EnsureMusicFreeExplore();
+        MusicFreePanel.IsVisible=onlineEnabled;if(!onlineEnabled){CancelMusicFree();CancelMusicLyrics();}else if(MusicPage.IsVisible)_=EnsureMusicFreeExplore();
         MusicServerPanel.IsVisible=onlineEnabled;MusicManageConnections.IsVisible=onlineEnabled;MusicOnlineHint.IsVisible=!onlineEnabled;
         if(!onlineEnabled)DisconnectMusicServer();
     }

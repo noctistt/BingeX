@@ -7,6 +7,8 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if(args.FirstOrDefault()=="--lyrics-live")return MusicLyricsChecks.Live();
+        if(args.FirstOrDefault()=="--lyrics-checks")return MusicLyricsChecks.Run();
         if(args.FirstOrDefault()=="--host-checks")return HostChecks.Run();
         if(args.FirstOrDefault()=="--ui-live")return MusicFreeUiChecks.Run();
         if(args.Length>0)return EmbeddedChecks.Run(args);

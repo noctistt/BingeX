@@ -401,3 +401,7 @@ Add-ons > Music accepts one trusted MusicFree provider using a direct HTTPS .js 
 ### Provider Explore and genres (0.14.15)
 
 Music has a provider selector, automatic Explore, plugin-supplied sections and genre filters. Audiomack provides Trending and Recently Added. Multiple imported providers and the selected provider are retained, including the existing 0.14.14 import. Browsing another provider preserves current playback and keeps Next tied to the original provider. Search-only providers remain supported; Audiomack is the only public provider verified live. See [setup and scope](docs/musicfree-evaluation.md).
+
+### Music Now Playing and independent lyrics (0.14.16)
+
+Click the song title in the bottom bar for artwork, title/artist/album details, the current queue and lyrics. LRCLIB matching is independent of the music provider, with synced highlighting, manual recording choices, timing adjustment and local LRC/text import. Existing local LRC sidecars work offline. See [behaviour, privacy and tested limits](docs/music-now-playing.md).

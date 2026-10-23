@@ -6,14 +6,16 @@ public partial class MainWindow
     private bool currentIsMusic, musicSeekUpdating, musicSeekDragging;
     private void SetupMusicNowBar()
     {
-        MusicNowSeek.AddHandler(PointerPressedEvent,(_,_)=>musicSeekDragging=true,RoutingStrategies.Tunnel);
-        MusicNowSeek.AddHandler(PointerReleasedEvent,(_,_)=>{musicSeekDragging=false;SeekMusicNow();},RoutingStrategies.Tunnel);
+        foreach(var seek in new[]{MusicNowSeek,MusicNowDetailSeek}){
+            seek.AddHandler(PointerPressedEvent,(_,_)=>musicSeekDragging=true,RoutingStrategies.Tunnel);
+            seek.AddHandler(PointerReleasedEvent,(_,_)=>{musicSeekDragging=false;SeekMusicNow();},RoutingStrategies.Tunnel);
+        }
         MusicNowSeek.PropertyChanged+=(_,e)=>{if(e.Property.Name=="Value"&&!musicSeekUpdating&&!musicSeekDragging)SeekMusicNow();};
     }
     private void SeekMusicNow()
     {
         if(NativePlaybackBusy||player==null||!playbackSnapshot.IsSeekable||playbackSnapshot.Length<=0)return;
-        resumeAt=0;var target=(long)(MusicNowSeek.Value/1000*playbackSnapshot.Length);
+        resumeAt=0;musicLyricClock.Reset();var target=(long)(MusicNowSeek.Value/1000*playbackSnapshot.Length);
         _=QueuePlayerCommand(native=>native.Time=target);
     }
     private void UpdateMusicNowBar()

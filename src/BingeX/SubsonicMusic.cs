@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 namespace BingeX;
 public record MusicAlbum(string Id,string Name,string Artist,int Songs);
-public record ServerMusicTrack(string Id,string Title,string Artist,int Disc,int Track,int Duration,string Format,int SampleRate,int Bits);
+public record ServerMusicTrack(string Id,string Title,string Artist,int Disc,int Track,int Duration,string Format,int SampleRate,int Bits,string Album="");
 // Credentials and authenticated addresses are session-only and never exposed in errors or ToString().
 public sealed class SubsonicMusic:IDisposable
 {
@@ -51,7 +51,7 @@ public sealed class SubsonicMusic:IDisposable
     {
         var response=await Get("getAlbum",token,("id",album));
         if(!response.GetProperty("album").TryGetProperty("song",out var songs))return [];
-        return songs.EnumerateArray().Take(10000).Select(x=>new ServerMusicTrack(Text(x,"id"),Text(x,"title"),Text(x,"artist"),Number(x,"discNumber"),Number(x,"track"),Number(x,"duration"),Text(x,"suffix"),Number(x,"samplingRate"),Number(x,"bitDepth"))).Where(x=>x.Id.Length>0).OrderBy(x=>x.Disc).ThenBy(x=>x.Track).ToArray();
+        return songs.EnumerateArray().Take(10000).Select(x=>new ServerMusicTrack(Text(x,"id"),Text(x,"title"),Text(x,"artist"),Number(x,"discNumber"),Number(x,"track"),Number(x,"duration"),Text(x,"suffix"),Number(x,"samplingRate"),Number(x,"bitDepth"),Text(x,"album"))).Where(x=>x.Id.Length>0).OrderBy(x=>x.Disc).ThenBy(x=>x.Track).ToArray();
     }
     public string Stream(string id)=>Address("stream",("id",id),("format","raw"),("maxBitRate","0")).AbsoluteUri;
     private static string Text(JsonElement item,string key)=>item.TryGetProperty(key,out var value)&&value.ValueKind==JsonValueKind.String?value.GetString()??"":"";

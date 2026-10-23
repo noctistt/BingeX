@@ -46,7 +46,14 @@ internal static class MusicFreeUiChecks
                 stage="play";C<WrapPanel>("MusicFreeResultsPanel").Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 await Wait(()=>!(bool)Get("musicFreeWorking")!&&((MediaPlayer)Get("player")!).Time>3000,"Music did not start");
                 Check(C<Grid>("MusicNowBar").IsVisible,"Persistent music bar missing");var first=Get("currentPath");
-                stage="seek";await (Task)Call("QueuePlayerCommand",(Action<MediaPlayer>)(native=>native.Time=15000))!;await Wait(()=>((MediaPlayer)Get("player")!).Time>15000,"Seek failed");
+                stage="now-playing";Call("OpenMusicNow_Click",null,new RoutedEventArgs());Call("CancelMusicLyrics");
+                Check(C<Border>("MusicNowView").IsVisible&&C<Expander>("MusicNowDetails").IsExpanded,"Now Playing view missing");
+                Check(C<TextBlock>("MusicNowTrackTitle").Text?.Length>0&&C<TextBlock>("MusicNowTrackArtist").Text?.Length>0,"Track/artist metadata missing");
+                await Wait(()=>C<Image>("MusicNowArtwork").Source!=null,"Now Playing artwork missing");
+                var lyricFile=Path.Combine(data,"fixture.lrc");File.WriteAllText(lyricFile,"[00:00]Fixture introduction\n[00:10]Fixture middle\n[00:30]Fixture ending");await (Task)Call("LoadMusicLyricsFile",lyricFile,(long)Get("musicLyricEpoch")!)!;
+                await Wait(()=>(int)Get("musicLyricIndex")!>=0,"Lyrics did not highlight");await Wait(()=>C<Image>("MusicNowArtwork").Bounds.Height>150&&C<StackPanel>("MusicLyricLines").Bounds.Height>30,"Now Playing details did not lay out");await Task.Delay(250);
+                using(var image=new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)window.Bounds.Width,(int)window.Bounds.Height))){image.Render(window);image.Save(Path.Combine(data,"music-now-playing.png"));}
+                stage="seek";await (Task)Call("QueuePlayerCommand",(Action<MediaPlayer>)(native=>native.Time=15000))!;await Wait(()=>((MediaPlayer)Get("player")!).Time>15000,"Seek failed");await Wait(()=>(int)Get("musicLyricIndex")!>=1,"Lyrics did not follow seek");C<NumericUpDown>("MusicLyricsOffset").Value=10000;await Wait(()=>(int)Get("musicLyricIndex")! == 0,"Lyrics delay did not apply");C<NumericUpDown>("MusicLyricsOffset").Value=0;C<Expander>("MusicNowDetails").IsExpanded=false;Call("CancelMusicLyrics");
                 stage="provider-switch";
                 const string alternate="module.exports={platform:'Alternate fixture',version:'1',search:async()=>({data:[{id:'fixture',title:'Alternate result',artist:'Fixture'}],isEnd:true}),getMediaSource:async()=>({url:'https://example.org/fixture.mp4'})};";
                 var providers=new MusicFreeProviderStore(data);providers.Save(new MusicFreeProvider("Alternate fixture","1","",Trusted:true),alternate);providers.Select("Audiomack");Call("ReloadMusicFreeProviders");Call("UpdateMusicFreeProvider");
@@ -56,13 +63,14 @@ internal static class MusicFreeUiChecks
                 Check(Equals(first,Get("currentPath")),"Provider switch must preserve playback");
                 C<TextBox>("MusicFreeSearch").Text="fixture";await (Task)Call("SearchMusicFree",false)!;Check(C<WrapPanel>("MusicFreeResultsPanel").Children.Count==1,"Search-only provider must remain usable");
                 stage="next";Check((bool)Call("MoveMusicFree",1)!,"Next action rejected");await Wait(()=>!(bool)Get("musicFreeWorking")!&&!Equals(first,Get("currentPath"))&&((MediaPlayer)Get("player")!).Time>3000,"Next track failed");
+                Check(C<NumericUpDown>("MusicLyricsOffset").Value==0&&Get("musicLyrics")==null,"Old lyrics leaked into next track");C<Expander>("MusicNowDetails").IsExpanded=false;Call("CancelMusicLyrics");
                 stage="restore-provider";C<ComboBox>("MusicFreeProviderPicker").SelectedItem="Audiomack";await Wait(()=>!(bool)Get("musicFreeWorking")!&&C<WrapPanel>("MusicFreeBrowseFilters").IsVisible,"Original provider did not restore");
                 Check(providers.Read()?.Provider.Name=="Audiomack"&&providers.ReadAll().Count==2,"Selected provider and installed providers must persist");
                 stage="history";var store=(LibraryStore)Get("store")!;Check(store.History().Count==0,"Online music must not enter video history");
                 stage="navigation";Call("Page","Library");await Task.Delay(500);Check(C<Grid>("MusicNowBar").IsVisible,"Music controls must survive navigation");
                 stage="offline";await (Task)Call("SetOnlineMode",false)!;Check(!C<Border>("MusicFreePanel").IsVisible&&new MusicFreeProviderStore(data).Read()!=null,"Offline must hide music and retain provider");
                 stage="cancel";await (Task)Call("SetOnlineMode",true)!;Call("Page","Music");var pending=(Task)Call("SearchMusicFree",false)!;await (Task)Call("SetOnlineMode",false)!;await pending;Check(!(bool)Get("musicFreeWorking")!,"Cancellation must settle state");
-                passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),"PASS: automatic Trending Explore, genre changes, Recently Added, live search/artwork, provider switching with cleared results, search-only fallback, preserved playback and original-provider next track, persisted selection and multiple providers, native playback/seeking, history exclusion, navigation, offline retention and cancellation.");
+                passed=true;File.WriteAllText(Path.Combine(data,"result.txt"),"PASS: automatic Trending Explore, genre changes, Recently Added, live search/artwork, provider switching with cleared results, search-only fallback, preserved playback and original-provider next track, persisted selection and multiple providers, native playback/seeking, Now Playing artwork/artist metadata, independent lyrics highlight/seek/offset and next-track reset, history exclusion, navigation, offline retention and cancellation.");
             }catch(Exception e){File.WriteAllText(Path.Combine(data,"result.txt"),"FAIL stage "+stage+": "+e.GetType().Name+" / "+e.Message+"\nInstall: "+C<TextBlock>("MusicFreeInstallMessage").Text+"\nMusic: "+C<TextBlock>("MusicFreeMessage").Text);}
             finally{window.Close();}
         });});

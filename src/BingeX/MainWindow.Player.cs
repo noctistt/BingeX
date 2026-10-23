@@ -115,7 +115,7 @@ public partial class MainWindow
     {
         ResetPlaybackWaiting();
         ResetSourceRecovery(); sourceResumePending=false;
-        captionClock.Reset();
+        captionClock.Reset();musicLyricClock.Reset();
         CancelEpisodeAutoplay();
         videoClickTimer.Stop();
         videoPressPoint = null;
