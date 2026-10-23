@@ -62,13 +62,18 @@ public partial class MainWindow
         if(MusicFreeTrust.IsChecked!=true){MusicFreeInstallMessage.Text="Confirm that you trust the provider before adding it.";return;}
         var token=StartMusicFree();MusicFreeInstallMessage.Text="Checking provider…";
         try{
-            var source=await Task.Run(()=>MusicFreeHttp.Download(link.Trim(),token),token);token.ThrowIfCancellationRequested();
-            var provider=await MusicFreeWorker.Call<MusicFreeProvider>(source,"inspect",new{},token);token.ThrowIfCancellationRequested();
+            string source;MusicFreeProvider provider;
+            if(MusicFreeHttp.PublicUri(link.Trim()).AbsolutePath.EndsWith(".zip",StringComparison.OrdinalIgnoreCase)){
+                MusicFreeInstallMessage.Text="Preparing Nuclear provider…";
+                var package=await Task.Run(()=>NuclearMusicImport.Read(MusicFreeHttp.DownloadArchive(link.Trim(),token)),token);
+                var imported=await MusicFreeWorker.Call<NuclearMusicImported>(System.Text.Json.JsonSerializer.Serialize(package),"compile-nuclear",new{},token);source=imported.Source;provider=imported.Provider;
+            }else{source=await Task.Run(()=>MusicFreeHttp.Download(link.Trim(),token),token);provider=await MusicFreeWorker.Call<MusicFreeProvider>(source,"inspect",new{},token);}
+            token.ThrowIfCancellationRequested();
             if(localClosing||!onlineEnabled)return;
             provider=provider with{Trusted=true};musicFreeStore!.Save(provider,source);ReloadMusicFreeProviders();ClearMusicFreeBrowse();UpdateMusicFreeProvider();
             MusicFreeLink.Text="";MusicFreeInstallMessage.Text="Provider added. Open Music to explore or search.";MusicFreeMessage.Text="Search for a song or artist to begin.";
         }catch(OperationCanceledException){}
-        catch{if(!token.IsCancellationRequested&&!localClosing)MusicFreeInstallMessage.Text="Could not add this provider. Use a direct HTTPS .js link for a compatible MusicFree search/audio plugin. Your previous provider is kept.";}
+        catch{if(!token.IsCancellationRequested&&!localClosing)MusicFreeInstallMessage.Text="Could not add this provider. Use a compatible MusicFree .js or Nuclear plugin.zip HTTPS link. Nuclear support is experimental; unsupported dependencies or package layouts cannot be imported. Your previous providers are kept.";}
         finally{if(!token.IsCancellationRequested&&!localClosing){musicFreeWorking=false;MusicFreeBusy.IsVisible=false;MusicFreeSearchButton.IsEnabled=MusicFreeInstallButton.IsEnabled=true;}}
     }
     private void RemoveMusicFree_Click(object? sender,RoutedEventArgs e)

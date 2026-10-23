@@ -192,5 +192,42 @@
       "licenseType": "expression",
       "license": "LGPL-2.1-or-later"
     }
+  ],
+  "embeddedJavaScript": [
+    {
+      "package": "sucrase/3.35.0",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "@jridgewell/gen-mapping/0.3.13",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "@jridgewell/resolve-uri/3.1.2",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "@jridgewell/sourcemap-codec/1.6.0",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "@jridgewell/trace-mapping/0.3.31",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "lines-and-columns/1.2.4",
+      "license": "MIT",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    },
+    {
+      "package": "ts-interface-checker/0.1.13",
+      "license": "Apache-2.0",
+      "purpose": "Import-time TypeScript converter; bundled static JS, no Node runtime"
+    }
   ]
 }

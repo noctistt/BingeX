@@ -18,7 +18,9 @@ public static class MusicFreeWorker
             if(length>=chars.Length)throw new InvalidDataException();
             var request=JsonSerializer.Deserialize<MusicFreeRequest>(new string(chars,0,length),Json)??throw new InvalidDataException();
             using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(28));
-            var output=MusicFreeEngine.Run(request.Source,request.Operation,request.Arguments,deadline.Token);
+            var output=request.Operation=="compile-nuclear"
+                ?JsonSerializer.Serialize(NuclearMusicImport.Compile(JsonSerializer.Deserialize<NuclearMusicPackage>(request.Source,Json)??throw new InvalidDataException(),deadline.Token))
+                :MusicFreeEngine.Run(request.Source,request.Operation,request.Arguments,deadline.Token);
             Console.WriteLine(JsonSerializer.Serialize(new{ok=true,data=JsonSerializer.Deserialize<JsonElement>(output)}));return 0;
         }catch{Console.WriteLine("{\"ok\":false}");return 1;}
     }

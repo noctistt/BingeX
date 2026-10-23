@@ -1,0 +1,5 @@
+0.14.19 / 2026-10-23
+Original NuclearPlayer SoundCloud v0.3.0 plugin.zip, imported in an isolated profile.
+PASS: HTTPS import, search, two distinct tracks, muted native playback, dedicated music view, pause/resume, seeking, next track and offline retention.
+PASS: Nuclear TypeScript/metadata/URL/status/archive fixtures; existing host checks; unmodified Audiomack synthetic search/source regression.
+No accounts, signed media URLs, response bodies or user profile data retained in this report.

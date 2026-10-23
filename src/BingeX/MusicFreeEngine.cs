@@ -15,6 +15,11 @@ public static class MusicFreeEngine
         using var engine=new Engine(o=>o.DisableStringCompilation().LimitMemory(32_000_000).MaxStatements(1_000_000).LimitRecursion(128).TimeoutInterval(TimeSpan.FromSeconds(25)).CancellationToken(token));
         engine.SetValue("__http",new Func<string,string>(config=>{if(operation=="inspect"||++requests>12)throw new InvalidOperationException();return (http??(s=>MusicFreeHttp.Send(s,token)))(config);}));
         engine.SetValue("__hmac",new Func<string,string,string>((message,key)=>Convert.ToBase64String(HMACSHA1.HashData(Encoding.UTF8.GetBytes(key),Encoding.UTF8.GetBytes(message)))));
+        if(source.StartsWith("/* BingeX Nuclear */",StringComparison.Ordinal))NuclearMusicRuntime.Setup(engine,config=>{
+            if(operation=="inspect"||++requests>12)throw new InvalidOperationException();
+            if(http==null)return MusicFreeHttp.SendResponse(config,token,false,8*1024*1024);
+            return JsonSerializer.Deserialize<MusicFreeResponse>(http(config))??throw new InvalidDataException();
+        });
         engine.Execute("""
             var module={exports:{}},exports=module.exports;
             var console={log(){},warn(){},error(){},info(){},debug(){}};

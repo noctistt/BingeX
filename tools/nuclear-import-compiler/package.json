@@ -1,0 +1,11 @@
+{
+  "name": "bingex-nuclear-import-compiler",
+  "private": true,
+  "scripts": {
+    "build": "esbuild entry.js --bundle --platform=browser --format=iife --minify --target=es2022 --outfile=../../src/BingeX/Assets/nuclear-transpiler.js"
+  },
+  "dependencies": {
+    "sucrase": "3.35.0",
+    "esbuild": "0.25.12"
+  }
+}

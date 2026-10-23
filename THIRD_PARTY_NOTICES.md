@@ -25,3 +25,7 @@ The Windows packaging script copies license and notice files supplied by resolve
 The pinned SkyStream checkout at f5523ae07d729b579be30976df8783a0b98c4559 contains GPL version 3 license texts at its root and packages/cs3_engine/LICENSE. Source and build instructions: https://github.com/akashdh11/skystream/tree/f5523ae07d729b579be30976df8783a0b98c4559/packages/cs3_engine . Its constituent JAR dependencies retain their own licenses; the entire runtime must not be assumed to share one license.
 
 Temurin Java is downloaded separately; retain its java/legal directory and consult the notices and source corresponding to the exact version in src/BingeX/Assets/cloudstream-java.json. The original BingeX audio patch is GPL-3.0-or-later; its source and build instructions are in tools/cloudstream-patch. No third-party extensions are included.
+
+## Import-time Nuclear TypeScript converter
+
+The embedded nuclear-transpiler.js is built from Sucrase 3.35.0 and bundled dependencies (MIT and Apache-2.0). Full package notices are in licenses/nuclear-transpiler-NOTICES.txt. Source and reproducible build instructions are in tools/nuclear-import-compiler. This is an import-time converter in the existing Jint worker; Node, npm and esbuild are not bundled. User-imported Nuclear plugins are separate third-party code and retain their own licenses. No SoundCloud plugin is bundled.

@@ -409,3 +409,5 @@ Click the song title in the bottom bar for artwork, title/artist/album details, 
 Music player update (0.14.17): dedicated artwork and lyrics screen, one persistent music control bar, music-aware Player navigation, and compact lyric options. See [Now Playing](docs/music-now-playing.md).
 
 Music provider tests (0.14.18): six additional author plugins checked, MaoerFM basic playback verified, and generic direct-string playback URLs supported. See [provider test results and limitations](docs/musicfree-provider-tests.md).
+
+Music import update (0.14.19): experimental Nuclear ZIP support connects SoundCloud search/audio to the existing music player and queue, without a separate Node runtime. See [setup and tested limits](docs/nuclear-music.md).
