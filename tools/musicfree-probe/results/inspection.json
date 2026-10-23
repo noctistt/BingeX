@@ -1,0 +1,218 @@
+{
+  "mode": "inspect",
+  "results": [
+    {
+      "name": "Airsonic Advanced",
+      "version": "0.1.0",
+      "sha256": "a520b6e7acb08384fded1b908df245b75d65ed9d13d7cb7babff112ffe9a58fd",
+      "dependencies": [
+        "axios",
+        "crypto-js"
+      ],
+      "methods": [
+        "init",
+        "search",
+        "getAlbumInfo",
+        "getArtistWorks",
+        "getTopLists",
+        "getTopListDetail",
+        "getMediaSource",
+        "getLyric"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "Audiomack",
+      "version": "0.0.2",
+      "sha256": "c2781dc55ce60be70b7901ae00cafa73cccf478d4e225c0651b5ecef2697de23",
+      "dependencies": [
+        "axios",
+        "cheerio",
+        "crypto-js",
+        "dayjs"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource",
+        "getAlbumInfo",
+        "getMusicSheetInfo",
+        "getArtistWorks",
+        "getRecommendSheetTags",
+        "getRecommendSheetsByTag",
+        "getTopLists",
+        "getTopListDetail"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "bilibili",
+      "version": "0.2.3",
+      "sha256": "f7e5b3f2f78e0ed91a6c58cc3c81e81bd94956bb7493e0a95201a278a3961d01",
+      "dependencies": [
+        "axios",
+        "dayjs",
+        "he",
+        "crypto-js",
+        "cheerio"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource",
+        "getAlbumInfo",
+        "getArtistWorks",
+        "getTopLists",
+        "getTopListDetail",
+        "importMusicSheet",
+        "getMusicComments"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "歌词千寻",
+      "version": "0.0.0",
+      "sha256": "7d30f8afe423ed40ea12e3b12e413af3d318d080faf3dfe46a326c533f3493e3",
+      "dependencies": [
+        "axios",
+        "cheerio"
+      ],
+      "methods": [
+        "search",
+        "getLyric"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "歌词网",
+      "version": "0.0.0",
+      "sha256": "b3089cf375ee29df3bf96d402e9937ac17a3d6f64afb1a0fd4591e5dee4d7739",
+      "dependencies": [
+        "axios",
+        "cheerio"
+      ],
+      "methods": [
+        "search",
+        "getLyric"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "快手",
+      "version": "0.0.2",
+      "sha256": "4fbc0c4df6fef50707f965a5fe373ca021abc822a4ac89fae4553718d46d1821",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "猫耳FM",
+      "version": "0.1.4",
+      "sha256": "60d07697ae4801a14121ee5f667e6d71e5f2f278ba53c1adf3e7dff6e9edb44d",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource",
+        "getAlbumInfo",
+        "getRecommendSheetTags",
+        "getRecommendSheetsByTag",
+        "getMusicSheetInfo"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "Navidrome",
+      "version": "0.0.0",
+      "sha256": "96c29e5345bf77c5c64c1dedcd38de6ffb0fdd94b31a9d5063075fd1f02288c8",
+      "dependencies": [
+        "axios",
+        "crypto-js"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "suno",
+      "version": "0.0.0",
+      "sha256": "9f808e948b613de063180b32614636a958cf00db901e4c3d563ca049214caf73",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "getTopLists",
+        "getTopListDetail",
+        "getLyric"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "udio",
+      "version": "0.0.0",
+      "sha256": "1762a7faf3e871a2f6551dc54a00eb68250278c9d1c86a13a4ed2094336e684c",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource",
+        "getTopListDetail",
+        "getTopLists",
+        "getLyric"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "WebDAV",
+      "version": "0.0.2",
+      "sha256": "7fe44a1699c55d42b3f6265a87de6e17a0b18deddd4ad3ed4a94bea16b223982",
+      "dependencies": [
+        "webdav"
+      ],
+      "methods": [
+        "search",
+        "getTopLists",
+        "getTopListDetail",
+        "getMediaSource"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "音悦台",
+      "version": "0.0.1",
+      "sha256": "19c23b9c2e09ac90c4c69c378f72485450763565ba907a49a8df4d26136fc69a",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource"
+      ],
+      "loaded": true
+    },
+    {
+      "name": "Youtube",
+      "version": "0.0.1",
+      "sha256": "c95827eb9c1720f780e6f22289bc63947e7baf139a9b69a30ace975cbe71b464",
+      "dependencies": [
+        "axios"
+      ],
+      "methods": [
+        "search",
+        "getMediaSource"
+      ],
+      "loaded": true
+    }
+  ],
+  "blockedStartupRequests": 1,
+  "startupErrors": [
+    "INSPECTION_NETWORK_BLOCKED"
+  ]
+}

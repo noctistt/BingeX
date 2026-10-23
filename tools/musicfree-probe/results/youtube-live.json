@@ -1,0 +1,20 @@
+{
+  "mode": "live",
+  "metadata": {
+    "name": "Youtube",
+    "version": "0.0.1",
+    "sha256": "c95827eb9c1720f780e6f22289bc63947e7baf139a9b69a30ace975cbe71b464",
+    "dependencies": [
+      "axios"
+    ],
+    "methods": [
+      "search",
+      "getMediaSource"
+    ]
+  },
+  "result": "failed",
+  "stage": "source",
+  "httpStatus": null,
+  "errorCode": "TypeError",
+  "requests": 2
+}

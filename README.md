@@ -1,3 +1,5 @@
+> Music update (0.14.13): Echo integration is archived and removed from the active application. Historical Echo notes below describe past development. See [archive and restoration](archive/echo/README.md) and [MusicFree evaluation](docs/musicfree-evaluation.md). Local music, artwork, playback controls and OpenSubsonic connections are retained.
+
 # BingeX
 
 A desktop media player for local files and network streams, powered by LibVLC, with a visual library and optional Stremio add-on and Cloudstream extension compatibility.
@@ -343,10 +345,10 @@ Continue Watching excludes local audio files and music/audio contexts, including
 
 ### Music extension research
 
-A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. Add-ons > Music can import local .eapk files and activate them using a separately supplied music runtime. See [evidence, limits and adapter work](docs/echo-bridge.md).
+A development-only Echo extension probe has verified DEX conversion, desktop JVM loading, search/track/source resolution and native audio decoding against a synthetic local fixture. Add-ons > Music can import local .eapk files and activate them using a separately supplied music runtime. See [evidence, limits and adapter work](archive/echo/docs/echo-bridge.md).
 
 
-The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. The app now connects this helper to explicit activation, session login, browsing and playback without bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
+The research now includes a persistent music helper and C# transport with custom login, session settings, paged search/albums, source resolution, hash verification, cancellation and clean restart. The synthetic-server integration also checks real native audio decoding. The app now connects this helper to explicit activation, session login, browsing and playback without bundled Java/SDK files; the custom SDK license needs a separate distribution compatibility review. Reproduction and limits are in [the helper report](archive/echo/docs/echo-bridge.md#persistent-helper-milestone-2026-10-22).
 
 ### 0.14.3 — Music extension package management
 
@@ -354,11 +356,11 @@ Add-ons > Music imports user-selected Echo .eapk files, displays their names, ve
 
 ### 0.14.4 — Echo activation, browsing and playback
 
-Add-ons > Music can select a separately prepared runtime profile and activate a trusted imported Echo extension. Custom login forms keep credentials only for the session. Music displays provider tabs, paged results and albums with back navigation; tracks play through the existing player and private header relay without adding authenticated URLs to video history. Disconnect, runtime changes, Online mode off and app exit stop the helper and clear session handles. Runtime fingerprints are verified. No Echo SDK/runtime or provider package is bundled or downloaded automatically. One OpenSubsonic extension is verified against a synthetic server; arbitrary extension compatibility, browser login and music-extension autoplay are not guaranteed. See [local setup and limits](docs/echo-bridge.md#app-activation-and-listening--0144).
+Add-ons > Music can select a separately prepared runtime profile and activate a trusted imported Echo extension. Custom login forms keep credentials only for the session. Music displays provider tabs, paged results and albums with back navigation; tracks play through the existing player and private header relay without adding authenticated URLs to video history. Disconnect, runtime changes, Online mode off and app exit stop the helper and clear session handles. Runtime fingerprints are verified. No Echo SDK/runtime or provider package is bundled or downloaded automatically. One OpenSubsonic extension is verified against a synthetic server; arbitrary extension compatibility, browser login and music-extension autoplay are not guaranteed. See [local setup and limits](archive/echo/docs/echo-bridge.md#app-activation-and-listening--0144).
 
 ### 0.14.5 — Paste-link music extension imports
 
-Add-ons > Music accepts Echo repository links, GitHub project/release links, direct .eapk links and Echo-style shortcodes. Choose a repository entry to download and validate its package; activation remains explicit. Local-file import and runtime controls now live under Advanced. Downloads have size limits, HTTPS-only redirects, cancellation and optional release digest checks. The separate music runtime still needs a one-time setup before playback; automatic engine provisioning is not included. See [supported links and limits](docs/echo-bridge.md#link-imports--0145).
+Add-ons > Music accepts Echo repository links, GitHub project/release links, direct .eapk links and Echo-style shortcodes. Choose a repository entry to download and validate its package; activation remains explicit. Local-file import and runtime controls now live under Advanced. Downloads have size limits, HTTPS-only redirects, cancellation and optional release digest checks. The separate music runtime still needs a one-time setup before playback; automatic engine provisioning is not included. See [supported links and limits](archive/echo/docs/echo-bridge.md#link-imports--0145).
 
 ### 0.14.6 — Music catalogue and setup feedback
 
@@ -370,7 +372,7 @@ Music extension downloads show received bytes, can be cancelled and time out whe
 
 ### Android helper investigation
 
-A proposed optional Android-hosted extension route has been investigated, with a read-only Windows prerequisite checker. It would run extensions on ART instead of converting DEX to JVM bytecode, but needs a full Android environment and measured resource/compatibility tests. No Android helper or emulator integration is available yet. See [findings and proof-of-concept gates](docs/echo-android-helper.md).
+A proposed optional Android-hosted extension route has been investigated, with a read-only Windows prerequisite checker. It would run extensions on ART instead of converting DEX to JVM bytecode, but needs a full Android environment and measured resource/compatibility tests. No Android helper or emulator integration is available yet. See [findings and proof-of-concept gates](archive/echo/docs/echo-android-helper.md).
 
 ### Music extension status (0.14.8)
 
@@ -382,11 +384,11 @@ Extension songs use compact play rows; albums, artists and playlists use wrappin
 
 ### YouTube Music loader repair (0.14.10)
 
-The desktop helper now preserves extension service/resource lookup and repairs converted local-interface calls. The tested YouTube Music package now activates, browses, searches, resolves sources and decodes audio without Android. Other providers with malformed converted bytecode remain unsupported; see the [tested scope](docs/echo-bridge.md#desktop-loader-repair--01410-2026-10-23).
+The desktop helper now preserves extension service/resource lookup and repairs converted local-interface calls. The tested YouTube Music package now activates, browses, searches, resolves sources and decodes audio without Android. Other providers with malformed converted bytecode remain unsupported; see the [tested scope](archive/echo/docs/echo-bridge.md#desktop-loader-repair--01410-2026-10-23).
 
 ### Optional enhanced music compatibility (0.14.11)
 
-An off-by-default Advanced option can use a separately prepared, hash-verified compatibility runtime. Saavn was tested through home/search and actual UI playback; the standard engine remains available. No Android emulator, automatic runtime download or new third-party binary is included. See [setup, measured costs and limitations](docs/echo-enhanced-compatibility.md).
+An off-by-default Advanced option can use a separately prepared, hash-verified compatibility runtime. Saavn was tested through home/search and actual UI playback; the standard engine remains available. No Android emulator, automatic runtime download or new third-party binary is included. See [setup, measured costs and limitations](archive/echo/docs/echo-enhanced-compatibility.md).
 
 ### Guided music engine setup (0.14.12)
 

@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.14.12</Version>
+    <Version>0.14.13</Version>
     <Product>BingeX</Product>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/noctistt/BingeX</RepositoryUrl>
@@ -21,7 +21,6 @@
     <AvaloniaResource Include="Assets/BingeX.png" />
     <EmbeddedResource Include="Assets/cloudstream-*.json" />
     <EmbeddedResource Include="Assets/cloudstream-patch.jar" />
-    <EmbeddedResource Include="Assets/echo-helper.zip" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />

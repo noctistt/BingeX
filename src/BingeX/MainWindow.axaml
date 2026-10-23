@@ -16,7 +16,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.14.12" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.14.13" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -149,17 +149,6 @@
             <Button x:Name="MoreMusicButton" Content="Show more" Click="MoreMusic_Click" IsVisible="False" HorizontalAlignment="Center" />
             <TextBlock Text="Format, sample rate and bit depth come from file metadata. Output quality also depends on your audio device and system settings. Gapless and bit-perfect output are not verified." Classes="muted" FontSize="11" TextWrapping="Wrap" />
 
-            <Border x:Name="EchoMusicPanel" IsVisible="False" Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="12">
-              <TextBlock x:Name="EchoMusicTitle" Text="Online music catalogue" FontSize="21" FontWeight="SemiBold" />
-              <TextBlock Text="Browse music from your active provider. Manage providers and sign-in in Add-ons → Music." Classes="muted" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding Text, ElementName=EchoStatus}" Classes="muted" TextWrapping="Wrap" />
-              <ProgressBar IsVisible="{Binding IsVisible, ElementName=EchoBusy}" IsIndeterminate="True" Height="3" />
-              <Button x:Name="EchoBack" Content="← Back to music results" IsVisible="False" Click="BackEcho_Click" HorizontalAlignment="Left" />
-              <Grid x:Name="EchoSearchControls" IsVisible="False" ColumnDefinitions="*,Auto,Auto"><TextBox MinWidth="100" x:Name="EchoQuery" Watermark="Search songs, albums or artists…" AutomationProperties.Name="Search music extension" /><Button x:Name="EchoSearchButton" Grid.Column="1" Content="Search" Click="SearchEcho_Click" Margin="8,0" /><Button x:Name="EchoHomeButton" Grid.Column="2" Content="Browse home" Click="HomeEcho_Click" /></Grid>
-              <WrapPanel x:Name="EchoTabs" /><WrapPanel x:Name="EchoMusicItems" />
-              <Button x:Name="EchoMore" Content="Load more" IsVisible="False" Click="MoreEcho_Click" HorizontalAlignment="Left" />
-              <Button Content="Manage extension / login" Click="ManageEcho_Click" HorizontalAlignment="Left" />
-            </StackPanel></Border>
             <Border Background="#201B2D" CornerRadius="12" Padding="18"><StackPanel Spacing="12">
               <TextBlock Text="Connected music" FontSize="21" FontWeight="SemiBold" />
               <TextBlock x:Name="MusicConnectionStatus" Text="{Binding Text, ElementName=MusicServerMessage}" Classes="muted" TextWrapping="Wrap" />
@@ -502,30 +491,10 @@
         <StackPanel Spacing="16">
           <WrapPanel><Button x:Name="VideoAddonsFilter" Content="Video" Classes="primary" Click="VideoAddonsFilter_Click" Margin="0,0,10,0" /><Button x:Name="MusicAddonsFilter" Content="Music" Click="MusicAddonsFilter_Click" /></WrapPanel>
           <StackPanel x:Name="MusicAddonsSection" IsVisible="False" Spacing="16">
-            <Border x:Name="EchoPackagesPanel" Background="#251D36" CornerRadius="16" Padding="22">
-              <StackPanel Spacing="12">
-                <TextBlock Text="Music extensions · Echo" FontSize="22" FontWeight="SemiBold" />
-                <TextBlock Text="Paste an Echo repository, GitHub release or extension file link. Choose an extension to install, then activate it to browse music." Classes="muted" TextWrapping="Wrap" />
-                <TextBlock x:Name="EchoSetupSummary" Text="Set up the music engine once, then add and activate your providers." TextWrapping="Wrap" />
-                <Button x:Name="EchoEngineSetupButton" Content="Set up music engine" Classes="primary" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
-                <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="EchoLinkInput" Watermark="Paste a music extension or repository link…" AutomationProperties.Name="Music extension link" /><Button x:Name="EchoLinkButton" Grid.Column="1" Content="Add link" Click="AddEchoLink_Click" Margin="8,0,0,0" /></Grid>
-                <Expander x:Name="EchoAvailableProviders" Header="Available extensions" IsVisible="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ScrollViewer MaxHeight="220"><WrapPanel x:Name="EchoLinkChoices" Margin="0,10,0,0" /></ScrollViewer></Expander>
-                <WrapPanel x:Name="EchoDownloadActions" IsVisible="False"><ProgressBar Width="180" Height="3" IsIndeterminate="True" VerticalAlignment="Center" /><Button Content="Cancel download" Click="CancelEchoDownload_Click" Margin="10,0,0,0" /></WrapPanel>
-                <CheckBox x:Name="EchoTrust" Content="I trust the extensions I activate (extensions execute code)" />
-                <Expander x:Name="EchoAdvanced" Header="Advanced · engine options and local files" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="10" Margin="0,10,0,0">
-                  <CheckBox x:Name="EchoCompatibilityCheck" Content="Enhanced music compatibility (experimental)" ToolTip.Tip="Uses a separately prepared compatibility runtime on the next activation. Turn off to return to the standard engine." />
-                  <Button Content="Change music engine file" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
-                  <TextBlock x:Name="EchoRuntimeMessage" Text="Choose Set up music engine above. The engine mode is selected automatically after its files are checked." Classes="muted" TextWrapping="Wrap" />
-                  <Button x:Name="EchoImportButton" Content="Import a local extension file" Click="ImportEcho_Click" HorizontalAlignment="Left" />
-                </StackPanel></Expander>
-                <TextBlock x:Name="EchoPackageMessage" Text="No music extensions imported." Classes="muted" TextWrapping="Wrap" />
-                <StackPanel x:Name="EchoPackageItems" Spacing="8" />
-                <TextBlock x:Name="EchoStatus" Text="No music extension active." Classes="muted" TextWrapping="Wrap" />
-                <ProgressBar x:Name="EchoBusy" IsVisible="False" IsIndeterminate="True" Height="3" />
-                <StackPanel x:Name="EchoLoginForms" Spacing="12" /><WrapPanel x:Name="EchoUsers" />
-                <WrapPanel><Button Content="Open Music" Click="OpenEchoMusic_Click" Margin="0,0,8,0" /><Button Content="Disconnect extension" Click="DisconnectEcho_Click" /></WrapPanel>
-              </StackPanel>
-            </Border>
+            <Border Background="#251D36" CornerRadius="16" Padding="22"><StackPanel Spacing="10">
+              <TextBlock Text="Music extensions" FontSize="22" FontWeight="SemiBold" />
+              <TextBlock Text="MusicFree compatibility is being tested. Extension installation is not available yet. Local music and server connections remain available." TextWrapping="Wrap" />
+            </StackPanel></Border>
             <Expander x:Name="MusicServerPanel" Header="Music connections · Navidrome / OpenSubsonic" IsExpanded="False" IsVisible="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
               <StackPanel Spacing="12" Margin="0,12,0,0">
                 <TextBlock Text="Navidrome / OpenSubsonic. Use your own server account. Login is kept only until disconnect or app exit; it is excluded from history and settings backups." Classes="muted" TextWrapping="Wrap" />

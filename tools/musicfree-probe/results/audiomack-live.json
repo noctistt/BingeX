@@ -1,0 +1,33 @@
+{
+  "mode": "live",
+  "metadata": {
+    "name": "Audiomack",
+    "version": "0.0.2",
+    "sha256": "c2781dc55ce60be70b7901ae00cafa73cccf478d4e225c0651b5ecef2697de23",
+    "dependencies": [
+      "axios",
+      "cheerio",
+      "crypto-js",
+      "dayjs"
+    ],
+    "methods": [
+      "search",
+      "getMediaSource",
+      "getAlbumInfo",
+      "getMusicSheetInfo",
+      "getArtistWorks",
+      "getRecommendSheetTags",
+      "getRecommendSheetsByTag",
+      "getTopLists",
+      "getTopListDetail"
+    ]
+  },
+  "query": "Kevin MacLeod",
+  "result": "search_ok",
+  "count": 20,
+  "artwork": true,
+  "requests": 2,
+  "sourceResolved": true,
+  "httpStatus": 206,
+  "contentType": "audio/mp4"
+}
