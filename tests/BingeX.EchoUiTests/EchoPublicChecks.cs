@@ -10,11 +10,10 @@ internal static class EchoPublicChecks
         const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
         object? Call(string name,params object?[] a)=>typeof(MainWindow).GetMethod(name,flags)!.Invoke(window,a);
         object? Get(string name)=>typeof(MainWindow).GetField(name,flags)!.GetValue(window);
-        void Set(string name,object value)=>typeof(MainWindow).GetField(name,flags)!.SetValue(window,value);
         T C<T>(string name)where T:Control=>window.FindControl<T>(name)!;
         void Check(bool ok,string message){if(!ok)throw new Exception(message);}
         async Task Wait(Func<bool> ready,string message){var end=DateTime.UtcNow.AddSeconds(60);while(!ready()){if(DateTime.UtcNow>end)throw new Exception(message);await Task.Delay(100);}}
-        Set("echoRuntimeFile",Path.GetFullPath(args[1]));C<CheckBox>("EchoTrust").IsChecked=true;C<CheckBox>("EchoCompatibilityCheck").IsChecked=true;C<Slider>("VolumeBar").Value=0;
+        await (Task<bool>)Call("SelectEchoRuntime",Path.GetFullPath(args[1]))!;Check(C<CheckBox>("EchoCompatibilityCheck").IsEnabled&&C<CheckBox>("EchoCompatibilityCheck").IsChecked==true,"Prepared engine must select compatibility automatically.");C<CheckBox>("EchoTrust").IsChecked=true;C<Slider>("VolumeBar").Value=0;
         await (Task)Call("ActivateEcho",package)!;
         Check(Get("echoBridge")!=null&&C<WrapPanel>("EchoMusicItems").Children.Count>0,"Enhanced provider activation/home failed.");
         Check(C<Button>("EchoSearchButton").IsEnabled,"Inherited search capability must enable the search button.");

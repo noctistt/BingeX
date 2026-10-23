@@ -63,15 +63,15 @@ internal static class Program
                     Check(!C<StackPanel>("VideoAddonsSection").IsEffectivelyVisible,"Video addons must remain separate.");
                     Set("echoLinksFactory",new Func<EchoLinks>(()=>new EchoLinks(new LinkFixture(File.ReadAllBytes(args[0])))));
                     await (Task)Call("ReadEchoLink","https://repo.example/repo.json")!;
-                    Check(C<WrapPanel>("EchoLinkChoices").Children.Count==1,"Repository links must show install choices.");Click(C<WrapPanel>("EchoLinkChoices").Children.OfType<Button>().Single());await Wait(()=>!(bool)Get("echoImporting")!,"Link install did not finish.");
-                    Check(new EchoPackages(data).List().Count==1&&C<TextBox>("EchoLinkInput").Text=="","Link install must retain a validated package and clear the input.");
+                    Check(C<Expander>("EchoAvailableProviders").IsExpanded,"Repository choices must expand after adding a link.");Check(C<WrapPanel>("EchoLinkChoices").Children.Count==1,"Repository links must show install choices.");Click(C<WrapPanel>("EchoLinkChoices").Children.OfType<Button>().Single());await Wait(()=>!(bool)Get("echoImporting")!,"Link install did not finish.");
+                    Check(!C<Expander>("EchoAvailableProviders").IsExpanded,"Installed providers must not be buried under repository choices.");Check(new EchoPackages(data).List().Count==1&&C<TextBox>("EchoLinkInput").Text=="","Link install must retain a validated package and clear the input.");
                     using(var image=new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)window.Bounds.Width,(int)window.Bounds.Height))){image.Render(window);image.Save(Path.Combine(data,"echo-addons.png"));}
                     Call("SelectAddonCategory",false);Check(!C<Border>("EchoPackagesPanel").IsEffectivelyVisible,"Video category must hide music packages.");
                     if(args.Length==4&&args[3].StartsWith("--public",StringComparison.Ordinal))await EchoPublicChecks.Run(window,args,item);
                     if(args.Length==3||(args.Length==4&&args[3]=="--enhanced"))
                     {
                         Check(new Uri(args[2]).Host=="127.0.0.1","Only synthetic loopback accounts may be used.");
-                        Set("echoRuntimeFile",Path.GetFullPath(args[1]));C<CheckBox>("EchoCompatibilityCheck").IsChecked=args.Length==4;Call("SelectAddonCategory",true);
+                        await (Task<bool>)Call("SelectEchoRuntime",Path.GetFullPath(args[1]))!;Check(C<CheckBox>("EchoCompatibilityCheck").IsEnabled==(args.Length==4),"Engine setup must disable unavailable compatibility and automatically select the prepared enhanced engine.");Check((C<CheckBox>("EchoCompatibilityCheck").IsChecked==true)==(args.Length==4),"Engine mode must follow verified setup without a second user action.");Call("SelectAddonCategory",true);
                         await (Task)Call("ActivateEcho",item)!;Check(Get("echoBridge")==null,"Trust must be explicit.");C<CheckBox>("EchoTrust").IsChecked=true;
                         await (Task)Call("ActivateEcho",item)!;Check(Get("echoBridge") is EchoMusicBridge,"Extension did not activate.");
                         var helper=(EchoMusicBridge)Get("echoBridge")!;

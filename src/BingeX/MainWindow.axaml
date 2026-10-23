@@ -16,7 +16,7 @@
         <Button x:Name="SettingsNav" Classes="nav" Content="Settings" Click="AppSettings_Click" HorizontalAlignment="Stretch" />
         <Border Height="1" Background="#30303F" Margin="0,18" />
         <TextBlock Text="LOCAL. OPEN. YOURS." Classes="muted" FontSize="10" />
-        <TextBlock Text="Development preview 0.14.11" Classes="muted" FontSize="11" />
+        <TextBlock Text="Development preview 0.14.12" Classes="muted" FontSize="11" />
       </StackPanel>
     </Border>
     <Grid x:Name="MainContent" Grid.Column="1" Margin="30,24" RowDefinitions="Auto,*">
@@ -506,15 +506,16 @@
               <StackPanel Spacing="12">
                 <TextBlock Text="Music extensions · Echo" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock Text="Paste an Echo repository, GitHub release or extension file link. Choose an extension to install, then activate it to browse music." Classes="muted" TextWrapping="Wrap" />
-                <TextBlock x:Name="EchoSetupSummary" Text="Music engine: not set up. Imported providers cannot browse or play yet." TextWrapping="Wrap" />
+                <TextBlock x:Name="EchoSetupSummary" Text="Set up the music engine once, then add and activate your providers." TextWrapping="Wrap" />
+                <Button x:Name="EchoEngineSetupButton" Content="Set up music engine" Classes="primary" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
                 <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="EchoLinkInput" Watermark="Paste a music extension or repository link…" AutomationProperties.Name="Music extension link" /><Button x:Name="EchoLinkButton" Grid.Column="1" Content="Add link" Click="AddEchoLink_Click" Margin="8,0,0,0" /></Grid>
-                <WrapPanel x:Name="EchoLinkChoices" />
+                <Expander x:Name="EchoAvailableProviders" Header="Available extensions" IsVisible="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><ScrollViewer MaxHeight="220"><WrapPanel x:Name="EchoLinkChoices" Margin="0,10,0,0" /></ScrollViewer></Expander>
                 <WrapPanel x:Name="EchoDownloadActions" IsVisible="False"><ProgressBar Width="180" Height="3" IsIndeterminate="True" VerticalAlignment="Center" /><Button Content="Cancel download" Click="CancelEchoDownload_Click" Margin="10,0,0,0" /></WrapPanel>
                 <CheckBox x:Name="EchoTrust" Content="I trust the extensions I activate (extensions execute code)" />
-                <Expander x:Name="EchoAdvanced" Header="Advanced · local files and music engine setup" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="10" Margin="0,10,0,0">
+                <Expander x:Name="EchoAdvanced" Header="Advanced · engine options and local files" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><StackPanel Spacing="10" Margin="0,10,0,0">
                   <CheckBox x:Name="EchoCompatibilityCheck" Content="Enhanced music compatibility (experimental)" ToolTip.Tip="Uses a separately prepared compatibility runtime on the next activation. Turn off to return to the standard engine." />
-                  <Button Content="Choose music runtime profile" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
-                  <TextBlock x:Name="EchoRuntimeMessage" Text="Music engine setup is required once before playback. Select a separately prepared echo-runtime.json from a trusted source. Nothing is downloaded automatically." Classes="muted" TextWrapping="Wrap" />
+                  <Button Content="Change music engine file" Click="ChooseEchoRuntime_Click" HorizontalAlignment="Left" />
+                  <TextBlock x:Name="EchoRuntimeMessage" Text="Choose Set up music engine above. The engine mode is selected automatically after its files are checked." Classes="muted" TextWrapping="Wrap" />
                   <Button x:Name="EchoImportButton" Content="Import a local extension file" Click="ImportEcho_Click" HorizontalAlignment="Left" />
                 </StackPanel></Expander>
                 <TextBlock x:Name="EchoPackageMessage" Text="No music extensions imported." Classes="muted" TextWrapping="Wrap" />

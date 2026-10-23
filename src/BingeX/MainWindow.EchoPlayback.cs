@@ -16,12 +16,15 @@ public partial class MainWindow
     private readonly Stack<(EchoFeed Feed,string Tab)> echoNavigation=new();
     private string echoTab="",echoNext="";
     private bool echoWorking;
+    private bool echoSetupChecking;
     private int echoEpoch;
     private void SetupEcho()
     {
         try{var file=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");if(File.Exists(file))echoRuntimeFile=File.ReadAllText(file);if(echoRuntimeFile!=null){EchoRuntimeMessage.Text="Music runtime selected. Activate a trusted extension to start.";EchoSetupSummary.Text="Music engine selected. Activate an installed provider to load its catalogue.";EchoStatus.Text="No music provider active. Activate an installed provider in Add-ons → Music to see its catalogue.";}}catch{}
+        EchoCompatibilityCheck.IsEnabled=false;
         EchoCompatibilityCheck.IsChecked=preferences.EchoEnhancedCompatibility;
         EchoCompatibilityCheck.IsCheckedChanged+=(_,_)=>{preferences=preferences with{EchoEnhancedCompatibility=EchoCompatibilityCheck.IsChecked==true};store.SavePreferences(preferences);EchoRuntimeMessage.Text="Engine choice saved. It takes effect on the next extension activation.";};
+        _=RestoreEchoRuntimeSetup();
         Closed+=(_,_)=>StopEcho();
     }
     private void StopEcho()
@@ -42,21 +45,44 @@ public partial class MainWindow
         if(!onlineEnabled||echoWorking)return;
         var files=await StorageProvider.OpenFilePickerAsync(new(){Title="Choose prepared Echo music runtime",AllowMultiple=false,FileTypeFilter=[new FilePickerFileType("Music runtime profile"){Patterns=["*.json"]}]});
         if(localClosing||!onlineEnabled||files.FirstOrDefault()?.TryGetLocalPath() is not {} file)return;
+        await SelectEchoRuntime(file);
+    }
+    private void ShowEchoEngine(bool hasCompatibility,bool chooseBest)
+    {
+        EchoCompatibilityCheck.IsEnabled=hasCompatibility;
+        if(chooseBest||!hasCompatibility)EchoCompatibilityCheck.IsChecked=hasCompatibility;
+        EchoSetupSummary.Text=hasCompatibility?"Music engine ready. Activate a provider to browse.":"Standard music engine ready. Set up the enhanced engine to try more providers.";
+        EchoEngineSetupButton.Content=hasCompatibility?"Change music engine":"Set up music engine";
+        EchoRuntimeMessage.Text=hasCompatibility?"Enhanced engine is ready. You can switch back to standard here if needed.":"Enhanced compatibility is unavailable with this engine. Use Set up music engine to select the prepared engine file.";
+    }
+    private async Task RestoreEchoRuntimeSetup()
+    {
+        if(echoRuntimeFile==null){EchoCompatibilityCheck.IsChecked=false;return;}
+        var file=echoRuntimeFile;echoSetupChecking=true;EchoSetupSummary.Text="Checking music engine…";
+        try{
+            var verified=await Task.Run(()=>EchoRuntimeProfile.Load(file,store.DataDirectory));
+            if(!localClosing&&echoRuntimeFile==file)ShowEchoEngine(verified.HasCompatibility,false);
+        }catch{if(!localClosing&&echoRuntimeFile==file){EchoCompatibilityCheck.IsChecked=false;EchoSetupSummary.Text="Music setup needs attention. Choose Set up music engine to repair it.";}}
+        finally{echoSetupChecking=false;}
+    }
+    private async Task<bool> SelectEchoRuntime(string file)
+    {
         try
         {
-            var verified=await Task.Run(()=>EchoRuntimeProfile.Load(file,store.DataDirectory));if(localClosing||!onlineEnabled)return;
+            var verified=await Task.Run(()=>EchoRuntimeProfile.Load(file,store.DataDirectory));if(localClosing||!onlineEnabled)return false;
             StopEcho();echoRuntimeFile=file;EchoTrust.IsChecked=false;
             var location=Path.Combine(store.DataDirectory,"echo","runtime-location.txt");Directory.CreateDirectory(Path.GetDirectoryName(location)!);File.WriteAllText(location,file);
-            EchoRuntimeMessage.Text=verified.HasCompatibility?"Runtime verified. Enhanced compatibility is available using the checkbox above.":"Standard runtime verified. Activate a trusted music extension to start.";
-            EchoSetupSummary.Text="Music engine verified. Activate an installed provider to load its catalogue.";
-            EchoStatus.Text="Activate an installed provider to load its catalogue.";
+            ShowEchoEngine(verified.HasCompatibility,true);
+            EchoStatus.Text="Music setup complete. Confirm trust, then activate a provider.";
+            return true;
         }
-        catch{EchoRuntimeMessage.Text="Could not verify this runtime. Choose a prepared echo-runtime.json with its original dependency files.";}
+        catch{EchoRuntimeMessage.Text="This engine file could not be verified. Keep its supporting files in place and choose the prepared engine file again.";EchoSetupSummary.Text="Music setup could not be completed. Your previous engine is kept.";return false;}
     }
     private async Task ActivateEcho(EchoPackage package)
     {
         if(!onlineEnabled||echoWorking)return;
-        if(echoRuntimeFile==null){EchoAdvanced.IsExpanded=true;EchoStatus.Text="Music engine setup is required once before playback. Open Advanced to finish setup.";return;}
+        if(echoSetupChecking){EchoStatus.Text="Checking your music engine… Try Activate again in a moment.";return;}
+        if(echoRuntimeFile==null){EchoAdvanced.IsExpanded=true;EchoStatus.Text="Choose Set up music engine first, then activate your provider.";return;}
         if(EchoTrust.IsChecked!=true){EchoStatus.Text="Confirm that you trust the runtime and extension before activation.";return;}
         var useCompatibility=EchoCompatibilityCheck.IsChecked==true;
         StopEcho();SetEchoPackageState(package,"Starting…");var epoch=echoEpoch;var token=echoWork.Token;echoWorking=true;EchoBusy.IsVisible=true;EchoPackageItems.IsEnabled=false;EchoStatus.Text="Starting "+package.Name+"…";
@@ -79,7 +105,7 @@ public partial class MainWindow
             await RefreshEchoPackages();
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
-        catch(InvalidDataException){if(epoch==echoEpoch){StopEcho();SetEchoPackageState(package,"Setup required · choose a compatible runtime");await RefreshEchoPackages();EchoAdvanced.IsExpanded=true;EchoStatus.Text=useCompatibility?"Enhanced compatibility requires a verified version-2 runtime profile. Choose one under Advanced, or turn Enhanced compatibility off.":"The selected music runtime could not be verified. Choose its original profile and dependency files.";}}
+        catch(InvalidDataException){if(epoch==echoEpoch){StopEcho();SetEchoPackageState(package,"Setup required · choose a compatible runtime");await RefreshEchoPackages();EchoAdvanced.IsExpanded=true;EchoStatus.Text=useCompatibility?"The enhanced engine is not ready. Choose Set up music engine to finish setup, or use the standard engine.":"The selected music runtime could not be verified. Choose its original profile and dependency files.";}}
         catch(EchoCompatibilityException error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=package.Name+": "+error.Message+" ("+error.Stage+" / "+error.FailureType+")";}}
         catch(Exception error){if(epoch==echoEpoch){StopEcho();RecordEchoFailure(package,error);await RefreshEchoPackages();EchoStatus.Text=error is OperationCanceledException?"Activation timed out. The helper was stopped; activate to retry.":"Could not activate this extension. Check runtime compatibility and try again.";}}
         finally

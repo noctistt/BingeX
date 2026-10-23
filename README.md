@@ -387,3 +387,7 @@ The desktop helper now preserves extension service/resource lookup and repairs c
 ### Optional enhanced music compatibility (0.14.11)
 
 An off-by-default Advanced option can use a separately prepared, hash-verified compatibility runtime. Saavn was tested through home/search and actual UI playback; the standard engine remains available. No Android emulator, automatic runtime download or new third-party binary is included. See [setup, measured costs and limitations](docs/echo-enhanced-compatibility.md).
+
+### Guided music engine setup (0.14.12)
+
+Add-ons > Music now has a visible Set up music engine button. Selecting a verified prepared profile automatically chooses the available engine mode; enhanced mode cannot be enabled for a standard profile. Saved setup is checked on restart. Repository choices collapse after installation to keep installed providers visible. The runtime is still separately supplied, and provider compatibility remains experimental.

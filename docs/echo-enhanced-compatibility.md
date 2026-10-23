@@ -4,9 +4,11 @@ Enhanced compatibility is an opt-in desktop JVM route. It does not use an Androi
 
 ## Local setup
 
-1. Install BingeX 0.14.11 or newer.
-2. In Add-ons → Music → Advanced, select a separately prepared version-2 `echo-runtime.json` with the additional compatibility files.
-3. Enable **Enhanced music compatibility (experimental)**, confirm trust, and activate the provider again. A standard version-1 profile cannot enable the extra engine; the app explains how to choose a compatible profile or turn the option off.
+1. Install BingeX 0.14.12 or newer.
+2. In Add-ons > Music, choose **Set up music engine** and select the separately prepared `echo-runtime.json`. Supporting files must remain in place.
+3. Setup verifies the files and selects enhanced mode automatically when available. Confirm trust, then activate the provider. The Advanced switch is disabled for standard profiles; it remains available for switching a prepared enhanced engine back to standard.
+
+On restart the saved engine is checked again, and an unavailable enhanced mode is cleared. Repository choices open in a bounded, collapsible list and collapse after installation. This simplifies setup; it does not provision an engine or fix every provider.
 
 Nothing is downloaded automatically. The profile lists SHA-256 fingerprints for all referenced components. Extra JARs are verified before process startup, have an explicit ordered classpath, and cannot be enabled by a version-1 profile. Only the original BingeX helper is embedded in the installer. Hash verification checks consistency with the selected profile, not the reputation/safety of its author. The runtime/extensions execute as the current user and are not an untrusted-code sandbox.
 

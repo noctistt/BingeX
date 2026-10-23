@@ -13,7 +13,7 @@ public partial class MainWindow
     {
         if(!onlineEnabled||echoImporting)return;
         echoLinkWork.Cancel();echoLinkWork.Dispose();echoLinkWork=new();var token=echoLinkWork.Token;
-        echoImporting=true;EchoDownloadActions.IsVisible=true;EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;EchoLinkChoices.Children.Clear();EchoLinkChoices.IsEnabled=false;EchoPackageMessage.Text="Reading music extension link…";
+        echoImporting=true;EchoDownloadActions.IsVisible=true;EchoLinkButton.IsEnabled=EchoImportButton.IsEnabled=false;EchoLinkChoices.Children.Clear();EchoAvailableProviders.IsVisible=false;EchoLinkChoices.IsEnabled=false;EchoPackageMessage.Text="Reading music extension link…";
         try
         {
             using var links=echoLinksFactory();var choices=await links.Read(link,token);token.ThrowIfCancellationRequested();if(localClosing)return;
@@ -25,6 +25,7 @@ public partial class MainWindow
             else
             {
                 foreach(var choice in choices){var button=new Button{Content="Install "+choice.Name,Margin=new Thickness(0,0,8,8)};button.Click+=async(_,_)=>await InstallEchoChoice(choice,button);EchoLinkChoices.Children.Add(button);}
+                EchoAvailableProviders.Header=$"Available extensions ({choices.Count})";EchoAvailableProviders.IsVisible=true;EchoAvailableProviders.IsExpanded=true;
                 EchoPackageMessage.Text=$"{choices.Count} extensions found. Choose one to install.";
             }
         }
@@ -43,7 +44,7 @@ public partial class MainWindow
         try
         {
             using var links=echoLinksFactory();await links.Install(choice,store.DataDirectory,token,EchoDownloadStatus(token));token.ThrowIfCancellationRequested();if(localClosing)return;
-            await RefreshEchoPackages();EchoLinkInput.Text="";EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";installed=true;
+            await RefreshEchoPackages();EchoLinkInput.Text="";EchoPackageMessage.Text="Extension installed. Choose Activate to use it.";installed=true;EchoAvailableProviders.IsExpanded=false;
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){if(!localClosing)EchoPackageMessage.Text="Link import cancelled.";}
         catch(EchoInstallException error){if(!localClosing)EchoPackageMessage.Text=error.Message;}
