@@ -539,7 +539,7 @@ public partial class MainWindow
     }
     private void OnKey(object? sender, KeyEventArgs e)
     {
-        if (!e.Handled && e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt && activePage is "Player" or "Details" or "Settings")
+        if (!e.Handled && e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt && activePage is "Player" or "Now Playing" or "Details" or "Settings")
         {
             NavigateBack_Click(null, new()); e.Handled = true; return;
         }
@@ -547,6 +547,10 @@ public partial class MainWindow
         var ancestors = e.Source is Visual visual ? visual.GetVisualAncestors().Prepend(visual).ToArray() : [];
         if (ancestors.Any(x => x is TextBox or ComboBox or NumericUpDown or Slider)) return;
         if(e.Key==Key.OemQuestion && e.KeyModifiers==KeyModifiers.Shift){OpenShortcutHelp();e.Handled=true;return;}
+        if(activePage=="Now Playing" && e.KeyModifiers==KeyModifiers.None){
+            if(e.Key==Key.Space && !ancestors.Any(x=>x is Button or CheckBox)){Play_Click(null,new());e.Handled=true;return;}
+            if(e.Key is Key.Left or Key.Right){Skip((e.Key==Key.Left?-1:1)*preferences.SeekSeconds*1000L);musicLyricClock.Reset();e.Handled=true;return;}
+        }
         if (activePage != "Player" || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0) return;
         switch (e.Key)
         {

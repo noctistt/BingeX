@@ -37,6 +37,7 @@ public partial class MainWindow : Window
             SaveProgress();
             Page(playerReturnPage);
         }
+        else if (activePage == "Now Playing") Page("Music");
         else if (activePage == "Details") Page("Library");
         else if(activePage=="Settings")Page(settingsReturnPage);
     }
@@ -126,6 +127,8 @@ public partial class MainWindow : Window
     private static string Clock(long milliseconds) => TimeSpan.FromMilliseconds(Math.Max(0, milliseconds)).ToString(milliseconds >= 3600000 ? @"h\:mm\:ss" : @"mm\:ss");
     private void Page(string page)
     {
+        if (page == "Player" && currentIsMusic) page = "Now Playing";
+        if (page == "Now Playing" && !currentIsMusic) page = "Music";
         if (!onlineEnabled && page is "Details" or "Add-ons") page = "Library";
         if(page!="Settings")CancelSettingsPreview();
         if (page != "Player") CancelEpisodeAutoplay();
@@ -141,15 +144,17 @@ public partial class MainWindow : Window
         if (page != "Library") { catalogWork.Cancel(); browseWork.Cancel(); posterWork.Cancel(); }
         if (page != "Details") { detailWork.Cancel(); streamWork.Cancel(); }
         activePage = page;
-        NavigateBackButton.IsVisible = page is "Player" or "Details" or "Settings";
+        NavigateBackButton.IsVisible = page is "Player" or "Now Playing" or "Details" or "Settings";
         LibraryNav.Classes.Set("active", page is "Library" or "Details");
         LocalLibraryNav.Classes.Set("active", page == "My Library");
-        PlayerNav.Classes.Set("active", page == "Player");
+        PlayerNav.Classes.Set("active", page is "Player" or "Now Playing");
         AddonsNav.Classes.Set("active", page == "Add-ons");
         DetailsPage.IsVisible = page == "Details";
         LibraryPage.IsVisible = page == "Library";
         LocalLibraryPage.IsVisible = page == "My Library";
         MusicPage.IsVisible=page=="Music";MusicNav.Classes.Set("active",page=="Music");
+        MusicNowPage.IsVisible=page=="Now Playing";
+        if(page=="Now Playing" && musicNowTrack!=null && musicLyrics==null && onlineEnabled && !MusicLyricsBusy.IsVisible) _=FindMusicLyrics(true);
         if(page=="Music")RenderMusic();
         UpdatePlayerLayout();
         AddonsPage.IsVisible = page == "Add-ons";
@@ -203,7 +208,7 @@ public partial class MainWindow : Window
         PlayerEmpty.IsVisible = false;
         NowPlaying.Text = title; MiniTitle.Text = title;
         currentIsMusic = musicPlayback || (uri.IsFile && MusicLibrary.IsAudio(path));
-        Page(currentIsMusic ? "Music" : "Player");
+        Page(currentIsMusic ? (activePage == "Now Playing" ? "Now Playing" : "Music") : "Player");
         try
         {
             if (input == null && playbackUrl == null) { StopTorrentPlayback(); lastTorrentChoice = null; lastTorrentContext = null; }

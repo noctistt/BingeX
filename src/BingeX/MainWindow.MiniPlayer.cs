@@ -12,7 +12,7 @@ public partial class MainWindow
     {
         miniPlayer = activePage != "Player" && currentPath != null && !currentIsMusic;
         UpdateMusicNowBar();
-        var visible = activePage == "Player" || miniPlayer;
+        var visible = !currentIsMusic && (activePage == "Player" || miniPlayer);
         PlayerPage.Width = miniPlayer ? 360 : double.NaN;
         PlayerPage.Height = miniPlayer ? 244 : double.NaN;
         PlayerPage.HorizontalAlignment = miniPlayer ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Stretch;

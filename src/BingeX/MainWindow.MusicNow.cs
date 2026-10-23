@@ -6,7 +6,7 @@ public partial class MainWindow
     private bool currentIsMusic, musicSeekUpdating, musicSeekDragging;
     private void SetupMusicNowBar()
     {
-        foreach(var seek in new[]{MusicNowSeek,MusicNowDetailSeek}){
+        foreach(var seek in new[]{MusicNowSeek}){
             seek.AddHandler(PointerPressedEvent,(_,_)=>musicSeekDragging=true,RoutingStrategies.Tunnel);
             seek.AddHandler(PointerReleasedEvent,(_,_)=>{musicSeekDragging=false;SeekMusicNow();},RoutingStrategies.Tunnel);
         }
@@ -22,6 +22,7 @@ public partial class MainWindow
     {
         MusicNowBar.IsVisible=currentIsMusic&&currentPath!=null;
         MusicNowTitle.Text=currentTitle;
+        StatusLabel.IsVisible=!MusicNowBar.IsVisible;
         MusicNowPrevious.IsEnabled=QueuePreviousButton.IsEnabled;MusicNowNext.IsEnabled=QueueNextButton.IsEnabled;
         MusicNowState.Text=playbackSnapshot.State switch { LibVLCSharp.Shared.VLCState.Opening or LibVLCSharp.Shared.VLCState.Buffering=>"Buffering…",LibVLCSharp.Shared.VLCState.Error=>"Playback failed. Retry or choose another track.",LibVLCSharp.Shared.VLCState.Paused=>"Paused",_=>"" };MusicNowState.IsVisible=MusicNowState.Text.Length>0;
         MusicNowPlay.Content=playbackSnapshot.IsPlaying?"Pause":"Play";

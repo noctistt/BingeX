@@ -21,7 +21,7 @@ public partial class MainWindow
     private readonly List<Button> musicLyricButtons=[];
     private void SetupMusicNowDetails()
     {
-        musicLyricTimer.Tick+=(_,_)=>{if(currentIsMusic&&MusicNowDetails.IsExpanded&&MusicPage.IsVisible)UpdateMusicLyricHighlight();};musicLyricTimer.Start();
+        musicLyricTimer.Tick+=(_,_)=>{if(currentIsMusic&&MusicNowPage.IsVisible)UpdateMusicLyricHighlight();};musicLyricTimer.Start();
         Closed+=(_,_)=>{musicLyricTimer.Stop();musicLyricsWork.Cancel();musicNowArtWork.Cancel();musicLyricsClient.Dispose();};
     }
     private void CancelMusicLyrics(){musicLyricsWork.Cancel();musicLyricsWork.Dispose();musicLyricsWork=new();MusicLyricsBusy.IsVisible=false;MusicLyricsFind.IsEnabled=true;}
@@ -29,7 +29,7 @@ public partial class MainWindow
     private void SetMusicNowTrack(string path,string title)
     {
         musicLyricEpoch++;musicLyricClock.Reset();CancelMusicLyrics();musicNowArtWork.Cancel();musicNowArtWork.Dispose();musicNowArtWork=new();
-        musicLyrics=null;musicLyricIndex=-2;musicLyricButtons.Clear();MusicLyricLines.Children.Clear();MusicLyricMatches.Children.Clear();MusicLyricsPlain.Text="";MusicNowArtwork.Source=null;MusicNowView.IsVisible=currentIsMusic;
+        musicLyrics=null;musicLyricIndex=-2;musicLyricButtons.Clear();MusicLyricLines.Children.Clear();MusicLyricMatches.Children.Clear();MusicLyricsPlain.Text="";MusicNowArtwork.Source=null;
         MusicNowQueueItems.Children.Clear();
         if(!currentIsMusic){musicNowTrack=null;return;}
         if(IsMusicFreePlaying&&musicFreeIndex>=0&&musicFreeIndex<musicFreeQueue.Length){
@@ -43,13 +43,13 @@ public partial class MainWindow
         MusicLyricsTitle.Text=musicNowTrack.Title;MusicLyricsArtist.Text=musicNowTrack.Artist;MusicLyricsAlbum.Text=musicNowTrack.Album;
         musicLyricOffsetUpdating=true;MusicLyricsOffset.Value=0;musicLyricOffsetUpdating=false;
         if(musicNowTrack.Artwork is {} cover)_=artwork.Fill(MusicNowArtwork,cover,musicNowArtWork.Token);
-        MusicLyricsMessage.Text="Open Now Playing to look for matching lyrics, or load a local .lrc file.";
+        MusicLyricsMessage.Text="No lyrics loaded. Open Lyrics options to find a match or load a local .lrc file.";
         RenderMusicNowQueue();
         if(musicLyricCache.TryGetValue(musicNowTrack.Key,out var cached)){
             musicLyricOffsetUpdating=true;MusicLyricsOffset.Value=cached.Offset;musicLyricOffsetUpdating=false;ApplyMusicLyrics(cached.Lyrics,cached.Source);
         }else{
             if(Uri.TryCreate(path,UriKind.Absolute,out var uri)&&uri.IsFile)_=LoadMusicSidecar(uri.LocalPath,musicLyricEpoch);
-            else if(MusicNowDetails.IsExpanded&&onlineEnabled)_=FindMusicLyrics(true);
+            else if(MusicNowPage.IsVisible&&onlineEnabled)_=FindMusicLyrics(true);
         }
     }
     private async Task LoadMusicSidecar(string path,long epoch)
@@ -58,7 +58,7 @@ public partial class MainWindow
         try{text=await Task.Run(()=>{var sidecar=Path.ChangeExtension(path,".lrc");return File.Exists(sidecar)&&new FileInfo(sidecar).Length<=256_000?File.ReadAllText(sidecar):null;});}catch{}
         if(localClosing||epoch!=musicLyricEpoch||musicLyrics!=null)return;
         if(text!=null){try{ApplyMusicLyrics(MusicLyrics.Parse(text),"Local lyrics");return;}catch{MusicLyricsMessage.Text="Local lyrics could not be read. Choose another file.";}}
-        if(MusicNowDetails.IsExpanded&&onlineEnabled)await FindMusicLyrics(true);
+        if(MusicNowPage.IsVisible&&onlineEnabled)await FindMusicLyrics(true);
     }
 
     private void RenderMusicNowQueue()
@@ -71,8 +71,7 @@ public partial class MainWindow
             var owner=musicServer;var button=new Button{Content=pair.track.Title+" · "+pair.track.Artist,HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch};button.Click+=(_,_)=>{if(ReferenceEquals(owner,musicServer)&&ReferenceEquals(tracks,serverTracks)){serverTrackIndex=pair.index;PlayServerMusic();}};MusicNowQueueItems.Children.Add(button);
         }}else{foreach(var path in localQueue.Items.Take(100)){var button=new Button{Content=musicLibrary?.Tracks.FirstOrDefault(x=>x.Path==path)?.Title??Path.GetFileNameWithoutExtension(path),HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch};button.Click+=(_,_)=>PlayQueueItem(path);MusicNowQueueItems.Children.Add(button);}}
     }
-    private void OpenMusicNow_Click(object? sender,RoutedEventArgs e){Page("Music");MusicNowDetails.IsExpanded=true;Avalonia.Threading.Dispatcher.UIThread.Post(()=>MusicNowView.BringIntoView());}
-    private async void MusicNowExpanded(object? sender,RoutedEventArgs e){if(musicNowTrack!=null&&musicLyrics==null&&onlineEnabled)await FindMusicLyrics(true);}
+    private void OpenMusicNow_Click(object? sender,RoutedEventArgs e)=>Page("Now Playing");
     private async void FindMusicLyrics_Click(object? sender,RoutedEventArgs e)=>await FindMusicLyrics(false);
     private async Task FindMusicLyrics(bool automatic)
     {
@@ -105,7 +104,7 @@ public partial class MainWindow
     {
         musicLyrics=lyrics;musicLyricIndex=-2;MusicLyricMatches.Children.Clear();MusicLyricLines.Children.Clear();musicLyricButtons.Clear();
         MusicLyricsPlain.Text=lyrics.Lines.Length==0?lyrics.Plain:"";
-        foreach(var line in lyrics.Lines.Take(1000)){var button=new Button{Content=new TextBlock{Text=line.Text,TextWrapping=TextWrapping.Wrap},HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch,HorizontalContentAlignment=Avalonia.Layout.HorizontalAlignment.Left};button.Click+=(_,_)=>{if(!NativePlaybackBusy&&playbackSnapshot.IsSeekable&&playbackSnapshot.Length>0){resumeAt=0;musicLyricClock.Reset();var target=Math.Clamp(line.Time+(long)(MusicLyricsOffset.Value??0),0,Math.Max(0,playbackSnapshot.Length));_=QueuePlayerCommand(native=>native.Time=target);}};musicLyricButtons.Add(button);MusicLyricLines.Children.Add(button);}
+        foreach(var line in lyrics.Lines.Take(1000)){var button=new Button{Content=new TextBlock{Text=line.Text,TextWrapping=TextWrapping.Wrap},HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch,HorizontalContentAlignment=Avalonia.Layout.HorizontalAlignment.Left};button.Classes.Add("lyricLine");button.IsVisible=!string.IsNullOrWhiteSpace(line.Text);button.Click+=(_,_)=>{if(!NativePlaybackBusy&&playbackSnapshot.IsSeekable&&playbackSnapshot.Length>0){resumeAt=0;musicLyricClock.Reset();var target=Math.Clamp(line.Time+(long)(MusicLyricsOffset.Value??0),0,Math.Max(0,playbackSnapshot.Length));_=QueuePlayerCommand(native=>native.Time=target);}};musicLyricButtons.Add(button);MusicLyricLines.Children.Add(button);}
         MusicLyricsMessage.Text=source+(lyrics.Lines.Length>0?" · synced":" · plain lyrics")+(lyrics.Lines.Length>1000?" · showing first 1000 lines":"");CacheMusicLyrics(source);UpdateMusicLyricHighlight();
     }
     private void CacheMusicLyrics(string? source=null)
@@ -113,12 +112,12 @@ public partial class MainWindow
         if(musicNowTrack==null||musicLyrics==null)return;if(musicLyricCache.Count>=25&&!musicLyricCache.ContainsKey(musicNowTrack.Key))musicLyricCache.Remove(musicLyricCache.Keys.First());
         var label=source??(musicLyricCache.TryGetValue(musicNowTrack.Key,out var old)?old.Source:"Lyrics");musicLyricCache[musicNowTrack.Key]=(musicLyrics,label,MusicLyricsOffset.Value??0);
     }
-    private void MusicLyricsOffsetChanged(object? sender,Avalonia.Controls.NumericUpDownValueChangedEventArgs e){if(musicLyricOffsetUpdating)return;musicLyricIndex=-2;CacheMusicLyrics();UpdateMusicLyricHighlight();}
+    private void MusicLyricsOffsetChanged(object? sender,Avalonia.Controls.NumericUpDownValueChangedEventArgs e){if(musicLyricOffsetUpdating)return;foreach(var line in musicLyricButtons)line.Classes.Set("currentLyric",false);musicLyricIndex=-2;CacheMusicLyrics();UpdateMusicLyricHighlight();}
     private void UpdateMusicLyricHighlight()
     {
         if(musicLyrics==null||!currentIsMusic)return;musicLyricClock.Observe(playbackSnapshot.Time,System.Diagnostics.Stopwatch.GetElapsedTime(0,playbackSnapshot.CapturedAt),playbackSnapshot.IsPlaying,playbackSnapshot.Rate);var position=musicLyricClock.Position(System.Diagnostics.Stopwatch.GetElapsedTime(0,System.Diagnostics.Stopwatch.GetTimestamp()));var index=musicLyrics.Active(position,(long)(MusicLyricsOffset.Value??0));if(index==musicLyricIndex)return;
-        if(musicLyricIndex>=0&&musicLyricIndex<musicLyricButtons.Count)musicLyricButtons[musicLyricIndex].Classes.Set("primary",false);musicLyricIndex=index;
-        if(index>=0&&index<musicLyricButtons.Count){musicLyricButtons[index].Classes.Set("primary",true);if(MusicNowDetails.IsExpanded&&MusicPage.IsVisible)musicLyricButtons[index].BringIntoView();}
+        if(musicLyricIndex>=0&&musicLyricIndex<musicLyricButtons.Count)musicLyricButtons[musicLyricIndex].Classes.Set("currentLyric",false);musicLyricIndex=index;
+        if(index>=0&&index<musicLyricButtons.Count){musicLyricButtons[index].Classes.Set("currentLyric",true);if(MusicNowPage.IsVisible&&musicLyricButtons[index].IsVisible)musicLyricButtons[index].BringIntoView();}
     }
     private async void ImportMusicLyrics_Click(object? sender,RoutedEventArgs e)
     {

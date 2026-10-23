@@ -31,6 +31,14 @@
     <Style Selector="Slider.playerSlider /template/ Thumb"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
     <Style Selector="Slider.playerSlider:pointerover /template/ Thumb, Slider.playerSlider:pressed /template/ Thumb"><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
     <Style Selector="Slider.playerSlider:pointerover /template/ RepeatButton#PART_DecreaseButton, Slider.playerSlider:pressed /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="{DynamicResource AccentLight}" /></Style>
+    <Style Selector="Button.lyricLine">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0,5" />
+      <Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="#9992AA" />
+    </Style>
+    <Style Selector="Button.lyricLine.currentLyric"><Setter Property="Foreground" Value="#E4D7FF" /></Style>
+    <Style Selector="Button.lyricLine:pointerover /template/ ContentPresenter, Button.lyricLine:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#B69AFF" />
+    </Style>
     <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#999BAF" /></Style>
   </Application.Styles>
 </Application>

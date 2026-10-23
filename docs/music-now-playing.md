@@ -1,6 +1,6 @@
-# Now Playing and provider-independent lyrics - 0.14.16
+# Now Playing and provider-independent lyrics - 0.14.17
 
-Click the current song title in the bottom music bar to open Music's Now Playing section. It shows large artwork, title, artist, album and source when supplied by the track, controls and a bounded current queue. MusicFree metadata comes from the playing queue, so browsing a different provider does not change its identity. Indexed local music supplies TagLib metadata/artwork. Server tracks supply available title, artist and album; server artwork and artist biographies are not added in this version. Missing information uses a visible fallback.
+Click the current song title in the bottom music bar or the sidebar Player button during music playback to open a dedicated Now Playing page. Music never opens the video canvas. The page shows artwork, title, artist, album and source when supplied, with an Up next disclosure. A single persistent bottom bar provides transport, seeking and volume; Back returns to browsing without stopping playback. Next/previous retain Now Playing when it is open. Space pauses/resumes and Left/Right seek; Alt+Left returns to Music. Lyrics appear as transparent text rows with an active text accent; blank timed cues clear the highlight without displaying a row. Matching, importing and timing controls are under Lyrics options. MusicFree metadata comes from the playing queue, so browsing a different provider does not change its identity. Indexed local music supplies TagLib metadata/artwork. Server tracks supply available title, artist and album; server artwork and artist biographies are not added in this version. Missing information uses a visible fallback.
 
 ## Lyrics
 
@@ -19,3 +19,5 @@ Parser/client fixture checks: timestamps and file offsets, simultaneous/repeated
 A live LRCLIB metadata request returned synchronized lyrics; lyric bodies were not printed or retained in the test report. Actual UI test with muted native music: Now Playing artwork and artist details, local LRC import through the same loader used by the file picker, active-line highlighting, seek following, delay adjustment and next-track reset. Existing Explore/provider switching, persistent controls, video-history exclusion and offline cancellation checks also passed. The file-picker dialog itself was not automated. Local/server native playback routes remain existing functionality; no real server account was used for this change.
 
 Public API/project: https://lrclib.net/docs and https://github.com/tranxuanthang/lrclib. The app uses the public API; it does not bundle the service or a lyric corpus.
+
+0.14.17 validation also covers routing the Player destination to music with the native video canvas hidden, back navigation with persistent playback, and the 960x680 layout. Video mini-player/fullscreen regression checks remain separate.
