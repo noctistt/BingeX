@@ -407,3 +407,5 @@ Music has a provider selector, automatic Explore, plugin-supplied sections and g
 Click the song title in the bottom bar for artwork, title/artist/album details, the current queue and lyrics. LRCLIB matching is independent of the music provider, with synced highlighting, manual recording choices, timing adjustment and local LRC/text import. Existing local LRC sidecars work offline. See [behaviour, privacy and tested limits](docs/music-now-playing.md).
 
 Music player update (0.14.17): dedicated artwork and lyrics screen, one persistent music control bar, music-aware Player navigation, and compact lyric options. See [Now Playing](docs/music-now-playing.md).
+
+Music provider tests (0.14.18): six additional author plugins checked, MaoerFM basic playback verified, and generic direct-string playback URLs supported. See [provider test results and limitations](docs/musicfree-provider-tests.md).

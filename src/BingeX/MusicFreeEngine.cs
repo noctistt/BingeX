@@ -61,7 +61,7 @@ public static class MusicFreeEngine
                     return JSON.stringify({isEnd:found?.isEnd!==false,items:tracks(found?.data)});
                 }
                 const media=await plugin.getMediaSource(args.item,'standard');
-                return JSON.stringify({url:media?.url??'',headers:media?.headers??{}});
+                return JSON.stringify({url:typeof media==='string'?media:(media?.url??''),headers:typeof media==='string'?{}:(media?.headers??{})});
             })()
             """).UnwrapIfPromise().AsString();
         if(result.Length>512*1024)throw new InvalidDataException();return result;

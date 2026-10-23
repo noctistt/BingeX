@@ -1,0 +1,192 @@
+{
+  "scope": "Reviewed author plugins, embedded BingeX host, public requests, muted native decoding; no accounts or media saved",
+  "providers": [
+    {
+      "provider": "youtube",
+      "sha256": "c95827eb9c1720f780e6f22289bc63947e7baf139a9b69a30ace975cbe71b464",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "catalogs",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "search",
+          "result": "failed",
+          "error": "MemoryLimitExceededException",
+          "httpStatus": 200
+        }
+      ]
+    },
+    {
+      "provider": "udio",
+      "sha256": "1762a7faf3e871a2f6551dc54a00eb68250278c9d1c86a13a4ed2094336e684c",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "catalogs",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "browse",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "search",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "search-count",
+          "count": 30
+        },
+        {
+          "operation": "resolve",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "source-validation",
+          "result": "failed",
+          "error": "InvalidDataException"
+        },
+        {
+          "operation": "resolve",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "source-validation",
+          "result": "failed",
+          "error": "InvalidDataException"
+        }
+      ]
+    },
+    {
+      "provider": "bilibili",
+      "sha256": "f7e5b3f2f78e0ed91a6c58cc3c81e81bd94956bb7493e0a95201a278a3961d01",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "failed",
+          "error": "JavaScriptException",
+          "httpStatus": null
+        }
+      ]
+    },
+    {
+      "provider": "kuaishou",
+      "sha256": "4fbc0c4df6fef50707f965a5fe373ca021abc822a4ac89fae4553718d46d1821",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "catalogs",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "search",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "search-count",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "provider": "maoerfm",
+      "sha256": "60d07697ae4801a14121ee5f667e6d71e5f2f278ba53c1adf3e7dff6e9edb44d",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "catalogs",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "search",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "search-count",
+          "count": 30
+        },
+        {
+          "operation": "resolve",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "native-audio",
+          "result": "pass",
+          "seekable": true
+        },
+        {
+          "operation": "resolve",
+          "result": "pass",
+          "httpStatus": 200
+        },
+        {
+          "operation": "native-audio",
+          "result": "pass",
+          "seekable": true
+        }
+      ]
+    },
+    {
+      "provider": "yinyuetai",
+      "sha256": "19c23b9c2e09ac90c4c69c378f72485450763565ba907a49a8df4d26136fc69a",
+      "stages": [
+        {
+          "operation": "inspect",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "catalogs",
+          "result": "pass",
+          "httpStatus": null
+        },
+        {
+          "operation": "search",
+          "result": "failed",
+          "error": "PromiseRejectedException",
+          "httpStatus": null
+        }
+      ]
+    }
+  ],
+  "authorRevision": "3fa57cf37c100f32ca96e9199c6b008e79db28c1",
+  "date": "2026-10-23",
+  "baselineVersion": "0.14.17 before URL-string normalization",
+  "followupVersion": "0.14.18",
+  "followup": {
+    "sourceShapes": "Object and direct string URLs normalize to the same source; host regression passed.",
+    "udio": "Search and browse passed. URL resolution now passes after generic normalization. Actual media request returned HTTP 403; in-app playback timed out. Not playable in this run.",
+    "maoerfm": "PASS: HTTPS import, search, two distinct tracks, muted native playback, dedicated music view, pause/resume, seeking, next track and offline retention.",
+    "maoerfmSeek": "Position remained beyond 8.5 seconds after a 2-second settle following seek to 8 seconds.",
+    "limitations": "Muted tests; no listening-quality or lossless claim. Decoder warnings occurred in an earlier MaoerFM seek run. No credentials supplied and no full media saved."
+  }
+}

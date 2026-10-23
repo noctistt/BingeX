@@ -9,6 +9,11 @@ internal static class HostChecks
         var folder=Path.Combine(Path.GetTempPath(),"bingex-musicfree-tests-"+Guid.NewGuid().ToString("N"));
         try{
             var metadata=MusicFreeWorker.Call<MusicFreeProvider>(provider,"inspect",new{},CancellationToken.None).GetAwaiter().GetResult();Check(metadata.Name=="Fixture","Worker startup failed");
+            foreach(var response in new[]{"({url:'https://example.org/audio'})","'https://example.org/audio'"}){
+                var code=provider.Replace("({url:'https://example.org/audio'})",response);
+                var resolved=MusicFreeWorker.Call<MusicFreeSource>(code,"resolve",new{item=new{id="fixture"}},CancellationToken.None).GetAwaiter().GetResult();
+                Check(resolved.Url=="https://example.org/audio"&&(resolved.Headers?.Count??0)==0,"URL object and string sources must normalize identically");
+            }
             foreach(var bad in new[]{"require('fs');"+provider,"eval('1');"+provider,"while(true){}"+provider}){
                 var failed=false;try{MusicFreeWorker.Call<MusicFreeProvider>(bad,"inspect",new{},CancellationToken.None).GetAwaiter().GetResult();}catch{failed=true;}Check(failed,"Unsupported or runaway code must fail");
             }

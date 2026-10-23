@@ -1,3 +1,7 @@
+# Additional provider tests - 0.14.18
+
+Six author plugins were tested through the embedded host. MaoerFM passed basic native and actual UI playback, pause/resume, settled seeking and next-track checks. Udio exposed a generic URL-string compatibility gap, now fixed, but its media server rejected playback with HTTP 403. YouTube, Bilibili, Kuaishou and Yinyuetai were not established as playable. See [provider results and limits](musicfree-provider-tests.md). No provider or runtime dependency was bundled.
+
 # Provider browsing update - 0.14.15
 
 Music now has a provider selector above Explore and Search. Multiple imported providers are retained (up to 12), with the last selected provider and each provider's trust choice remembered. Existing single-provider data is read in its original form and migrated when next saved; no reinstall is needed.

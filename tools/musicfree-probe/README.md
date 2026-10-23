@@ -42,3 +42,5 @@ Live tests use the pinned author Audiomack plugin and public Kevin MacLeod searc
 ## Now Playing/lyrics checks (0.14.16)
 
 `--lyrics-checks` runs LRC parsing, seek/delay and independent metadata-client fixtures. `--lyrics-live` makes an explicit public LRCLIB request and reports match availability without lyric bodies. `--ui-live` additionally checks Now Playing artwork/metadata, LRC loading via the production file loader, highlighting, seek/offset changes and next-track reset. The UI fixture contains original test labels, not downloaded song lyrics; no lyric corpus is checked in.
+
+Additional provider diagnostics: `--providers-live <reviewed-author-dist-directory> <report.json>` checks six author plugins. `--provider-ui-live <reviewed-https-plugin-link> piano` tests import, search, two-track playback, pause/resume, settled seeking and next in an isolated `musicfree-ui-test-*` profile. These are explicit live diagnostics; individual stage failures are recorded, and a completed baseline run does not mean all providers passed. See ../../docs/musicfree-provider-tests.md.
